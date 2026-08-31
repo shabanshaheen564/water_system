@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -9,6 +10,8 @@ use Tests\TestCase;
 
 class SpatiePermissionTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_user_can_receive_role(): void
     {
         $user = User::factory()->create();
