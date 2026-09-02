@@ -5,14 +5,13 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\CurrentUserController;
 
 Route::post('/login', [LoginController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [LogoutController::class, 'logout']);
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
+    Route::get('/user', [CurrentUserController::class, 'show']);
 });
 
 Route::middleware(['auth:sanctum', 'permission:users.create'])->group(function () {
