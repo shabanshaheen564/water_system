@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\CurrentUserController;
 use App\Http\Controllers\Auth\ProfileController;
+use App\Http\Controllers\Auth\ChangePasswordController;
 
 Route::post('/login', [LoginController::class, 'login']);
 
@@ -14,6 +15,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [LogoutController::class, 'logout']);
     Route::get('/user', [CurrentUserController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
+    Route::put('/profile/password', [ChangePasswordController::class, 'update']);
 });
 
 Route::middleware(['auth:sanctum', 'permission:users.create'])->group(function () {
