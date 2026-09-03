@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
+use App\Http\Requests\User\SyncUserRolesRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -116,6 +117,27 @@ class UserController extends Controller
         if ($request->has('roles')) {
             $user->syncRoles($request->roles);
         }
+
+        $user->load('roles');
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'is_active' => $user->is_active,
+            'last_login_at' => $user->last_login_at?->toISOString(),
+            'created_at' => $user->created_at?->toISOString(),
+            'updated_at' => $user->updated_at?->toISOString(),
+            'roles' => $user->roles->map(fn($role) => [
+                'id' => $role->id,
+                'name' => $role->name,
+            ])->values(),
+        ]);
+    }
+
+    public function syncRoles(SyncUserRolesRequest $request, User $user): JsonResponse
+    {
+        $user->syncRoles($request->roles);
 
         $user->load('roles');
 

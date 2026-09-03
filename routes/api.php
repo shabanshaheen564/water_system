@@ -9,6 +9,8 @@ use App\Http\Controllers\Auth\CurrentUserController;
 use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\UserController;
+use App\Http\Controllers\Auth\RoleController;
+use App\Http\Controllers\Auth\PermissionController;
 
 Route::post('/login', [LoginController::class, 'login']);
 
@@ -31,4 +33,24 @@ Route::middleware(['auth:sanctum', 'permission:users.create'])->group(function (
 
 Route::middleware(['auth:sanctum', 'permission:users.update'])->group(function () {
     Route::put('/users/{user}', [UserController::class, 'update']);
+    Route::put('/users/{user}/roles', [UserController::class, 'syncRoles']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:roles.view'])->group(function () {
+    Route::get('/roles', [RoleController::class, 'index']);
+    Route::get('/roles/{role}', [RoleController::class, 'show']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:roles.create'])->group(function () {
+    Route::post('/roles', [RoleController::class, 'store']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:roles.update'])->group(function () {
+    Route::put('/roles/{role}', [RoleController::class, 'update']);
+    Route::put('/roles/{role}/permissions', [RoleController::class, 'syncPermissions']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:permissions.view'])->group(function () {
+    Route::get('/permissions', [PermissionController::class, 'index']);
+    Route::get('/permissions/{permission}', [PermissionController::class, 'show']);
 });
