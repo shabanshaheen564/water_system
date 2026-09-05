@@ -11,6 +11,8 @@ use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Auth\RoleController;
 use App\Http\Controllers\Auth\PermissionController;
+use App\Http\Controllers\ComplaintController;
+use App\Http\Controllers\WorkOrderController;
 
 Route::post('/login', [LoginController::class, 'login']);
 
@@ -54,4 +56,32 @@ Route::middleware(['auth:sanctum', 'permission:roles.update'])->group(function (
 Route::middleware(['auth:sanctum', 'permission:permissions.view'])->group(function () {
     Route::get('/permissions', [PermissionController::class, 'index']);
     Route::get('/permissions/{permission}', [PermissionController::class, 'show']);
+});
+
+// Complaints
+Route::middleware(['auth:sanctum', 'permission:complaints.view'])->group(function () {
+    Route::get('/complaints', [ComplaintController::class, 'index']);
+    Route::get('/complaints/{complaint}', [ComplaintController::class, 'show']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:complaints.create'])->group(function () {
+    Route::post('/complaints', [ComplaintController::class, 'store']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:complaints.update'])->group(function () {
+    Route::put('/complaints/{complaint}', [ComplaintController::class, 'update']);
+});
+
+// Work Orders (using tasks permissions)
+Route::middleware(['auth:sanctum', 'permission:tasks.view'])->group(function () {
+    Route::get('/work-orders', [WorkOrderController::class, 'index']);
+    Route::get('/work-orders/{workOrder}', [WorkOrderController::class, 'show']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:tasks.create'])->group(function () {
+    Route::post('/work-orders', [WorkOrderController::class, 'store']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:tasks.update'])->group(function () {
+    Route::put('/work-orders/{workOrder}', [WorkOrderController::class, 'update']);
 });
