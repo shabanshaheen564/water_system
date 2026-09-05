@@ -14,7 +14,7 @@ use App\Http\Controllers\Auth\PermissionController;
 
 Route::post('/login', [LoginController::class, 'login']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/logout', [LogoutController::class, 'logout']);
     Route::get('/user', [CurrentUserController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
@@ -34,6 +34,7 @@ Route::middleware(['auth:sanctum', 'permission:users.create'])->group(function (
 Route::middleware(['auth:sanctum', 'permission:users.update'])->group(function () {
     Route::put('/users/{user}', [UserController::class, 'update']);
     Route::put('/users/{user}/roles', [UserController::class, 'syncRoles']);
+    Route::put('/users/{user}/status', [UserController::class, 'updateStatus']);
 });
 
 Route::middleware(['auth:sanctum', 'permission:roles.view'])->group(function () {
