@@ -13,6 +13,11 @@ use App\Http\Controllers\Auth\RoleController;
 use App\Http\Controllers\Auth\PermissionController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\WorkOrderController;
+use App\Http\Controllers\DatasetController;
+use App\Http\Controllers\DatasetFieldController;
+use App\Http\Controllers\DatasetRecordController;
+use App\Http\Controllers\DatasetRelationshipController;
+use App\Http\Controllers\DatasetImportController;
 
 Route::post('/login', [LoginController::class, 'login']);
 
@@ -84,4 +89,64 @@ Route::middleware(['auth:sanctum', 'permission:tasks.create'])->group(function (
 
 Route::middleware(['auth:sanctum', 'permission:tasks.update'])->group(function () {
     Route::put('/work-orders/{workOrder}', [WorkOrderController::class, 'update']);
+});
+
+// Datasets
+Route::middleware(['auth:sanctum', 'permission:datasets.view'])->group(function () {
+    Route::get('/datasets', [DatasetController::class, 'index']);
+    Route::get('/datasets/{dataset}', [DatasetController::class, 'show']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:datasets.create'])->group(function () {
+    Route::post('/datasets', [DatasetController::class, 'store']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:datasets.update'])->group(function () {
+    Route::put('/datasets/{dataset}', [DatasetController::class, 'update']);
+});
+
+// Dataset Fields
+Route::middleware(['auth:sanctum', 'permission:datasets.view'])->group(function () {
+    Route::get('/datasets/{dataset}/fields', [DatasetFieldController::class, 'index']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:datasets.create'])->group(function () {
+    Route::post('/datasets/{dataset}/fields', [DatasetFieldController::class, 'store']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:datasets.update'])->group(function () {
+    Route::put('/dataset-fields/{field}', [DatasetFieldController::class, 'update']);
+});
+
+// Dataset Records
+Route::middleware(['auth:sanctum', 'permission:datasets.view'])->group(function () {
+    Route::get('/datasets/{dataset}/records', [DatasetRecordController::class, 'index']);
+    Route::get('/datasets/{dataset}/records/{record}', [DatasetRecordController::class, 'show']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:datasets.create'])->group(function () {
+    Route::post('/datasets/{dataset}/records', [DatasetRecordController::class, 'store']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:datasets.update'])->group(function () {
+    Route::put('/datasets/{dataset}/records/{record}', [DatasetRecordController::class, 'update']);
+});
+
+// Dataset Relationships
+Route::middleware(['auth:sanctum', 'permission:datasets.view'])->group(function () {
+    Route::get('/datasets/{dataset}/relationships', [DatasetRelationshipController::class, 'index']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:datasets.create'])->group(function () {
+    Route::post('/datasets/{dataset}/relationships', [DatasetRelationshipController::class, 'store']);
+});
+
+// Dataset Imports
+Route::middleware(['auth:sanctum', 'permission:datasets.view'])->group(function () {
+    Route::get('/datasets/{dataset}/imports', [DatasetImportController::class, 'index']);
+    Route::get('/datasets/{dataset}/imports/{import}', [DatasetImportController::class, 'show']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:datasets.create'])->group(function () {
+    Route::post('/datasets/{dataset}/imports', [DatasetImportController::class, 'store']);
 });

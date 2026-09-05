@@ -162,12 +162,12 @@ class RolesAndPermissionsTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\Seeders\RolesAndPermissionsSeeder']);
 
         $this->assertEquals(6, Role::count());
-        $this->assertEquals(40, Permission::count()); // Total permissions defined
+        $this->assertEquals(44, Permission::count()); // Total permissions defined
 
         // Run again
         $this->artisan('db:seed', ['--class' => 'Database\Seeders\RolesAndPermissionsSeeder']);
 
         $this->assertEquals(6, Role::count(), 'Roles should not duplicate on re-seed');
-        $this->assertEquals(40, Permission::count(), 'Permissions should not duplicate on re-seed');
+        $this->assertEquals(44, Permission::count(), 'Permissions should not duplicate on re-seed');
     }
 }

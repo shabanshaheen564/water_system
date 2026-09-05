@@ -43,7 +43,7 @@ class PermissionTest extends TestCase
                 ],
             ]);
 
-        $this->assertEquals(40, count($response->json('data')));
+        $this->assertEquals(44, count($response->json('data')));
     }
 
     public function test_user_without_permissions_view_cannot_list_permissions(): void
@@ -79,7 +79,7 @@ class PermissionTest extends TestCase
         $response->assertStatus(200);
 
         $permissions = $response->json('data');
-        $this->assertEquals(40, count($permissions));
+        $this->assertEquals(44, count($permissions));
 
         foreach ($permissions as $perm) {
             $this->assertArrayHasKey('id', $perm);

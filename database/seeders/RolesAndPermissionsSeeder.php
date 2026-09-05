@@ -66,6 +66,12 @@ class RolesAndPermissionsSeeder extends Seeder
 
             // Audit Logs
             'audit_logs.view',
+
+            // Datasets
+            'datasets.view',
+            'datasets.create',
+            'datasets.update',
+            'datasets.delete',
         ];
 
         foreach ($permissions as $permission) {
@@ -86,11 +92,13 @@ class RolesAndPermissionsSeeder extends Seeder
                 'assets.view', 'assets.create', 'assets.update', 'assets.delete',
                 'reports.view', 'reports.export',
                 'audit_logs.view',
+                'datasets.view', 'datasets.create', 'datasets.update', 'datasets.delete',
             ],
             'GIS Admin' => [
                 'gis.view', 'gis.layers.create', 'gis.layers.update', 'gis.layers.delete', 'gis.fields.view', 'gis.features.create', 'gis.features.update', 'gis.features.delete', 'gis.import',
                 'assets.view', 'assets.create', 'assets.update',
                 'reports.view', 'reports.export',
+                'datasets.view', 'datasets.create', 'datasets.update', 'datasets.delete',
             ],
             'Engineer' => [
                 'complaints.view', 'complaints.create', 'complaints.update', 'complaints.transition', 'complaints.convert_to_task',
@@ -98,11 +106,13 @@ class RolesAndPermissionsSeeder extends Seeder
                 'assets.view',
                 'reports.view', 'reports.export',
                 'gis.view',
+                'datasets.view', 'datasets.create', 'datasets.update',
             ],
             'Field Worker' => [
                 'tasks.view', 'tasks.update', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
                 'assets.view',
                 'gis.view',
+                'datasets.view',
             ],
             'Viewer' => [
                 'complaints.view',
@@ -110,6 +120,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'assets.view',
                 'gis.view',
                 'reports.view',
+                'datasets.view',
             ],
         ];
 
