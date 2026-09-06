@@ -24,23 +24,51 @@ class GisFeatureController extends Controller
         $query = GisFeature::where('dataset_id', $dataset->id)
             ->with(['datasetRecord:id,values,identifier_value']);
 
-        // Bounding box filter
+        $datasetSrid = $dataset->srid ?? 4326;
+        $isWgs84 = $datasetSrid == 4326;
+
+        // Bounding box filter - parameter binding + SRID transformation
         if ($request->has('bbox')) {
             $bbox = explode(',', $request->bbox);
             if (count($bbox) === 4) {
                 [$minLng, $minLat, $maxLng, $maxLat] = array_map('floatval', $bbox);
-                $envelope = "ST_MakeEnvelope($minLng, $minLat, $maxLng, $maxLat, 4326)";
-                $query->whereRaw("geometry && $envelope");
+
+                if ($isWgs84) {
+                    // For 4326, no transformation needed - use envelope directly in 4326
+                    $envelopeSql = "ST_MakeEnvelope(?, ?, ?, ?, 4326)";
+                    $query->whereRaw("geometry && $envelopeSql", [$minLng, $minLat, $maxLng, $maxLat]);
+                } else {
+                    // For non-4326, create envelope in 4326, transform to dataset SRID
+                    // Cast SRID parameter to integer: ?::integer
+                    $envelopeSql = "ST_Transform(ST_MakeEnvelope(?, ?, ?, ?, 4326), ?::integer)";
+                    $query->whereRaw("geometry && $envelopeSql", [
+                        $minLng, $minLat, $maxLng, $maxLat, $datasetSrid
+                    ]);
+                }
             }
         }
 
-        // Optional: point-radius filter
+        // Optional: point-radius filter - parameter binding + SRID transformation
         if ($request->has(['lat', 'lng', 'radius'])) {
             $lat = $request->float('lat');
             $lng = $request->float('lng');
             $radius = $request->float('radius');
-            $point = "ST_SetSRID(ST_MakePoint($lng, $lat), 4326)";
-            $query->whereRaw("ST_DWithin(geometry, $point, $radius)");
+            $datasetSrid = $dataset->srid ?? 4326;
+
+            if ($datasetSrid == 4326) {
+                // For 4326 (WGS84), use geography for meter-based distance
+                $query->whereRaw(
+                    "ST_DWithin(geometry::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)",
+                    [$lng, $lat, $radius]
+                );
+            } else {
+                // For projected CRS, transform point to dataset SRID, use geometry distance (meters)
+                // Cast SRID parameter to integer: ?::integer
+                $pointSql = "ST_Transform(ST_SetSRID(ST_MakePoint(?, ?), 4326), ?::integer)";
+                $query->whereRaw("ST_DWithin(geometry, $pointSql, ?)", [
+                    $lng, $lat, $datasetSrid, $radius
+                ]);
+            }
         }
 
         $features = $query->orderBy('created_at', 'desc')->paginate();

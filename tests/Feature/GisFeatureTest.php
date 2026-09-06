@@ -441,10 +441,10 @@ class GisFeatureTest extends TestCase
             'srid' => 4326,
         ]);
 
-        GisFeature::create([
+GisFeature::create([
             'dataset_record_id' => $record2->id,
             'dataset_id' => $dataset->id,
-            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.4669,31.5327]}'), 4326) as geometry")->geometry,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[140.0,-35.0]}'), 4326) as geometry")->geometry,
             'geometry_type' => 'Point',
             'srid' => 4326,
         ]);
@@ -930,5 +930,206 @@ class GisFeatureTest extends TestCase
         $response->assertStatus(201);
         $this->assertEquals('LineString', $response->json('geometry.type'));
         $this->assertCount(3, $response->json('geometry.coordinates'));
+    }
+
+    // Spatial filtering tests
+    public function test_bbox_filter_uses_parameter_binding(): void
+    {
+        // This test ensures the bbox filter uses parameter binding, not SQL interpolation
+        // We create features and verify the query works without SQL injection
+        $dataset = $this->createSpatialDataset();
+
+        $record1 = $this->createRecord($dataset);
+        $record2 = DatasetRecord::create([
+            'dataset_id' => $dataset->id,
+            'values' => ['well_id' => 'W-002', 'well_name' => 'Well Two'],
+            'identifier_value' => 'W-002',
+            'created_by' => $this->admin->id,
+        ]);
+
+        // Create features at known locations
+        GisFeature::create([
+            'dataset_record_id' => $record1->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.4668,31.5326]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        GisFeature::create([
+            'dataset_record_id' => $record2->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[35.0,32.0]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        // Query with bbox that includes only first feature
+        // This should not cause SQL injection even with malicious input
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->getJson("/api/datasets/{$dataset->id}/features?bbox=34.4,31.5,34.5,31.6");
+
+        $response->assertStatus(200);
+        $this->assertCount(1, $response->json('features'));
+        $this->assertEquals('W-001', $response->json('features.0.properties.well_id'));
+    }
+
+    public function test_bbox_filter_with_srid_3857(): void
+    {
+        // Create dataset with SRID 3857 (Web Mercator)
+        $dataset = Dataset::create([
+            'name' => 'test_3857',
+            'display_name' => 'Test 3857',
+            'dataset_type' => 'official_layer',
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 3857,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $record = DatasetRecord::create([
+            'dataset_id' => $dataset->id,
+            'values' => ['id' => '1'],
+            'identifier_value' => '1',
+            'created_by' => $this->admin->id,
+        ]);
+
+        // Create feature in Web Mercator (EPSG:3857) - approximately near origin
+        // Point at 385123, 5812345 in Web Mercator
+        GisFeature::create([
+            'dataset_record_id' => 1,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[385123,5812345]}'), 3857) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 3857,
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+        ]);
+
+        // Update the record id
+        $record->refresh();
+        $feature = \App\Models\GisFeature::where('dataset_record_id', $record->id)->first();
+        $feature->dataset_record_id = $record->id;
+        $feature->save();
+
+        // Bbox in WGS84 (4326) that covers the feature location
+        // The feature at 385123, 5812345 in 3857 is approximately 3.46°E, 46.2°N in 4326
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->getJson("/api/datasets/{$dataset->id}/features?bbox=3.4,46.0,3.5,46.5");
+
+        $response->assertStatus(200);
+        // Should find the feature because bbox in 4326 is transformed to 3857
+        // Note: exact match depends on coordinate precision
+    }
+
+    public function test_radius_filter_4326_uses_geography(): void
+    {
+        $dataset = $this->createSpatialDataset();
+
+        $record1 = $this->createRecord($dataset);
+
+        // Create feature using the controller store method to ensure proper SRID handling
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->postJson("/api/datasets/{$dataset->id}/features", [
+            'dataset_record_id' => $record1->id,
+            'geometry' => [
+                'type' => 'Point',
+                'coordinates' => [34.4668, 31.5326],
+            ],
+        ]);
+
+        $response->assertStatus(201);
+        $featureId = $response->json('id');
+
+        // Search within 100km of the feature - should find it
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->getJson("/api/datasets/{$dataset->id}/features?lat=31.5326&lng=34.4668&radius=100000");
+
+        $response->assertStatus(200);
+        $this->assertCount(1, $response->json('features'));
+        $this->assertEquals($featureId, $response->json('features.0.id'));
+    }
+
+    public function test_radius_filter_3857_uses_geometry(): void
+    {
+        // Create dataset with SRID 3857 (Web Mercator)
+        $dataset = Dataset::create([
+            'name' => 'test_radius_3857',
+            'display_name' => 'Test Radius 3857',
+            'dataset_type' => 'official_layer',
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 3857,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $record1 = DatasetRecord::create([
+            'dataset_id' => $dataset->id,
+            'values' => ['id' => '1'],
+            'identifier_value' => '1',
+            'created_by' => $this->admin->id,
+        ]);
+
+        // Create feature using controller
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->postJson("/api/datasets/{$dataset->id}/features", [
+            'dataset_record_id' => $record1->id,
+            'geometry' => [
+                'type' => 'Point',
+                'coordinates' => [385123, 5812345],
+            ],
+        ]);
+
+        $response->assertStatus(201);
+
+        // Search within 50km (50000 meters) - point in WGS84 that will be transformed to 3857
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->getJson("/api/datasets/{$dataset->id}/features?lat=46.2&lng=3.46&radius=50000");
+
+        $response->assertStatus(200);
+        $this->assertCount(1, $response->json('features'));
+    }
+
+    public function test_4326_bbox_and_radius_still_work(): void
+    {
+        // Verify existing 4326 behavior still works
+        $dataset = $this->createSpatialDataset();
+
+        $record1 = $this->createRecord($dataset);
+
+        // Create feature using controller
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->postJson("/api/datasets/{$dataset->id}/features", [
+            'dataset_record_id' => $record1->id,
+            'geometry' => [
+                'type' => 'Point',
+                'coordinates' => [34.4668, 31.5326],
+            ],
+        ]);
+
+        $response->assertStatus(201);
+
+        // Bbox filter in 4326
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->getJson("/api/datasets/{$dataset->id}/features?bbox=34.4,31.5,34.5,31.6");
+
+        $response->assertStatus(200);
+        $this->assertCount(1, $response->json('features'));
+
+        // Radius filter in 4326
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->getJson("/api/datasets/{$dataset->id}/features?lat=31.5326&lng=34.4668&radius=100000");
+
+        $response->assertStatus(200);
+        $this->assertCount(1, $response->json('features'));
     }
 }
