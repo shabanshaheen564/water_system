@@ -62,6 +62,9 @@ class DatasetController extends Controller
                 'source_name' => $validated['source_name'] ?? null,
                 'source_format' => $validated['source_format'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
+                'is_spatial' => $validated['is_spatial'] ?? false,
+                'geometry_type' => $validated['geometry_type'] ?? null,
+                'srid' => $validated['srid'] ?? null,
                 'created_by' => $request->user()->id,
             ]);
 
@@ -107,6 +110,9 @@ class DatasetController extends Controller
             'source_name' => $dataset->source_name,
             'source_format' => $dataset->source_format,
             'is_active' => $dataset->is_active,
+            'is_spatial' => $dataset->is_spatial,
+            'geometry_type' => $dataset->geometry_type,
+            'srid' => $dataset->srid,
             'created_by' => $dataset->createdBy ? [
                 'id' => $dataset->createdBy->id,
                 'name' => $dataset->createdBy->name,

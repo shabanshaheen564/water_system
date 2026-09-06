@@ -16,6 +16,9 @@ class Dataset extends Model
         'source_name',
         'source_format',
         'is_active',
+        'is_spatial',
+        'geometry_type',
+        'srid',
         'created_by',
     ];
 
@@ -23,6 +26,7 @@ class Dataset extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_spatial' => 'boolean',
         ];
     }
 
@@ -46,6 +50,11 @@ class Dataset extends Model
         return $this->hasMany(DatasetImport::class);
     }
 
+    public function gisFeatures(): HasMany
+    {
+        return $this->hasMany(GisFeature::class);
+    }
+
     public function parentRelationships(): HasMany
     {
         return $this->hasMany(DatasetRelationship::class, 'parent_dataset_id');
@@ -59,5 +68,15 @@ class Dataset extends Model
     public function getIdentifierField(): ?DatasetField
     {
         return $this->fields()->where('is_identifier', true)->first();
+    }
+
+    public function isSpatial(): bool
+    {
+        return $this->is_spatial;
+    }
+
+    public function getSupportedGeometryTypes(): array
+    {
+        return ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'];
     }
 }

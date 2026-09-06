@@ -18,6 +18,7 @@ use App\Http\Controllers\DatasetFieldController;
 use App\Http\Controllers\DatasetRecordController;
 use App\Http\Controllers\DatasetRelationshipController;
 use App\Http\Controllers\DatasetImportController;
+use App\Http\Controllers\GisFeatureController;
 
 Route::post('/login', [LoginController::class, 'login']);
 
@@ -149,4 +150,18 @@ Route::middleware(['auth:sanctum', 'permission:datasets.view'])->group(function 
 
 Route::middleware(['auth:sanctum', 'permission:datasets.create'])->group(function () {
     Route::post('/datasets/{dataset}/imports', [DatasetImportController::class, 'store']);
+});
+
+// GIS Features
+Route::middleware(['auth:sanctum', 'permission:datasets.view'])->group(function () {
+    Route::get('/datasets/{dataset}/features', [GisFeatureController::class, 'index']);
+    Route::get('/datasets/{dataset}/features/{feature}', [GisFeatureController::class, 'show']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:datasets.create'])->group(function () {
+    Route::post('/datasets/{dataset}/features', [GisFeatureController::class, 'store']);
+});
+
+Route::middleware(['auth:sanctum', 'permission:datasets.update'])->group(function () {
+    Route::put('/datasets/{dataset}/features/{feature}', [GisFeatureController::class, 'update']);
 });
