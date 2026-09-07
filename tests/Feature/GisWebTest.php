@@ -379,4 +379,283 @@ class GisWebTest extends TestCase
 
         $response->assertRedirect(route('login'));
     }
+
+    // ============================================================
+    // STEP 16: Dynamic GIS Layer Management Tests
+    // ============================================================
+
+    public function test_spatial_datasets_include_feature_count(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'test_count',
+            'display_name' => 'Test Count',
+            'dataset_type' => 'official_layer',
+            'is_active' => true,
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $record = \App\Models\DatasetRecord::create([
+            'dataset_id' => $dataset->id,
+            'values' => ['name' => 'Feature 1'],
+            'identifier_value' => 'F-001',
+            'created_by' => $this->admin->id,
+        ]);
+
+        \App\Models\GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => \Illuminate\Support\Facades\DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.5,31.5]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get('/gis');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('spatialDatasets', function ($datasets) use ($dataset) {
+            $found = $datasets->firstWhere('id', $dataset->id);
+            return $found && $found->features_count === 1;
+        });
+    }
+
+    public function test_geojson_loading_handles_empty_dataset(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'empty_layer',
+            'display_name' => 'Empty Layer',
+            'dataset_type' => 'official_layer',
+            'is_active' => true,
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson("/api/datasets/{$dataset->id}/features");
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'type',
+            'features',
+            'links',
+            'meta',
+        ]);
+        $this->assertEquals('FeatureCollection', $response->json('type'));
+        $this->assertEquals(0, $response->json('meta.total'));
+        $this->assertEmpty($response->json('features'));
+    }
+
+    public function test_geojson_loading_handles_api_error(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'error_layer',
+            'display_name' => 'Error Layer',
+            'dataset_type' => 'official_layer',
+            'is_active' => true,
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+            'created_by' => $this->admin->id,
+        ]);
+
+        // Request non-existent dataset
+        $response = $this->actingAs($this->admin)
+            ->getJson("/api/datasets/999999/features");
+
+        $response->assertStatus(404);
+    }
+
+    public function test_feature_inspection_displays_attributes_dynamically(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'inspect_layer',
+            'display_name' => 'Inspect Layer',
+            'dataset_type' => 'official_layer',
+            'is_active' => true,
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $record = \App\Models\DatasetRecord::create([
+            'dataset_id' => $dataset->id,
+            'values' => [
+                'well_name' => 'Test Well',
+                'depth' => 150,
+                'is_active' => true,
+                'status' => 'active',
+                'notes' => 'Test well for inspection',
+            ],
+            'identifier_value' => 'INSP-001',
+            'created_by' => $this->admin->id,
+        ]);
+
+        \App\Models\GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => \Illuminate\Support\Facades\DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.5,31.5]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson("/api/datasets/{$dataset->id}/features");
+
+        $response->assertStatus(200);
+        $features = $response->json('features');
+        $this->assertCount(1, $features);
+
+        $feature = $features[0];
+        $this->assertEquals('Feature', $feature['type']);
+        $this->assertArrayHasKey('geometry', $feature);
+        $this->assertArrayHasKey('properties', $feature);
+
+        $properties = $feature['properties'];
+        $this->assertEquals('Test Well', $properties['well_name']);
+        $this->assertEquals(150, $properties['depth']);
+        $this->assertTrue($properties['is_active']);
+        $this->assertEquals('active', $properties['status']);
+        $this->assertEquals('Test well for inspection', $properties['notes']);
+    }
+
+    public function test_multiple_spatial_datasets_can_be_displayed_simultaneously(): void
+    {
+        $dataset1 = Dataset::create([
+            'name' => 'layer_one',
+            'display_name' => 'Layer One',
+            'dataset_type' => 'official_layer',
+            'is_active' => true,
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $dataset2 = Dataset::create([
+            'name' => 'layer_two',
+            'display_name' => 'Layer Two',
+            'dataset_type' => 'official_layer',
+            'is_active' => true,
+            'is_spatial' => true,
+            'geometry_type' => 'Polygon',
+            'srid' => 4326,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $record1 = \App\Models\DatasetRecord::create([
+            'dataset_id' => $dataset1->id,
+            'values' => ['name' => 'Feature 1'],
+            'identifier_value' => 'F-001',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $record2 = \App\Models\DatasetRecord::create([
+            'dataset_id' => $dataset2->id,
+            'values' => ['name' => 'Feature 2'],
+            'identifier_value' => 'F-002',
+            'created_by' => $this->admin->id,
+        ]);
+
+        \App\Models\GisFeature::create([
+            'dataset_record_id' => $record1->id,
+            'dataset_id' => $dataset1->id,
+            'geometry' => \Illuminate\Support\Facades\DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.5,31.5]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+\App\Models\GisFeature::create([
+            'dataset_record_id' => $record2->id,
+            'dataset_id' => $dataset2->id,
+            'geometry' => \Illuminate\Support\Facades\DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON(?), 4326) as geometry", [json_encode([
+                'type' => 'Polygon',
+                'coordinates' => [[[34.5, 31.5], [34.6, 31.5], [34.6, 31.6], [34.5, 31.6], [34.5, 31.5]]]
+            ])])->geometry,
+            'geometry_type' => 'Polygon',
+            'srid' => 4326,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get('/gis');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('spatialDatasets', function ($datasets) use ($dataset1, $dataset2) {
+            return $datasets->contains('id', $dataset1->id)
+                && $datasets->contains('id', $dataset2->id);
+        });
+    }
+
+    public function test_geometry_types_supported_dynamically(): void
+    {
+        $geometryTypes = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'];
+
+        foreach ($geometryTypes as $type) {
+            $dataset = Dataset::create([
+                'name' => 'layer_' . strtolower($type),
+                'display_name' => 'Layer ' . $type,
+                'dataset_type' => 'official_layer',
+                'is_active' => true,
+                'is_spatial' => true,
+                'geometry_type' => $type,
+                'srid' => 4326,
+                'created_by' => $this->admin->id,
+            ]);
+
+            $record = \App\Models\DatasetRecord::create([
+                'dataset_id' => $dataset->id,
+                'values' => ['name' => 'Feature'],
+                'identifier_value' => 'F-' . $type,
+                'created_by' => $this->admin->id,
+            ]);
+
+            // Create appropriate geometry based on type
+            $coordinates = $this->getCoordinatesForGeometryType($type);
+            $geojson = json_encode(['type' => $type, 'coordinates' => $coordinates]);
+
+            \App\Models\GisFeature::create([
+                'dataset_record_id' => $record->id,
+                'dataset_id' => $dataset->id,
+                'geometry' => \Illuminate\Support\Facades\DB::selectOne(
+                    "SELECT ST_SetSRID(ST_GeomFromGeoJSON(?), 4326) as geometry",
+                    [$geojson]
+                )->geometry,
+                'geometry_type' => $type,
+                'srid' => 4326,
+            ]);
+        }
+
+        // All datasets should be loaded and accessible
+        $response = $this->actingAs($this->admin)
+            ->get('/gis');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('spatialDatasets', function ($datasets) use ($geometryTypes) {
+            foreach ($geometryTypes as $type) {
+                $dataset = $datasets->firstWhere('name', 'layer_' . strtolower($type));
+                if (!$dataset) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    private function getCoordinatesForGeometryType(string $type): array
+    {
+        return match ($type) {
+            'Point' => [34.5, 31.5],
+            'MultiPoint' => [[34.5, 31.5], [34.6, 31.6]],
+            'LineString' => [[34.5, 31.5], [34.6, 31.6], [34.7, 31.7]],
+            'MultiLineString' => [[[34.5, 31.5], [34.6, 31.6]], [[34.7, 31.7], [34.8, 31.8]]],
+            'Polygon' => [[[34.5, 31.5], [34.6, 31.5], [34.6, 31.6], [34.5, 31.6], [34.5, 31.5]]],
+            'MultiPolygon' => [[[[34.5, 31.5], [34.6, 31.5], [34.6, 31.6], [34.5, 31.6], [34.5, 31.5]]]],
+            default => [34.5, 31.5],
+        };
+    }
 }

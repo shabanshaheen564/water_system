@@ -49,6 +49,53 @@
             background-color: #3b82f6;
             border-color: #3b82f6;
         }
+        .layer-loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .layer-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            margin: -8px 0 0 -8px;
+            border: 2px solid #3b82f6;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .layer-error {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+        }
+        .layer-error::after {
+            content: attr(data-error);
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: #dc2626;
+        }
+        .empty-layers {
+            text-align: center;
+            padding: 2rem;
+            color: #9ca3af;
+        }
+        .empty-layers svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        .layer-feature-count {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-left: 0.5rem;
+        }
     </style>
 @endsection
 
@@ -70,24 +117,37 @@
         <div class="mb-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-3">{{ __('Layers') }}</h2>
             <div id="layer-list" class="space-y-2">
-                @foreach($spatialDatasets as $dataset)
-                    <div class="layer-item p-3 rounded-lg border border-gray-200" data-dataset-id="{{ $dataset->id }}">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <input type="checkbox" 
-                                       class="layer-toggle h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" 
-                                       data-dataset-id="{{ $dataset->id }}"
-                                       id="layer-toggle-{{ $dataset->id }}"
-                                       {{ $loop->first ? 'checked' : '' }}>
-                                <label for="layer-toggle-{{ $dataset->id }}" class="cursor-pointer">
-                                    <span class="font-medium text-gray-900">{{ $dataset->display_name }}</span>
-                                    <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">{{ $dataset->geometry_type }}</span>
-                                </label>
-                            </div>
-                            <span class="text-xs text-gray-500">SRID: {{ $dataset->srid ?? 4326 }}</span>
-                        </div>
+                @if($spatialDatasets->isEmpty())
+                    <div class="empty-layers">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="mx-auto">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 2.25H8.25v11.25H4.5a1.125 1.125 0 00-1.125 1.125v2.25A2.25 2.25 0 004.5 21h15a2.25 2.25 0 002.25-2.25v-2.25a1.125 1.125 0 00-1.125-1.125H6.75v-9A2.25 2.25 0 002.25 3h1.5a1.125 1.125 0 011.125-1.125H12a1.125 1.125 0 011.125 1.125v1.5H21a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0119.5 22.5H4.5A2.25 2.25 0 012.25 20.25v-4.5c0-.621.504-1.125 1.125-1.125H12a1.125 1.125 0 001.125-1.125V6.75a9.06 9.06 0 00-1.5-.189 10.501 10.501 0 00-8.613 7.5H4.5a1.125 1.125 0 00-1.125 1.125v3.375c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V15a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v2.25c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75H5.25a.75.75 0 01-.75-.75v-1.5a2.25 2.25 0 012.25-2.25h15a2.25 2.25 0 012.25 2.25v2.25c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75H5.25a.75.75 0 01-.75-.75v-1.5a2.25 2.25 0 012.25-2.25h15a2.25 2.25 0 012.25 2.25v2.25c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75H5.25a.75.75 0 01-.75-.75v-1.5a2.25 2.25 0 012.25-2.25h15a2.25 2.25 0 012.25 2.25v2.25c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75H5.25a.75.75 0 01-.75-.75v-1.5a2.25 2.25 0 012.25-2.25h15a2.25 2.25 0 012.25 2.25v2.25c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75H5.25a.75.75 0 01-.75-.75v-1.5a2.25 2.25 0 012.25-2.25h15a2.25 2.25 0 012.25 2.25v2.25c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75H5.25a.75.75 0 01-.75-.75v-1.5a2.25 2.25 0 012.25-2.25h15a2.25 2.25 0 012.25 2.25v2.25c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75H5.25a.75.75 0 01-.75-.75v-1.5a2.25 2.25 0 012.25-2.25h15a2.25 2.25 0 012.25 2.25v2.25c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75H5.25a.75.75 0 01-.75-.75v-1.5" />
+                        </svg>
+                        <p class="mt-2 text-sm font-medium text-gray-900">{{ __('No spatial datasets available') }}</p>
+                        <p class="text-sm text-gray-500 mt-1">{{ __('Create a spatial dataset to get started') }}</p>
                     </div>
-                @endforeach
+                @else
+                    <div id="layer-list" class="space-y-2">
+                        @foreach($spatialDatasets as $dataset)
+                            <div class="layer-item p-3 rounded-lg border border-gray-200" data-dataset-id="{{ $dataset->id }}">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <input type="checkbox" 
+                                               class="layer-toggle h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" 
+                                               data-dataset-id="{{ $dataset->id }}"
+                                               id="layer-toggle-{{ $dataset->id }}"
+                                               {{ $loop->first ? 'checked' : '' }}>
+                                        <label for="layer-toggle-{{ $dataset->id }}" class="cursor-pointer flex items-center space-x-2">
+                                            <span class="font-medium text-gray-900">{{ $dataset->display_name }}</span>
+                                            <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">{{ $dataset->geometry_type }}</span>
+                                            <span class="layer-feature-count">({{ $dataset->features_count ?? 0 }})</span>
+                                        </label>
+                                    </div>
+                                    <span class="text-xs text-gray-500">SRID: {{ $dataset->srid ?? 4326 }}</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -159,7 +219,7 @@
                 const toggle = document.getElementById(toggleId);
                 if (toggle) {
                     toggle.disabled = true;
-                    toggle.parentElement.classList.add('opacity-50');
+                    toggle.closest('.layer-item').classList.add('layer-loading');
                 }
 
                 fetch(`/api/datasets/${datasetId}/features`)
@@ -173,21 +233,10 @@
                         const geojsonLayer = L.geoJSON(data.features, {
                             onEachFeature: onEachFeature,
                             pointToLayer: function(feature, latlng) {
-                                return L.circleMarker(latlng, {
-                                    radius: 6,
-                                    fillColor: getRandomColor(),
-                                    color: '#fff',
-                                    weight: 1,
-                                    opacity: 1,
-                                    fillOpacity: 0.8
-                                });
+                                return createPointMarker(feature, latlng);
                             },
                             style: function(feature) {
-                                return {
-                                    color: getRandomColor(),
-                                    weight: 2,
-                                    fillOpacity: 0.5
-                                };
+                                return getStyleForGeometryType(feature.geometry?.type);
                             }
                         });
 
@@ -202,7 +251,7 @@
                         const toggle = document.getElementById('layer-toggle-' + datasetId);
                         if (toggle) {
                             toggle.disabled = false;
-                            toggle.parentElement.classList.remove('opacity-50');
+                            toggle.closest('.layer-item').classList.remove('layer-loading');
                         }
                     })
                     .catch(error => {
@@ -211,7 +260,9 @@
                         if (toggle) {
                             toggle.checked = false;
                             toggle.disabled = false;
-                            toggle.parentElement.classList.remove('opacity-50');
+                            toggle.closest('.layer-item').classList.remove('layer-loading');
+                            toggle.closest('.layer-item').classList.add('layer-error');
+                            toggle.closest('.layer-item').setAttribute('data-error', error.message);
                         }
                         alert('Failed to load layer: ' + error.message);
                     });
@@ -222,6 +273,45 @@
                     map.removeLayer(layers[datasetId]);
                     delete layers[datasetId];
                 }
+            }
+
+            function createPointMarker(feature, latlng) {
+                const geometryType = feature.geometry?.type || 'Point';
+                const isPoint = ['Point', 'MultiPoint'].includes(geometryType);
+                
+                if (isPoint) {
+                    return L.circleMarker(latlng, {
+                        radius: 6,
+                        fillColor: getRandomColor(),
+                        color: '#fff',
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    });
+                }
+                
+                // For non-point geometries, use default marker
+                return L.marker(latlng, {
+                    icon: L.divIcon({
+                        className: 'custom-div-icon',
+                        html: '<div style="background: ' + getRandomColor() + '; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>',
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 6]
+                    })
+                });
+            }
+
+            function getStyleForGeometryType(geometryType) {
+                const baseColor = getRandomColor();
+                const styles = {
+                    'Point': { color: baseColor, weight: 2, fillOpacity: 0.5, radius: 6 },
+                    'MultiPoint': { color: baseColor, weight: 2, fillOpacity: 0.5, radius: 6 },
+                    'LineString': { color: baseColor, weight: 3, fillOpacity: 0, dashArray: '5, 10' },
+                    'MultiLineString': { color: baseColor, weight: 3, fillOpacity: 0, dashArray: '5, 10' },
+                    'Polygon': { color: baseColor, weight: 2, fillOpacity: 0.3 },
+                    'MultiPolygon': { color: baseColor, weight: 2, fillOpacity: 0.3 },
+                };
+                return styles[geometryType] || { color: baseColor, weight: 2, fillOpacity: 0.5 };
             }
 
             function onEachFeature(feature, layer) {
