@@ -7,11 +7,10 @@ use App\Models\Dataset;
 use App\Models\DatasetField;
 use App\Models\DatasetImport;
 use App\Models\DatasetRecord;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use DateTimeImmutable;
 use DateTimeInterface;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class DatasetImportController extends Controller
 {
@@ -100,13 +99,13 @@ class DatasetImportController extends Controller
             $errors = $parsed['errors'];
             $headers = $parsed['headers'];
 
-            $fields = $dataset->fields()->get()->keyBy('name');
-            $this->validateColumnMapping($columnMapping, $headers, $fields);
-
             $import->update([
                 'total_rows' => count($rows) + count($errors),
                 'status' => 'processing',
             ]);
+
+            $fields = $dataset->fields()->get()->keyBy('name');
+            $this->validateColumnMapping($columnMapping, $headers, $fields);
 
             $successful = 0;
             $failed = count($errors);
@@ -225,7 +224,6 @@ class DatasetImportController extends Controller
                 return ['headers' => [], 'rows' => [], 'errors' => []];
             }
 
-            $firstLine = preg_replace('/^\xEF\xBB\xBF/', '', $firstLine);
             $delimiter = $this->detectCsvDelimiter($firstLine);
             rewind($handle);
 
@@ -277,7 +275,7 @@ class DatasetImportController extends Controller
         $highestColumn = $sheet->getHighestColumn();
         $highestRow = $sheet->getHighestRow();
 
-        if ($highestRow < 1 || $highestColumn === 'A' && $sheet->getCell('A1')->getValue() === null) {
+        if ($highestRow < 1 || ($highestColumn === 'A' && $sheet->getCell('A1')->getValue() === null)) {
             return ['headers' => [], 'rows' => [], 'errors' => []];
         }
 
@@ -349,11 +347,6 @@ class DatasetImportController extends Controller
             }
 
             $mappedTargets[$targetField] = true;
-        }
-
-        $identifierField = $fields->first(fn (DatasetField $field) => $field->is_identifier);
-        if ($identifierField && !isset($mappedTargets[$identifierField->name]) && $identifierField->default_value === null) {
-            throw new \RuntimeException("Identifier field '{$identifierField->name}' must be mapped");
         }
     }
 
