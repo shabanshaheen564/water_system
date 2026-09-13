@@ -4,12 +4,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GisController;
 use App\Http\Controllers\DatasetWebController;
 use App\Http\Controllers\DatasetFieldWebController;
+use App\Http\Controllers\DatasetRecordWebController;
 use App\Http\Controllers\Auth\LoginController;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
-
+Route::get('/', function () { return view('welcome'); })->name('home');
 Route::get('/login', [LoginController::class, 'create'])->name('login');
 Route::post('/login', [LoginController::class, 'webLogin']);
 
@@ -18,6 +16,7 @@ Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(functio
     Route::get('/datasets', [DatasetWebController::class, 'index'])->name('datasets.index');
     Route::get('/datasets/{dataset}', [DatasetWebController::class, 'show'])->name('datasets.show');
     Route::get('/datasets/{dataset}/fields', [DatasetFieldWebController::class, 'index'])->name('datasets.fields.index');
+    Route::get('/datasets/{dataset}/records', [DatasetRecordWebController::class, 'index'])->name('datasets.records.index');
 });
 
 Route::middleware(['auth', 'active', 'permission:datasets.create'])->group(function () {
@@ -25,6 +24,8 @@ Route::middleware(['auth', 'active', 'permission:datasets.create'])->group(funct
     Route::post('/datasets', [DatasetWebController::class, 'store'])->name('datasets.store');
     Route::get('/datasets/{dataset}/fields/create', [DatasetFieldWebController::class, 'create'])->name('datasets.fields.create');
     Route::post('/datasets/{dataset}/fields', [DatasetFieldWebController::class, 'store'])->name('datasets.fields.store');
+    Route::get('/datasets/{dataset}/records/create', [DatasetRecordWebController::class, 'create'])->name('datasets.records.create');
+    Route::post('/datasets/{dataset}/records', [DatasetRecordWebController::class, 'store'])->name('datasets.records.store');
 });
 
 Route::middleware(['auth', 'active', 'permission:datasets.update'])->group(function () {
@@ -32,10 +33,13 @@ Route::middleware(['auth', 'active', 'permission:datasets.update'])->group(funct
     Route::put('/datasets/{dataset}', [DatasetWebController::class, 'update'])->name('datasets.update');
     Route::get('/datasets/{dataset}/fields/{field}/edit', [DatasetFieldWebController::class, 'edit'])->name('datasets.fields.edit');
     Route::put('/datasets/{dataset}/fields/{field}', [DatasetFieldWebController::class, 'update'])->name('datasets.fields.update');
+    Route::get('/datasets/{dataset}/records/{record}/edit', [DatasetRecordWebController::class, 'edit'])->name('datasets.records.edit');
+    Route::put('/datasets/{dataset}/records/{record}', [DatasetRecordWebController::class, 'update'])->name('datasets.records.update');
 });
 
 Route::middleware(['auth', 'active', 'permission:datasets.delete'])->group(function () {
     Route::delete('/datasets/{dataset}/fields/{field}', [DatasetFieldWebController::class, 'destroy'])->name('datasets.fields.destroy');
+    Route::delete('/datasets/{dataset}/records/{record}', [DatasetRecordWebController::class, 'destroy'])->name('datasets.records.destroy');
 });
 
 Route::middleware(['auth', 'active'])->post('/logout', [LoginController::class, 'webLogout'])->name('logout');
