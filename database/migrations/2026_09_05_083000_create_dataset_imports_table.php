@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('imported_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('started_at');
             $table->timestamp('completed_at')->nullable();
-            $table->string('status')->default('pending'); // pending, processing, completed, failed
+            $table->string('status')->default('pending'); // pending, processing, completed, partial, failed
             $table->integer('total_rows')->default(0);
             $table->integer('successful_rows')->default(0);
             $table->integer('failed_rows')->default(0);
