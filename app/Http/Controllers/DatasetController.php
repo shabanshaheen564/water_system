@@ -85,12 +85,11 @@ class DatasetController extends Controller
     {
         $validated = $request->validated();
 
-        // Remove protected fields
-        unset(
-            $validated['created_by'],
-            $validated['created_at'],
-            $validated['updated_at']
-        );
+        if ($this->changesProtectedConfiguration($dataset, $validated) && $this->hasDependentData($dataset)) {
+            return response()->json([
+                'message' => 'Spatial and type configuration cannot be changed after records, features, or relationships exist.',
+            ], 422);
+        }
 
         $dataset->update($validated);
 
@@ -135,5 +134,24 @@ class DatasetController extends Controller
             'created_at' => $dataset->created_at?->toISOString(),
             'updated_at' => $dataset->updated_at?->toISOString(),
         ];
+    }
+
+    private function changesProtectedConfiguration(Dataset $dataset, array $values): bool
+    {
+        foreach (['dataset_type', 'is_spatial', 'geometry_type', 'srid'] as $attribute) {
+            if (array_key_exists($attribute, $values) && $values[$attribute] != $dataset->{$attribute}) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasDependentData(Dataset $dataset): bool
+    {
+        return $dataset->records()->exists()
+            || $dataset->gisFeatures()->exists()
+            || $dataset->parentRelationships()->exists()
+            || $dataset->childRelationships()->exists();
     }
 }

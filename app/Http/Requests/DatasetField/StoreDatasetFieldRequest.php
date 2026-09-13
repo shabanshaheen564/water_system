@@ -7,6 +7,17 @@ use Illuminate\Validation\Rule;
 
 class StoreDatasetFieldRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('metadata'))) {
+            $metadata = json_decode($this->input('metadata'), true);
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $this->merge(['metadata' => $metadata]);
+            }
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -14,8 +25,10 @@ class StoreDatasetFieldRequest extends FormRequest
 
     public function rules(): array
     {
+        $datasetId = $this->route('dataset')->id;
+
         return [
-            'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9_]+$/'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9_]+$/', Rule::unique('dataset_fields', 'name')->where('dataset_id', $datasetId)],
             'display_name' => ['required', 'string', 'max:255'],
             'data_type' => ['required', Rule::in(['string', 'integer', 'decimal', 'boolean', 'date', 'datetime', 'text'])],
             'is_required' => ['sometimes', 'boolean'],
@@ -31,8 +44,6 @@ class StoreDatasetFieldRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $datasetId = $this->route('dataset')->id;
-            $dataset = \App\Models\Dataset::find($datasetId);
-
             if ($this->boolean('is_identifier')) {
                 $existingIdentifier = \App\Models\DatasetField::where('dataset_id', $datasetId)
                     ->where('is_identifier', true)

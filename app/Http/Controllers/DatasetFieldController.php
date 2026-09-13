@@ -6,6 +6,7 @@ use App\Http\Requests\DatasetField\StoreDatasetFieldRequest;
 use App\Http\Requests\DatasetField\UpdateDatasetFieldRequest;
 use App\Models\Dataset;
 use App\Models\DatasetField;
+use App\Models\DatasetRecord;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -55,12 +56,11 @@ class DatasetFieldController extends Controller
     {
         $validated = $request->validated();
 
-        // Remove protected fields
-        unset(
-            $validated['dataset_id'],
-            $validated['created_at'],
-            $validated['updated_at']
-        );
+        if ($this->changesStoredValueContract($field, $validated) && $this->fieldHasStoredValues($field)) {
+            return response()->json([
+                'message' => 'Field name and data type cannot be changed after records use this field.',
+            ], 422);
+        }
 
         $field->update($validated);
 
@@ -84,5 +84,18 @@ class DatasetFieldController extends Controller
             'created_at' => $field->created_at?->toISOString(),
             'updated_at' => $field->updated_at?->toISOString(),
         ];
+    }
+
+    private function changesStoredValueContract(DatasetField $field, array $values): bool
+    {
+        return (array_key_exists('name', $values) && $values['name'] !== $field->name)
+            || (array_key_exists('data_type', $values) && $values['data_type'] !== $field->data_type);
+    }
+
+    private function fieldHasStoredValues(DatasetField $field): bool
+    {
+        return DatasetRecord::where('dataset_id', $field->dataset_id)
+            ->whereRaw('jsonb_exists("values", ?)', [$field->name])
+            ->exists();
     }
 }
