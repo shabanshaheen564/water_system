@@ -22,6 +22,8 @@ class StoreDatasetRelationshipRequest extends FormRequest
             'parent_field_id' => ['required', Rule::exists('dataset_fields', 'id')],
             'child_field_id' => ['required', Rule::exists('dataset_fields', 'id')],
             'relationship_type' => ['required', Rule::in(['one_to_many'])],
+            'on_delete_behavior' => ['sometimes', 'required', Rule::in(['restrict', 'cascade', 'set_null'])],
+            'is_nullable' => ['sometimes', 'required', 'boolean'],
         ];
     }
 
@@ -32,6 +34,8 @@ class StoreDatasetRelationshipRequest extends FormRequest
             $childDatasetId = $this->input('child_dataset_id');
             $parentFieldId = $this->input('parent_field_id');
             $childFieldId = $this->input('child_field_id');
+            $onDeleteBehavior = $this->input('on_delete_behavior', 'restrict');
+            $isNullable = $this->input('is_nullable', false);
 
             // Validate parent field belongs to parent dataset
             if ($parentFieldId && $parentDatasetId) {
@@ -60,6 +64,22 @@ class StoreDatasetRelationshipRequest extends FormRequest
                 $parentField = DatasetField::find($parentFieldId);
                 if ($parentField && !$parentField->is_identifier && !$parentField->is_unique) {
                     $validator->errors()->add('parent_field_id', 'For one_to_many relationship, parent field must be an identifier or unique field.');
+                }
+            }
+
+            // set_null validation: reject if child field is required
+            if ($onDeleteBehavior === 'set_null') {
+                $childField = DatasetField::find($childFieldId);
+                if ($childField && $childField->is_required) {
+                    $validator->errors()->add('on_delete_behavior', 'Cannot use set_null when child field is required.');
+                }
+            }
+
+            // is_nullable validation: if is_nullable is true but child field is required, reject
+            if ($isNullable) {
+                $childField = DatasetField::find($childFieldId);
+                if ($childField && $childField->is_required) {
+                    $validator->errors()->add('is_nullable', 'Cannot set is_nullable to true when child field is required.');
                 }
             }
         });

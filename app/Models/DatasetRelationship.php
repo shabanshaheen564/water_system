@@ -13,7 +13,17 @@ class DatasetRelationship extends Model
         'parent_field_id',
         'child_field_id',
         'relationship_type',
+        'on_delete_behavior',
+        'is_nullable',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'on_delete_behavior' => 'string',
+            'is_nullable' => 'boolean',
+        ];
+    }
 
     public function parentDataset(): BelongsTo
     {

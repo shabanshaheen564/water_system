@@ -3,18 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\DatasetRelationship\StoreDatasetRelationshipRequest;
+use App\Http\Requests\DatasetRelationship\UpdateDatasetRelationshipRequest;
 use App\Models\Dataset;
 use App\Models\DatasetRelationship;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DatasetRelationshipController extends Controller
 {
     public function index(Request $request, Dataset $dataset): JsonResponse
     {
+        // Only return relationships where the route dataset is the parent.
+        // This prevents IDOR where a user with access to dataset A can see
+        // relationships where A is the child of dataset B without access to B.
         $query = DatasetRelationship::where('parent_dataset_id', $dataset->id)
-            ->orWhere('child_dataset_id', $dataset->id)
             ->with([
                 'parentDataset:id,name,display_name',
                 'childDataset:id,name,display_name',
@@ -48,12 +52,27 @@ class DatasetRelationshipController extends Controller
         ]);
     }
 
+    public function show(Dataset $dataset, DatasetRelationship $relationship): JsonResponse
+    {
+        $this->ensureRelationshipBelongsToDataset($dataset, $relationship);
+
+        $relationship->load([
+            'parentDataset:id,name,display_name',
+            'childDataset:id,name,display_name',
+            'parentField:id,name,display_name',
+            'childField:id,name,display_name',
+        ]);
+
+        return response()->json($this->formatRelationship($relationship));
+    }
+
     public function store(StoreDatasetRelationshipRequest $request, Dataset $dataset): JsonResponse
     {
         $validated = $request->validated();
 
-        // Ensure parent_dataset_id matches the route dataset
         $validated['parent_dataset_id'] = $dataset->id;
+        $validated['on_delete_behavior'] = $validated['on_delete_behavior'] ?? 'restrict';
+        $validated['is_nullable'] = $validated['is_nullable'] ?? false;
 
         return DB::transaction(function () use ($validated) {
             $relationship = DatasetRelationship::create($validated);
@@ -69,6 +88,43 @@ class DatasetRelationshipController extends Controller
         });
     }
 
+    public function update(UpdateDatasetRelationshipRequest $request, Dataset $dataset, DatasetRelationship $relationship): JsonResponse
+    {
+        $this->ensureRelationshipBelongsToDataset($dataset, $relationship);
+
+        $validated = $request->validated();
+
+        return DB::transaction(function () use ($validated, $relationship) {
+            $relationship->update($validated);
+
+            $relationship->load([
+                'parentDataset:id,name,display_name',
+                'childDataset:id,name,display_name',
+                'parentField:id,name,display_name',
+                'childField:id,name,display_name',
+            ]);
+
+            return response()->json($this->formatRelationship($relationship));
+        });
+    }
+
+    public function destroy(Dataset $dataset, DatasetRelationship $relationship): JsonResponse
+    {
+        $this->ensureRelationshipBelongsToDataset($dataset, $relationship);
+
+        $relationship->delete();
+
+        return response()->json(['message' => 'Relationship deleted successfully.']);
+    }
+
+    private function ensureRelationshipBelongsToDataset(Dataset $dataset, DatasetRelationship $relationship): void
+    {
+        abort_unless(
+            $relationship->parent_dataset_id === $dataset->id,
+            404
+        );
+    }
+
     private function formatRelationship(DatasetRelationship $relationship): array
     {
         return [
@@ -78,6 +134,8 @@ class DatasetRelationshipController extends Controller
             'parent_field_id' => $relationship->parent_field_id,
             'child_field_id' => $relationship->child_field_id,
             'relationship_type' => $relationship->relationship_type,
+            'on_delete_behavior' => $relationship->on_delete_behavior,
+            'is_nullable' => $relationship->is_nullable,
             'parent_dataset' => $relationship->parentDataset ? [
                 'id' => $relationship->parentDataset->id,
                 'name' => $relationship->parentDataset->name,

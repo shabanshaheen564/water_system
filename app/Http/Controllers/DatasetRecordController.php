@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\DatasetRecord\StoreDatasetRecordRequest;
 use App\Http\Requests\DatasetRecord\UpdateDatasetRecordRequest;
 use App\Models\Dataset;
+use App\Models\DatasetField;
 use App\Models\DatasetRecord;
+use App\Models\DatasetRelationship;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class DatasetRecordController extends Controller
 {
@@ -59,6 +62,8 @@ class DatasetRecordController extends Controller
             $identifierField = $dataset->getIdentifierField();
             $identifierValue = $identifierField ? ($values[$identifierField->name] ?? null) : null;
 
+            $this->validateChildReferences($dataset, $values);
+
             $record = DatasetRecord::create([
                 'dataset_id' => $dataset->id,
                 'values' => $values,
@@ -85,16 +90,28 @@ class DatasetRecordController extends Controller
         $values = $validated['values'] ?? [];
         $identifierField = $dataset->getIdentifierField();
 
-        if ($identifierField && array_key_exists($identifierField->name, $values)) {
-            unset($values[$identifierField->name]);
+        try {
+            return DB::transaction(function () use ($dataset, $record, $identifierField, $values) {
+                if ($identifierField && array_key_exists($identifierField->name, $values)) {
+                    $newIdentifierValue = $values[$identifierField->name];
+                    if ($newIdentifierValue !== $record->identifier_value) {
+                        $this->preventIdentifierChangeIfChildrenExist($dataset, $record, $identifierField->name, $newIdentifierValue);
+                    }
+                    unset($values[$identifierField->name]);
+                }
+
+                $this->validateChildReferences($dataset, array_merge($record->values ?? [], $values), $record->id);
+
+                $record->values = array_merge($record->values ?? [], $values);
+                $record->updated_by = request()->user()->id;
+                $record->save();
+                $record->load(['createdBy:id,name,email', 'updatedBy:id,name,email']);
+
+                return response()->json($this->formatRecord($record));
+            });
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         }
-
-        $record->values = array_merge($record->values ?? [], $values);
-        $record->updated_by = $request->user()->id;
-        $record->save();
-        $record->load(['createdBy:id,name,email', 'updatedBy:id,name,email']);
-
-        return response()->json($this->formatRecord($record));
     }
 
     public function destroy(Dataset $dataset, DatasetRecord $record): JsonResponse
@@ -107,8 +124,154 @@ class DatasetRecordController extends Controller
             ], 409);
         }
 
-        $record->delete();
-        return response()->json(['message' => 'Record deleted successfully.']);
+        try {
+            return DB::transaction(function () use ($dataset, $record) {
+                $this->handleParentDeletion($dataset, $record);
+
+                $record->delete();
+                return response()->json(['message' => 'Record deleted successfully.']);
+            });
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
+    }
+
+    private function validateChildReferences(Dataset $dataset, array $values, ?int $excludeRecordId = null): void
+    {
+        $relationships = DatasetRelationship::where('child_dataset_id', $dataset->id)
+            ->with(['parentDataset', 'parentField', 'childField'])
+            ->get();
+
+        foreach ($relationships as $relationship) {
+            $childField = $relationship->childField;
+            $parentField = $relationship->parentField;
+            $childValue = $values[$childField->name] ?? null;
+
+            if ($childValue === null) {
+                if (!$relationship->is_nullable && $childField->is_required) {
+                    throw new \RuntimeException("Child field '{$childField->name}' is required and cannot be null for this relationship.");
+                }
+                continue;
+            }
+
+            $parentExists = DatasetRecord::where('dataset_id', $relationship->parent_dataset_id)
+                ->whereJsonContains('values', [$parentField->name => $childValue])
+                ->when($excludeRecordId, function ($query) use ($relationship, $excludeRecordId) {
+                    $query->where('id', '!=', $excludeRecordId);
+                })
+                ->exists();
+
+            if (!$parentExists) {
+                throw new \RuntimeException("Referenced parent record not found for field '{$childField->name}' with value: {$childValue}.");
+            }
+        }
+    }
+
+    private function preventIdentifierChangeIfChildrenExist(Dataset $dataset, DatasetRecord $record, string $identifierFieldName, $newValue): void
+    {
+        $relationships = DatasetRelationship::where('parent_dataset_id', $dataset->id)
+            ->where('parent_field_id', $dataset->getIdentifierField()?->id)
+            ->with(['childDataset', 'childField'])
+            ->get();
+
+        foreach ($relationships as $relationship) {
+            $childField = $relationship->childField;
+            $oldValue = $record->identifier_value;
+
+            if ($oldValue === null) {
+                continue;
+            }
+
+            $hasChildren = DatasetRecord::where('dataset_id', $relationship->child_dataset_id)
+                ->whereJsonContains('values', [$childField->name => $oldValue])
+                ->exists();
+
+            if ($hasChildren) {
+                throw new \RuntimeException("Cannot change identifier field '{$identifierFieldName}' because existing child records depend on the current value.");
+            }
+        }
+    }
+
+    private function handleParentDeletion(Dataset $dataset, DatasetRecord $record): void
+    {
+        $relationships = DatasetRelationship::where('parent_dataset_id', $dataset->id)
+            ->where('parent_field_id', $dataset->getIdentifierField()?->id)
+            ->with(['childDataset', 'childField'])
+            ->get();
+
+        $parentIdentifierValue = $record->identifier_value;
+        if ($parentIdentifierValue === null) {
+            return;
+        }
+
+        // Collect all child records across all relationships first
+        $allChildRecords = [];
+        foreach ($relationships as $relationship) {
+            $childField = $relationship->childField;
+            $childRecords = DatasetRecord::where('dataset_id', $relationship->child_dataset_id)
+                ->whereJsonContains('values', [$childField->name => $parentIdentifierValue])
+                ->get();
+
+            if ($childRecords->isEmpty()) {
+                continue;
+            }
+
+            foreach ($childRecords as $childRecord) {
+                $allChildRecords[] = [
+                    'record' => $childRecord,
+                    'relationship' => $relationship,
+                    'childField' => $childField,
+                ];
+            }
+        }
+
+        if (empty($allChildRecords)) {
+            return;
+        }
+
+        // Verify all constraints before making any changes
+        foreach ($allChildRecords as $item) {
+            $relationship = $item['relationship'];
+            $childRecord = $item['record'];
+            $childField = $item['childField'];
+
+            switch ($relationship->on_delete_behavior) {
+                case 'restrict':
+                    throw new RuntimeException("Cannot delete record: dependent child records exist in dataset '{$relationship->childDataset->name}' (field: {$childField->name}). Delete child records first or change delete behavior.");
+
+                case 'cascade':
+                    if ($childRecord->gisFeature()->exists()) {
+                        throw new RuntimeException("Cannot cascade delete: child record (ID: {$childRecord->id}) has linked GIS feature.");
+                    }
+                    break;
+
+                case 'set_null':
+                    if (!$relationship->is_nullable) {
+                        throw new RuntimeException("Cannot set null: relationship is not configured as nullable.");
+                    }
+                    break;
+            }
+        }
+
+        // All checks passed, now apply changes
+        foreach ($allChildRecords as $item) {
+            $relationship = $item['relationship'];
+            $childRecord = $item['record'];
+            $childField = $item['childField'];
+
+            switch ($relationship->on_delete_behavior) {
+                case 'cascade':
+                    $childRecord->delete();
+                    break;
+
+                case 'set_null':
+                    $values = $childRecord->values ?? [];
+                    $values[$childField->name] = null;
+                    $childRecord->values = $values;
+                    $childRecord->save();
+                    break;
+            }
+        }
     }
 
     private function applyDefaults(Dataset $dataset, array $values): array

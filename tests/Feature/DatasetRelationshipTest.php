@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Dataset;
 use App\Models\DatasetField;
+use App\Models\DatasetRecord;
 use App\Models\DatasetRelationship;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,6 +33,8 @@ class DatasetRelationshipTest extends TestCase
         $permission = Permission::where('name', 'datasets.view')->first();
         $this->admin->givePermissionTo($permission);
         $permission = Permission::where('name', 'datasets.update')->first();
+        $this->admin->givePermissionTo($permission);
+        $permission = Permission::where('name', 'datasets.delete')->first();
         $this->admin->givePermissionTo($permission);
 
         $this->adminToken = $this->admin->createToken('mobile-app')->plainTextToken;
@@ -129,6 +132,8 @@ class DatasetRelationshipTest extends TestCase
                 'parent_field_id',
                 'child_field_id',
                 'relationship_type',
+                'on_delete_behavior',
+                'is_nullable',
                 'parent_dataset',
                 'child_dataset',
                 'parent_field',
@@ -140,6 +145,8 @@ class DatasetRelationshipTest extends TestCase
         $this->assertEquals($this->parentDataset->id, $response->json('parent_dataset_id'));
         $this->assertEquals($this->childDataset->id, $response->json('child_dataset_id'));
         $this->assertEquals('one_to_many', $response->json('relationship_type'));
+        $this->assertEquals('restrict', $response->json('on_delete_behavior'));
+        $this->assertEquals(false, $response->json('is_nullable'));
 
         $this->assertDatabaseHas('dataset_relationships', [
             'parent_dataset_id' => $this->parentDataset->id,
@@ -231,6 +238,236 @@ class DatasetRelationshipTest extends TestCase
         $response->assertStatus(422);
     }
 
+    // Show Tests
+    public function test_user_with_view_permission_can_show_relationship(): void
+    {
+        $relationship = DatasetRelationship::create([
+            'parent_dataset_id' => $this->parentDataset->id,
+            'child_dataset_id' => $this->childDataset->id,
+            'parent_field_id' => $this->parentIdentifierField->id,
+            'child_field_id' => $this->childReferenceField->id,
+            'relationship_type' => 'one_to_many',
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->getJson("/api/datasets/{$this->parentDataset->id}/relationships/{$relationship->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'id',
+                'parent_dataset_id',
+                'child_dataset_id',
+                'parent_field_id',
+                'child_field_id',
+                'relationship_type',
+                'on_delete_behavior',
+                'is_nullable',
+                'parent_dataset',
+                'child_dataset',
+                'parent_field',
+                'child_field',
+                'created_at',
+                'updated_at',
+            ]);
+    }
+
+    public function test_show_relationship_idor_protection(): void
+    {
+        $otherDataset = Dataset::create([
+            'name' => 'other',
+            'display_name' => 'Other',
+            'dataset_type' => 'official_layer',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $otherField = DatasetField::create([
+            'dataset_id' => $otherDataset->id,
+            'name' => 'id',
+            'display_name' => 'ID',
+            'data_type' => 'string',
+            'is_identifier' => true,
+            'is_unique' => true,
+        ]);
+
+        $relationship = DatasetRelationship::create([
+            'parent_dataset_id' => $otherDataset->id,
+            'child_dataset_id' => $this->parentDataset->id,
+            'parent_field_id' => $otherField->id,
+            'child_field_id' => $this->parentIdentifierField->id,
+            'relationship_type' => 'one_to_many',
+        ]);
+
+        // User tries to access relationship via parentDataset (where they have access)
+        // but the relationship's parent is otherDataset (which they don't have access to in this test context)
+        // The show endpoint should deny access since route dataset is not the parent
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->getJson("/api/datasets/{$this->parentDataset->id}/relationships/{$relationship->id}");
+
+        $response->assertStatus(404);
+    }
+
+    // Update Tests
+    public function test_user_with_update_permission_can_update_relationship(): void
+    {
+        $relationship = DatasetRelationship::create([
+            'parent_dataset_id' => $this->parentDataset->id,
+            'child_dataset_id' => $this->childDataset->id,
+            'parent_field_id' => $this->parentIdentifierField->id,
+            'child_field_id' => $this->childReferenceField->id,
+            'relationship_type' => 'one_to_many',
+            'on_delete_behavior' => 'restrict',
+            'is_nullable' => false,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->putJson("/api/datasets/{$this->parentDataset->id}/relationships/{$relationship->id}", [
+            'on_delete_behavior' => 'cascade',
+            'is_nullable' => true,
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertEquals('cascade', $response->json('on_delete_behavior'));
+        $this->assertEquals(true, $response->json('is_nullable'));
+    }
+
+    public function test_update_relationship_idor_protection(): void
+    {
+        $otherDataset = Dataset::create([
+            'name' => 'other',
+            'display_name' => 'Other',
+            'dataset_type' => 'official_layer',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $otherField = DatasetField::create([
+            'dataset_id' => $otherDataset->id,
+            'name' => 'id',
+            'display_name' => 'ID',
+            'data_type' => 'string',
+            'is_identifier' => true,
+            'is_unique' => true,
+        ]);
+
+        $relationship = DatasetRelationship::create([
+            'parent_dataset_id' => $otherDataset->id,
+            'child_dataset_id' => $this->parentDataset->id,
+            'parent_field_id' => $otherField->id,
+            'child_field_id' => $this->parentIdentifierField->id,
+            'relationship_type' => 'one_to_many',
+        ]);
+
+        // User tries to update relationship via parentDataset but relationship belongs to otherDataset as parent
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->putJson("/api/datasets/{$this->parentDataset->id}/relationships/{$relationship->id}", [
+            'on_delete_behavior' => 'cascade',
+        ]);
+
+        $response->assertStatus(404);
+    }
+
+    public function test_update_relationship_self_dataset_rejected(): void
+    {
+        $relationship = DatasetRelationship::create([
+            'parent_dataset_id' => $this->parentDataset->id,
+            'child_dataset_id' => $this->childDataset->id,
+            'parent_field_id' => $this->parentIdentifierField->id,
+            'child_field_id' => $this->childReferenceField->id,
+            'relationship_type' => 'one_to_many',
+        ]);
+
+        // Try to update child_dataset_id to parentDataset->id (creating self-reference)
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->putJson("/api/datasets/{$this->parentDataset->id}/relationships/{$relationship->id}", [
+            'child_dataset_id' => $this->parentDataset->id,
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertStringContainsString('must be different', $response->json('message'));
+    }
+
+    public function test_update_relationship_set_null_rejected_when_child_field_required(): void
+    {
+        $relationship = DatasetRelationship::create([
+            'parent_dataset_id' => $this->parentDataset->id,
+            'child_dataset_id' => $this->childDataset->id,
+            'parent_field_id' => $this->parentIdentifierField->id,
+            'child_field_id' => $this->childReferenceField->id,
+            'relationship_type' => 'one_to_many',
+            'on_delete_behavior' => 'restrict',
+            'is_nullable' => true,
+        ]);
+
+        // childReferenceField is required, so set_null should be rejected
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->putJson("/api/datasets/{$this->parentDataset->id}/relationships/{$relationship->id}", [
+            'on_delete_behavior' => 'set_null',
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertStringContainsString('Cannot use set_null when child field is required', $response->json('message'));
+    }
+
+    // Delete Tests
+    public function test_user_with_delete_permission_can_delete_relationship(): void
+    {
+        $relationship = DatasetRelationship::create([
+            'parent_dataset_id' => $this->parentDataset->id,
+            'child_dataset_id' => $this->childDataset->id,
+            'parent_field_id' => $this->parentIdentifierField->id,
+            'child_field_id' => $this->childReferenceField->id,
+            'relationship_type' => 'one_to_many',
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->deleteJson("/api/datasets/{$this->parentDataset->id}/relationships/{$relationship->id}");
+
+        $response->assertStatus(200);
+        $this->assertDatabaseMissing('dataset_relationships', ['id' => $relationship->id]);
+    }
+
+    public function test_delete_relationship_idor_protection(): void
+    {
+        $otherDataset = Dataset::create([
+            'name' => 'other',
+            'display_name' => 'Other',
+            'dataset_type' => 'official_layer',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $otherField = DatasetField::create([
+            'dataset_id' => $otherDataset->id,
+            'name' => 'id',
+            'display_name' => 'ID',
+            'data_type' => 'string',
+            'is_identifier' => true,
+            'is_unique' => true,
+        ]);
+
+        $relationship = DatasetRelationship::create([
+            'parent_dataset_id' => $otherDataset->id,
+            'child_dataset_id' => $this->parentDataset->id,
+            'parent_field_id' => $otherField->id,
+            'child_field_id' => $this->parentIdentifierField->id,
+            'relationship_type' => 'one_to_many',
+        ]);
+
+        // User tries to delete relationship via parentDataset but relationship belongs to otherDataset as parent
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->deleteJson("/api/datasets/{$this->parentDataset->id}/relationships/{$relationship->id}");
+
+        $response->assertStatus(404);
+        $this->assertDatabaseHas('dataset_relationships', ['id' => $relationship->id]);
+    }
+
+    // Index Tests
     public function test_can_list_relationships(): void
     {
         DatasetRelationship::create([
@@ -249,9 +486,9 @@ class DatasetRelationshipTest extends TestCase
         $this->assertCount(1, $response->json('data'));
     }
 
-    public function test_list_relationships_includes_both_parent_and_child(): void
+    public function test_list_relationships_only_includes_parent_relationships(): void
     {
-        // Parent relationship
+        // Parent relationship (this dataset as parent)
         DatasetRelationship::create([
             'parent_dataset_id' => $this->parentDataset->id,
             'child_dataset_id' => $this->childDataset->id,
@@ -260,7 +497,7 @@ class DatasetRelationshipTest extends TestCase
             'relationship_type' => 'one_to_many',
         ]);
 
-        // Child relationship (this dataset as child)
+        // Child relationship (this dataset as child) - should NOT appear in index
         $otherDataset = Dataset::create([
             'name' => 'other',
             'display_name' => 'Other',
@@ -290,6 +527,8 @@ class DatasetRelationshipTest extends TestCase
         ])->getJson("/api/datasets/{$this->parentDataset->id}/relationships");
 
         $response->assertStatus(200);
-        $this->assertCount(2, $response->json('data'));
+        // Only the parent relationship should be returned
+        $this->assertCount(1, $response->json('data'));
+        $this->assertEquals($this->parentDataset->id, $response->json('data.0.parent_dataset_id'));
     }
 }
