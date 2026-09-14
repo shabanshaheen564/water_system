@@ -14,6 +14,11 @@ use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
+    public function create(): \Illuminate\View\View
+    {
+        return view('auth.login');
+    }
+
     public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->only('email', 'password');
