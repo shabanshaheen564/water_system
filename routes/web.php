@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GisController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DatasetWebController;
 use App\Http\Controllers\DatasetFieldWebController;
 use App\Http\Controllers\DatasetRecordWebController;
@@ -12,7 +13,8 @@ Route::get('/login', [LoginController::class, 'create'])->name('login');
 Route::post('/login', [LoginController::class, 'webLogin']);
 
 Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(function () {
-    Route::get('/gis', [GisController::class, 'index'])->name('gis.index');
+    Route::get('/gis', [DashboardController::class, 'index'])->name('gis.index');
+    Route::get('/map', [GisController::class, 'index'])->name('map.index');
     Route::get('/datasets', [DatasetWebController::class, 'index'])->name('datasets.index');
     Route::get('/datasets/{dataset}', [DatasetWebController::class, 'show'])->name('datasets.show');
     Route::get('/datasets/{dataset}/fields', [DatasetFieldWebController::class, 'index'])->name('datasets.fields.index');

@@ -104,15 +104,15 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     {{ $dataset->fields_count ?? 0 }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <a href="{{ route('gis.index') }}?dataset={{ $dataset->id }}" 
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="{{ route('map.index') }}?dataset={{ $dataset->id }}" 
                                        class="text-blue-600 hover:text-blue-900 mr-3"
                                        @unless($dataset->is_spatial && $dataset->is_active)
                                            style="pointer-events: none; opacity: 0.5;"
                                        @endunless
-                                    >
-                                        {{ __('View on Map') }}
-                                    </a>
+                                     >
+                                         {{ __('View on Map') }}
+                                     </a>
                                     <a href="{{ route('datasets.show', $dataset) }}" class="text-gray-600 hover:text-gray-900 mr-3">
                                         {{ __('View') }}
                                     </a>

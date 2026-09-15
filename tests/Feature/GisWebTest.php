@@ -44,7 +44,7 @@ class GisWebTest extends TestCase
     public function test_gis_page_accessible_to_authorized_user(): void
     {
         $response = $this->actingAs($this->admin)
-            ->get('/gis');
+            ->get('/map');
 
         $response->assertStatus(200)
             ->assertViewIs('gis.index')
@@ -53,14 +53,14 @@ class GisWebTest extends TestCase
 
     public function test_gis_page_denied_to_unauthenticated_user(): void
     {
-        $response = $this->get('/gis');
+        $response = $this->get('/map');
         $response->assertStatus(302);
     }
 
     public function test_gis_page_denied_to_user_without_permission(): void
     {
         $response = $this->actingAs($this->viewer)
-            ->get('/gis');
+            ->get('/map');
         $response->assertStatus(403);
     }
 
@@ -98,7 +98,7 @@ class GisWebTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->get('/gis');
+            ->get('/map');
 
         $response->assertStatus(200);
         $response->assertViewHas('spatialDatasets', function ($datasets) use ($activeSpatial, $inactiveSpatial, $activeNonSpatial) {
@@ -191,7 +191,7 @@ class GisWebTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->get('/gis');
+            ->get('/map');
 
         $response->assertStatus(200);
         $response->assertViewHas('spatialDatasets', function ($datasets) use ($dataset) {
@@ -242,7 +242,7 @@ class GisWebTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->get('/gis');
+            ->get('/map');
 
         $response->assertStatus(200);
         $response->assertViewHas('spatialDatasets', function ($datasets) use ($newDataset) {
@@ -268,7 +268,7 @@ class GisWebTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->get('/gis');
+            ->get('/map');
 
         $response->assertStatus(200);
         $response->assertViewHas('spatialDatasets', function ($datasets) use ($inactiveDataset) {
@@ -288,7 +288,7 @@ class GisWebTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->get('/gis');
+            ->get('/map');
 
         $response->assertStatus(200);
         $response->assertViewHas('spatialDatasets', function ($datasets) use ($nonSpatialDataset) {
@@ -375,7 +375,7 @@ class GisWebTest extends TestCase
 
     public function test_unauthenticated_user_is_redirected_to_login(): void
     {
-        $response = $this->get('/gis');
+        $response = $this->get('/map');
 
         $response->assertRedirect(route('login'));
     }
@@ -413,7 +413,7 @@ class GisWebTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->get('/gis');
+            ->get('/map');
 
         $response->assertStatus(200);
         $response->assertViewHas('spatialDatasets', function ($datasets) use ($dataset) {
@@ -582,7 +582,7 @@ class GisWebTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->get('/gis');
+            ->get('/map');
 
         $response->assertStatus(200);
         $response->assertViewHas('spatialDatasets', function ($datasets) use ($dataset1, $dataset2) {
@@ -632,7 +632,7 @@ class GisWebTest extends TestCase
 
         // All datasets should be loaded and accessible
         $response = $this->actingAs($this->admin)
-            ->get('/gis');
+            ->get('/map');
 
         $response->assertStatus(200);
         $response->assertViewHas('spatialDatasets', function ($datasets) use ($geometryTypes) {

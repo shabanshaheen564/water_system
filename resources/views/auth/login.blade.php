@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ config('app.direction', 'rtl') }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,6 +10,7 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+
 <body class="bg-slate-50 dark:bg-slate-900 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
         <div class="text-center">
@@ -43,8 +45,7 @@
                             class="appearance-none relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800"
                             placeholder="{{ __('Email address') }}"
                             value="{{ old('email') }}"
-                            aria-describedby="email-error"
-                        >
+                            aria-describedby="email-error">
                         <div class="absolute inset-y-0 end-0 flex items-center pe-3 pointer-events-none">
                             <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v10a2 2 0 002 2z" />
@@ -52,7 +53,7 @@
                         </div>
                     </div>
                     @error('email')
-                        <p id="email-error" class="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">{{ $message }}</p>
+                    <p id="email-error" class="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -69,15 +70,13 @@
                             required
                             class="appearance-none relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800 pr-12"
                             placeholder="{{ __('Password') }}"
-                            aria-describedby="password-error"
-                        >
+                            aria-describedby="password-error">
                         <button
                             type="button"
                             id="toggle-password"
                             class="absolute inset-y-0 end-0 flex items-center pe-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-r-lg transition-colors"
                             aria-label="{{ __('Show password') }}"
-                            aria-pressed="false"
-                        >
+                            aria-pressed="false">
                             <svg id="eye-open" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -88,7 +87,7 @@
                         </button>
                     </div>
                     @error('password')
-                        <p id="password-error" class="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">{{ $message }}</p>
+                    <p id="password-error" class="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
             </div>
@@ -99,8 +98,7 @@
                 <button
                     type="submit"
                     id="login-button"
-                    class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
-                >
+                    class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md">
                     <span id="button-text">{{ __('Sign in') }}</span>
                     <svg id="button-spinner" class="hidden animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -135,7 +133,9 @@
                 passwordInput.type = isPassword ? 'text' : 'password';
                 eyeOpen.classList.toggle('hidden', isPassword);
                 eyeClosed.classList.toggle('hidden', !isPassword);
-                togglePasswordBtn.setAttribute('aria-label', isPassword ? '{{ __('Hide password') }}' : '{{ __('Show password') }}');
+                togglePasswordBtn.setAttribute('aria-label', isPassword ? '{{ __('
+                    Hide password ') }}' : '{{ __('
+                    Show password ') }}');
                 togglePasswordBtn.setAttribute('aria-pressed', isPassword);
             });
 
@@ -156,13 +156,15 @@
 
                 // Show loading state
                 loginButton.disabled = true;
-                buttonText.textContent = '{{ __('Signing in...') }}';
+                buttonText.textContent = '{{ __('
+                Signing in ...') }}';
                 buttonSpinner.classList.remove('hidden');
 
                 // Let the form submit normally to /login (web endpoint)
-                // which uses webLogin() -> Auth::login() -> session -> redirect to /gis
+                // which uses webLogin() -> Auth::login() -> session -> redirect to /gis (Dashboard)
             });
         })();
     </script>
 </body>
+
 </html>
