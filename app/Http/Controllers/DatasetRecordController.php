@@ -8,6 +8,7 @@ use App\Models\Dataset;
 use App\Models\DatasetField;
 use App\Models\DatasetRecord;
 use App\Models\DatasetRelationship;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -194,43 +195,54 @@ class DatasetRecordController extends Controller
 
     private function handleParentDeletion(Dataset $dataset, DatasetRecord $record): void
     {
-        $relationships = DatasetRelationship::where('parent_dataset_id', $dataset->id)
-            ->where('parent_field_id', $dataset->getIdentifierField()?->id)
-            ->with(['childDataset', 'childField'])
-            ->get();
-
+        $relationships = $this->getParentRelationships($dataset);
         $parentIdentifierValue = $record->identifier_value;
+
         if ($parentIdentifierValue === null) {
             return;
         }
 
-        // Collect all child records across all relationships first
-        $allChildRecords = [];
+        $childRecords = $this->collectChildRecords($relationships, $parentIdentifierValue);
+
+        if (empty($childRecords)) {
+            return;
+        }
+
+        $this->validateDeletionConstraints($childRecords);
+        $this->applyDeletionChanges($childRecords);
+    }
+
+    private function getParentRelationships(Dataset $dataset)
+    {
+        return DatasetRelationship::where('parent_dataset_id', $dataset->id)
+            ->where('parent_field_id', $dataset->getIdentifierField()?->id)
+            ->with(['childDataset', 'childField'])
+            ->get();
+    }
+
+    private function collectChildRecords($relationships, string $parentIdentifierValue): array
+    {
+        $childRecords = [];
         foreach ($relationships as $relationship) {
             $childField = $relationship->childField;
-            $childRecords = DatasetRecord::where('dataset_id', $relationship->child_dataset_id)
+            $children = DatasetRecord::where('dataset_id', $relationship->child_dataset_id)
                 ->whereJsonContains('values', [$childField->name => $parentIdentifierValue])
                 ->get();
 
-            if ($childRecords->isEmpty()) {
-                continue;
-            }
-
-            foreach ($childRecords as $childRecord) {
-                $allChildRecords[] = [
+            foreach ($children as $childRecord) {
+                $childRecords[] = [
                     'record' => $childRecord,
                     'relationship' => $relationship,
                     'childField' => $childField,
                 ];
             }
         }
+        return $childRecords;
+    }
 
-        if (empty($allChildRecords)) {
-            return;
-        }
-
-        // Verify all constraints before making any changes
-        foreach ($allChildRecords as $item) {
+    private function validateDeletionConstraints(array $childRecords): void
+    {
+        foreach ($childRecords as $item) {
             $relationship = $item['relationship'];
             $childRecord = $item['record'];
             $childField = $item['childField'];
@@ -252,9 +264,11 @@ class DatasetRecordController extends Controller
                     break;
             }
         }
+    }
 
-        // All checks passed, now apply changes
-        foreach ($allChildRecords as $item) {
+    private function applyDeletionChanges(array $childRecords): void
+    {
+        foreach ($childRecords as $item) {
             $relationship = $item['relationship'];
             $childRecord = $item['record'];
             $childField = $item['childField'];
@@ -296,10 +310,22 @@ class DatasetRecordController extends Controller
             'dataset_id' => $record->dataset_id,
             'values' => $record->values,
             'identifier_value' => $record->identifier_value,
-            'created_by' => $record->createdBy ? ['id' => $record->createdBy->id, 'name' => $record->createdBy->name, 'email' => $record->createdBy->email] : null,
-            'updated_by' => $record->updatedBy ? ['id' => $record->updatedBy->id, 'name' => $record->updatedBy->name, 'email' => $record->updatedBy->email] : null,
+            'created_by' => $this->formatUser($record->createdBy),
+            'updated_by' => $this->formatUser($record->updatedBy),
             'created_at' => $record->created_at?->toISOString(),
             'updated_at' => $record->updated_at?->toISOString(),
+        ];
+    }
+
+    private function formatUser(?User $user): ?array
+    {
+        if (!$user) {
+            return null;
+        }
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
         ];
     }
 }

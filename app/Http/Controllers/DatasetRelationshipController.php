@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\DatasetRelationship\StoreDatasetRelationshipRequest;
 use App\Http\Requests\DatasetRelationship\UpdateDatasetRelationshipRequest;
 use App\Models\Dataset;
+use App\Models\DatasetField;
 use App\Models\DatasetRelationship;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DatasetRelationshipController extends Controller
@@ -136,28 +136,36 @@ class DatasetRelationshipController extends Controller
             'relationship_type' => $relationship->relationship_type,
             'on_delete_behavior' => $relationship->on_delete_behavior,
             'is_nullable' => $relationship->is_nullable,
-            'parent_dataset' => $relationship->parentDataset ? [
-                'id' => $relationship->parentDataset->id,
-                'name' => $relationship->parentDataset->name,
-                'display_name' => $relationship->parentDataset->display_name,
-            ] : null,
-            'child_dataset' => $relationship->childDataset ? [
-                'id' => $relationship->childDataset->id,
-                'name' => $relationship->childDataset->name,
-                'display_name' => $relationship->childDataset->display_name,
-            ] : null,
-            'parent_field' => $relationship->parentField ? [
-                'id' => $relationship->parentField->id,
-                'name' => $relationship->parentField->name,
-                'display_name' => $relationship->parentField->display_name,
-            ] : null,
-            'child_field' => $relationship->childField ? [
-                'id' => $relationship->childField->id,
-                'name' => $relationship->childField->name,
-                'display_name' => $relationship->childField->display_name,
-            ] : null,
+            'parent_dataset' => $this->formatDataset($relationship->parentDataset),
+            'child_dataset' => $this->formatDataset($relationship->childDataset),
+            'parent_field' => $this->formatField($relationship->parentField),
+            'child_field' => $this->formatField($relationship->childField),
             'created_at' => $relationship->created_at?->toISOString(),
             'updated_at' => $relationship->updated_at?->toISOString(),
+        ];
+    }
+
+    private function formatDataset(?Dataset $dataset): ?array
+    {
+        if (!$dataset) {
+            return null;
+        }
+        return [
+            'id' => $dataset->id,
+            'name' => $dataset->name,
+            'display_name' => $dataset->display_name,
+        ];
+    }
+
+    private function formatField(?DatasetField $field): ?array
+    {
+        if (!$field) {
+            return null;
+        }
+        return [
+            'id' => $field->id,
+            'name' => $field->name,
+            'display_name' => $field->display_name,
         ];
     }
 }

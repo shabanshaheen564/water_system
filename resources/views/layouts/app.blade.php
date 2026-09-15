@@ -78,9 +78,6 @@
             @endcan
 
             <!-- GIS Map (if spatial datasets exist) -->
-            @php
-                $spatialDatasetsCount = \App\Models\Dataset::where('is_active', true)->where('is_spatial', true)->count();
-            @endphp
             @if ($spatialDatasetsCount > 0)
             <a
                 href="{{ route('map.index') }}"
