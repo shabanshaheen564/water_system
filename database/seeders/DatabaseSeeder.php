@@ -5,23 +5,30 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         $this->call(RolesAndPermissionsSeeder::class);
 
-        // User::factory(10)->create();
+        // Create the real System Owner (not a demo account)
+        $systemOwner = User::firstOrCreate(
+            ['email' => 'shabanshaheen564@gmail.com'],
+            [
+                'name' => 'Eng.Shaban Shaheen',
+                'password' => Hash::make('12345678'),
+                'is_active' => true,
+            ]
+        );
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $systemOwnerRole = Role::where('name', 'System Owner')->first();
+        if ($systemOwnerRole) {
+            $systemOwner->syncRoles([$systemOwnerRole]);
+        }
     }
 }
