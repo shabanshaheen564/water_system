@@ -4,66 +4,114 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'نظام إدارة المياه ونظم المعلومات الجغرافية - بلدية دير البلح') }} - {{ $title ?? __('Dashboard') }}</title>
+    <title>{{ config('app.name') }} — {{ $title ?? __('Dashboard') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="min-h-screen bg-slate-50 dark:bg-slate-900">
-    <div id="sidebar-overlay" class="fixed inset-0 z-40 hidden bg-black/50 lg:hidden" aria-hidden="true"></div>
+<body class="min-h-screen bg-white text-ink">
+    <div id="sidebar-overlay" class="fixed inset-0 z-40 hidden bg-black/30 lg:hidden" aria-hidden="true"></div>
 
-    <aside id="sidebar" class="fixed inset-y-0 right-0 z-50 flex w-64 -translate-x-0 translate-x-full flex-col border-l border-slate-200 bg-white transition-transform duration-300 ease-in-out dark:border-slate-700 dark:bg-slate-800 lg:translate-x-0" role="navigation" aria-label="Main navigation">
-        <div class="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-700">
+    <aside id="sidebar" class="fixed inset-y-0 end-0 z-50 flex w-64 translate-x-full flex-col border-s border-border bg-white transition-transform duration-200 lg:translate-x-0" role="navigation" aria-label="{{ __('messages.navigation.dashboard') }}">
+        <div class="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
             <a href="{{ route('gis.index') }}" class="flex min-w-0 items-center gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-700 text-white shadow-lg shadow-red-900/20">
-                    <svg class="h-6 w-6" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M8 48h48M14 45V25l12-8 12 8v20M43 45V28l8-5 5 4v18M20 45V32h6v13M31 45V32h6v13" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg>
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-600 text-white" aria-hidden="true">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 20h18M5 20V9l7-5 7 5v11M9 20v-6h6v6M17 8V5l3 2v13" stroke-linejoin="round"/></svg>
                 </div>
-                <span class="truncate text-sm font-bold text-slate-900 dark:text-white">بلدية دير البلح</span>
+                <span class="truncate text-sm font-semibold text-ink">{{ __('messages.app.municipality') }}</span>
             </a>
-            <button id="sidebar-close" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-700" aria-label="إغلاق القائمة"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            <button id="sidebar-close" class="rounded-md p-2 text-ink-secondary hover:bg-surface-1 lg:hidden" aria-label="إغلاق القائمة">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
         </div>
 
-        <nav class="min-h-0 flex-1 space-y-1 overflow-y-auto p-4" aria-label="Sidebar navigation">
-            <a href="{{ route('gis.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium {{ request()->routeIs('gis.index') ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700' }}"><span>▦</span><span>لوحة التحكم</span></a>
-            <a href="{{ route('datasets.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium {{ request()->routeIs('datasets.index') || request()->routeIs('datasets.show') || request()->routeIs('datasets.records.index') ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700' }}"><span>▤</span><span>قواعد البيانات</span></a>
+        <nav class="min-h-0 flex-1 overflow-y-auto p-3" aria-label="{{ __('messages.navigation.dashboard') }}">
+            <a href="{{ route('gis.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('gis.index') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-3H4v3Zm10-12h6V4h-6v4Z"/></svg>
+                <span>{{ __('messages.navigation.dashboard') }}</span>
+            </a>
+            <a href="{{ route('datasets.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('datasets.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12v7c0 1.66 3.58 3 8 3s8-1.34 8-3v-7"/></svg>
+                <span>{{ __('messages.navigation.datasets') }}</span>
+            </a>
             @can('datasets.create')
-                <a href="{{ route('datasets.create') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium {{ request()->routeIs('datasets.create') ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700' }}"><span>＋</span><span>إضافة مجموعة بيانات</span></a>
+                <a href="{{ route('datasets.create') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('datasets.create') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+                    <span>{{ __('messages.navigation.create_dataset') }}</span>
+                </a>
             @endcan
-            @if ($spatialDatasetsCount > 0)
-                <a href="{{ route('map.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium {{ request()->routeIs('map.index') ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700' }}"><span>⌖</span><span>الخريطة الجغرافية</span></a>
+            @if (($spatialDatasetsCount ?? 0) > 0)
+                <a href="{{ route('map.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('map.index') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 21s7-6.1 7-12A7 7 0 1 0 5 9c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                    <span>{{ __('messages.navigation.map') }}</span>
+                </a>
             @endif
             @can('users.view')
-                <a href="{{ route('users.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium {{ request()->routeIs('users.index') ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700' }}"><span>♙</span><span>المستخدمون</span></a>
+                <a href="{{ route('users.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('users.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><circle cx="9" cy="8" r="3"/><path d="M3 20c.4-4 2.3-6 6-6s5.6 2 6 6M16 11a3 3 0 1 0 0-6M16 14c3.1.2 4.7 2.2 5 6"/></svg>
+                    <span>{{ __('messages.navigation.users') }}</span>
+                </a>
             @endcan
             @can('roles.view')
-                <a href="{{ route('roles.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium {{ request()->routeIs('roles.index') ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700' }}"><span>◈</span><span>الأدوار</span></a>
+                <a href="{{ route('roles.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('roles.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 3 5 6v5c0 4.7 2.8 8.5 7 10 4.2-1.5 7-5.3 7-10V6l-7-3Z"/><path stroke-linecap="round" d="m9 12 2 2 4-4"/></svg>
+                    <span>{{ __('messages.navigation.roles') }}</span>
+                </a>
             @endcan
             @can('permissions.view')
-                <a href="{{ route('permissions.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium {{ request()->routeIs('permissions.index') ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700' }}"><span>✓</span><span>الصلاحيات</span></a>
+                <a href="{{ route('permissions.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('permissions.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 11a5 5 0 1 1 9.9-1H21v4h-3v3h-3v3h-3l-2-2.2A5 5 0 0 1 7 11Z"/><circle cx="12" cy="11" r="1"/></svg>
+                    <span>{{ __('messages.navigation.permissions') }}</span>
+                </a>
             @endcan
         </nav>
 
-        <div class="shrink-0 border-t border-slate-200 p-4 dark:border-slate-700">
-            <div class="flex min-w-0 items-center gap-3">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100 text-sm font-bold text-red-700 dark:bg-red-900/40 dark:text-red-300">{{ Str::upper(mb_substr(auth()->user()->name, 0, 1)) }}</div>
-                <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-slate-900 dark:text-white">{{ auth()->user()->name }}</p><p class="truncate text-xs text-slate-500">{{ auth()->user()->email }}</p></div>
+        @auth
+            <div class="shrink-0 border-t border-border p-3">
+                <div class="flex min-w-0 items-center gap-3">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">{{ Str::upper(mb_substr(auth()->user()->name, 0, 1)) }}</div>
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-semibold text-ink">{{ auth()->user()->name }}</p>
+                        <p class="truncate text-xs text-ink-muted ltr-value">{{ auth()->user()->email }}</p>
+                    </div>
+                </div>
             </div>
-        </div>
+        @endauth
     </aside>
 
-    <!-- Explicit right margin keeps the header/content completely clear of the sidebar. -->
-    <div class="min-h-screen lg:mr-64">
-        <header class="sticky top-0 z-30 h-16 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-700 dark:bg-slate-800/95">
+    <div class="min-h-screen lg:ms-64">
+        <header class="sticky top-0 z-30 h-16 border-b border-border bg-white">
             <div class="flex h-full items-center justify-between px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center gap-3">
-                    <button id="sidebar-toggle" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-700" aria-label="فتح القائمة" aria-expanded="false" aria-controls="sidebar"><svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-                    <div><p class="text-xs font-semibold text-red-700">بلدية دير البلح</p><h1 class="text-lg font-bold text-slate-900 dark:text-white">{{ $title ?? __('Dashboard') }}</h1></div>
+                    <button id="sidebar-toggle" class="rounded-md p-2 text-ink-secondary hover:bg-surface-1 lg:hidden" aria-label="فتح القائمة" aria-expanded="false" aria-controls="sidebar">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                    <div>
+                        <p class="text-xs font-medium text-brand-600">{{ __('messages.app.municipality') }}</p>
+                        <h1 class="text-xl font-semibold leading-[1.5] text-ink">{{ $title ?? __('Dashboard') }}</h1>
+                    </div>
                 </div>
                 @auth
                     <div id="user-menu-container" class="relative">
-                        <button id="user-menu-toggle" class="flex items-center gap-2 rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700" aria-expanded="false" aria-haspopup="true"><div class="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-sm font-bold text-red-700 dark:bg-red-900/40 dark:text-red-300">{{ Str::upper(mb_substr(auth()->user()->name, 0, 1)) }}</div><span class="hidden text-sm font-semibold text-slate-700 sm:block dark:text-slate-300">{{ auth()->user()->name }}</span><span class="text-slate-400">⌄</span></button>
-                        <div id="user-menu" class="absolute left-0 top-full z-50 mt-2 hidden w-64 rounded-xl border border-slate-200 bg-white py-2 shadow-xl dark:border-slate-700 dark:bg-slate-800">
-                            <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-700"><p class="text-sm font-semibold text-slate-900 dark:text-white">{{ auth()->user()->name }}</p><p class="mt-1 text-xs text-slate-500">{{ auth()->user()->email }}</p>@if(auth()->user()->roles->count())<p class="mt-2 text-xs font-semibold text-red-700 dark:text-red-400">{{ auth()->user()->roles->pluck('name')->implode(', ') }}</p>@endif</div>
-                            <form method="POST" action="{{ route('logout') }}" class="p-2">@csrf<button type="submit" class="w-full rounded-lg px-3 py-2 text-right text-sm font-semibold text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">تسجيل الخروج</button></form>
+                        <button id="user-menu-toggle" class="flex items-center gap-2 rounded-md p-1.5 hover:bg-surface-1" aria-expanded="false" aria-haspopup="true">
+                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">{{ Str::upper(mb_substr(auth()->user()->name, 0, 1)) }}</div>
+                            <span class="hidden text-sm font-medium text-ink-secondary sm:block">{{ auth()->user()->name }}</span>
+                            <svg class="h-4 w-4 text-ink-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="m7 10 5 5 5-5"/></svg>
+                        </button>
+                        <div id="user-menu" class="absolute end-0 top-full z-50 mt-2 hidden w-64 rounded-md border border-border bg-white py-2 shadow-md">
+                            <div class="border-b border-border px-4 py-3">
+                                <p class="text-sm font-semibold text-ink">{{ auth()->user()->name }}</p>
+                                <p class="mt-1 text-xs text-ink-muted ltr-value">{{ auth()->user()->email }}</p>
+                                @if(auth()->user()->roles->count())
+                                    <p class="mt-2 text-xs font-medium text-brand-600">{{ auth()->user()->roles->map(fn ($role) => __('messages.roles.' . $role->name))->implode('، ') }}</p>
+                                @endif
+                            </div>
+                            <form method="POST" action="{{ route('logout') }}" class="p-2">
+                                @csrf
+                                <button type="submit" class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-start text-sm font-medium text-danger hover:bg-danger-surface">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M10 17l5-5-5-5M15 12H3M21 3v18"/></svg>
+                                    {{ __('messages.navigation.logout') }}
+                                </button>
+                            </form>
                         </div>
                     </div>
                 @endauth
@@ -71,15 +119,16 @@
         </header>
 
         <main class="min-w-0">
-            @if (session('success'))<div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800" role="alert">{{ session('success') }}</div></div>@endif
-            @if (session('error'))<div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800" role="alert">{{ session('error') }}</div></div>@endif
+            @if (session('success'))
+                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-md border border-green-200 bg-success-surface px-4 py-3 text-success" role="alert">{{ session('success') }}</div></div>
+            @endif
+            @if (session('error'))
+                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-md border border-red-200 bg-danger-surface px-4 py-3 text-danger" role="alert">{{ session('error') }}</div></div>
+            @endif
             @yield('content')
         </main>
 
-        <footer class="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800">بلدية دير البلح — دائرة المياه والصرف الصحي © {{ date('Y') }}</footer>
+        <footer class="border-t border-border bg-white py-4 text-center text-xs text-ink-muted">{{ __('messages.app.municipality') }} — {{ __('messages.app.department') }} © {{ date('Y') }}</footer>
     </div>
-
-    @vite('resources/js/app.js')
-    @stack('scripts')
 </body>
 </html>
