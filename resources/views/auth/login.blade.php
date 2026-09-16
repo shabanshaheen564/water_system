@@ -13,7 +13,6 @@
             <h1 class="mt-1 text-2xl font-semibold leading-[1.5] text-ink">{{ __('messages.public.login') }}</h1>
             <p class="mt-1 text-sm text-ink-secondary">{{ __('messages.public.title') }}</p>
         </div>
-
         <div class="border border-border bg-white p-6 sm:p-8">
             <form id="login-form" method="POST" action="{{ route('login') }}" class="space-y-5">
                 @csrf
@@ -22,7 +21,6 @@
                     <input id="email" name="email" type="email" autocomplete="email" required value="{{ old('email') }}" class="input-institutional block w-full px-4 py-3 text-ink outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100" placeholder="{{ __('messages.public.email_placeholder') }}">
                     @error('email')<p class="mt-2 text-sm text-danger" role="alert">{{ $message }}</p>@enderror
                 </div>
-
                 <div>
                     <label for="password" class="mb-2 block text-sm font-medium text-ink">{{ __('messages.public.password') }}</label>
                     <div class="relative">
@@ -34,29 +32,15 @@
                     </div>
                     @error('password')<p class="mt-2 text-sm text-danger" role="alert">{{ $message }}</p>@enderror
                 </div>
-
-                @if(session('error'))
-                    <div class="border border-red-200 bg-danger-surface p-3 text-sm text-danger" role="alert">{{ session('error') }}</div>
-                @endif
-
+                @if(session('error'))<div class="border border-red-200 bg-danger-surface p-3 text-sm text-danger" role="alert">{{ session('error') }}</div>@endif
                 <button id="login-button" type="submit" class="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60">
                     <span id="button-text">{{ __('messages.public.login_short') }}</span>
                     <span id="button-spinner" class="hidden">{{ __('messages.public.logging_in') }}</span>
                 </button>
             </form>
-
-            <div class="mt-6 border-t border-border pt-5 text-center text-xs text-ink-muted">
-                {{ __('messages.app.department') }} — {{ __('messages.app.municipality') }}
-            </div>
+            <div class="mt-6 border-t border-border pt-5 text-center text-xs text-ink-muted">{{ __('messages.app.department') }} — {{ __('messages.app.municipality') }}</div>
         </div>
-
         <div class="mt-5 text-center"><a href="{{ route('home') }}" class="text-sm font-medium text-ink-secondary hover:text-brand-600">{{ __('messages.public.back_home') }}</a></div>
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-    window.initLoginPage?.();
-</script>
-@endpush
