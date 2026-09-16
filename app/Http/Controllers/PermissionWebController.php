@@ -9,7 +9,7 @@ class PermissionWebController extends Controller
 {
     public function index(): View
     {
-        $permissions = Permission::withCount('roles')
+        $permissions = Permission::with('roles')
             ->orderBy('name')
             ->get();
 
