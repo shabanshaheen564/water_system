@@ -1,3 +1,6 @@
+@import '@fontsource/ibm-plex-sans-arabic/400.css';
+@import '@fontsource/ibm-plex-sans-arabic/500.css';
+@import '@fontsource/ibm-plex-sans-arabic/600.css';
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -6,51 +9,38 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-
-    /* Civic palette inspired by the Deir al-Balah Municipality emblem:
-       red, palm green and coastal water blue. */
-    --color-blue-50: #fdf2f2;
-    --color-blue-100: #fce4e4;
-    --color-blue-200: #f8caca;
-    --color-blue-300: #f2a0a0;
-    --color-blue-400: #e66f6f;
-    --color-blue-500: #d94a4a;
-    --color-blue-600: #c62828;
-    --color-blue-700: #a91f1f;
-    --color-blue-800: #8b1a1a;
-    --color-blue-900: #741919;
-    --color-blue-950: #410909;
-
-    --color-purple-50: #eef9fc;
-    --color-purple-100: #d9f1f7;
-    --color-purple-200: #b8e3ee;
-    --color-purple-300: #84cfdf;
-    --color-purple-400: #4eb6cd;
-    --color-purple-500: #279bb7;
-    --color-purple-600: #1383a0;
-    --color-purple-700: #116b84;
-    --color-purple-800: #12576b;
-    --color-purple-900: #12495a;
-    --color-purple-950: #082f3c;
+    --font-sans: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+    --color-surface-0: #ffffff;
+    --color-surface-1: #f7f8f9;
+    --color-border: #e2e5e9;
+    --color-border-strong: #cbd1d8;
+    --color-ink: #1a1d21;
+    --color-ink-secondary: #5a6270;
+    --color-ink-muted: #8a929e;
+    --color-brand-50: #fbf2f2;
+    --color-brand-100: #f5dddd;
+    --color-brand-600: #8b1a1a;
+    --color-brand-700: #741515;
+    --color-success: #1f6b3b;
+    --color-success-surface: #f1f8f3;
+    --color-warning: #8a5a00;
+    --color-warning-surface: #fcf6ea;
+    --color-danger: #9b1c1c;
+    --color-danger-surface: #fdf2f2;
+    --color-info: #14556b;
+    --color-info-surface: #f0f7f9;
 }
 
-/* Ensure the desktop application area starts after the fixed RTL sidebar. */
-@media (min-width: 1024px) {
-    body > div.min-h-screen.lg\\:ms-64 {
-        margin-inline-start: 16rem !important;
-        margin-right: 16rem !important;
-        margin-left: 0 !important;
-    }
-}
-
-html,
-body {
-    font-family: var(--font-sans);
-}
-
-::selection {
-    background: #f8caca;
-    color: #741919;
-}
+html, body { min-height: 100%; font-family: var(--font-sans); background: #fff; color: var(--color-ink); }
+body { font-size: 14px; line-height: 1.8; }
+button, input, select, textarea { font: inherit; }
+::selection { background: var(--color-brand-100); color: var(--color-brand-700); }
+.ltr-value { direction: ltr; font-family: var(--font-mono); unicode-bidi: isolate; }
+.card-institutional { border: 1px solid var(--color-border); border-radius: 6px; background: #fff; }
+.input-institutional { border: 1px solid var(--color-border-strong); border-radius: 4px; background: #fff; }
+.table-institutional { width: 100%; border-collapse: collapse; background: #fff; }
+.table-institutional thead { background: var(--color-surface-1); }
+.table-institutional th, .table-institutional td { border-bottom: 1px solid var(--color-border); padding: .75rem 1rem; text-align: start; }
+.table-institutional th { font-size: 13px; font-weight: 500; }
+.map-layer-item.active { border-inline-start: 3px solid var(--color-brand-600); }
