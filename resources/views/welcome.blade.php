@@ -1,112 +1,65 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#7a1f1f">
-    <title>نظام إدارة المياه ونظم المعلومات الجغرافية - بلدية دير البلح</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>
-        .welcome-pattern {
-            background-image:
-                radial-gradient(circle at 10% 20%, rgba(198,40,40,.08) 0 2px, transparent 2px),
-                radial-gradient(circle at 90% 80%, rgba(19,131,160,.08) 0 2px, transparent 2px);
-            background-size: 34px 34px;
-        }
-    </style>
-</head>
-<body class="min-h-screen bg-slate-50 text-slate-800">
-    <main class="welcome-pattern min-h-screen flex items-center justify-center px-4 py-10">
-        <div class="w-full max-w-5xl">
-            <div class="overflow-hidden rounded-3xl bg-white border border-slate-200 shadow-2xl">
-                <div class="h-2 bg-gradient-to-l from-red-700 via-green-700 to-cyan-700"></div>
+@extends('layouts.guest')
 
-                <div class="grid lg:grid-cols-5">
-                    <section class="lg:col-span-3 p-8 sm:p-12 lg:p-14">
-                        <div class="flex items-center gap-4 mb-8">
-                            <div class="h-20 w-20 rounded-2xl bg-red-700 flex items-center justify-center shadow-lg shadow-red-900/20">
-                                <svg class="h-12 w-12 text-white" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-                                    <path d="M8 48h48" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
-                                    <path d="M14 45V25l12-8 12 8v20" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
-                                    <path d="M43 45V28l8-5 5 4v18" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
-                                    <path d="M20 45V32h6v13M31 45V32h6v13" stroke="currentColor" stroke-width="3"/>
-                                    <path d="M43 18c4-7 9-8 13-7-2 4-5 7-11 8M44 20c-7-4-11-3-14-1 4 4 8 5 13 4" stroke="#78b84a" stroke-width="3" stroke-linecap="round"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-red-700">دولة فلسطين</p>
-                                <h1 class="text-xl sm:text-2xl font-bold text-slate-900">بلدية دير البلح</h1>
-                            </div>
-                        </div>
-
-                        <div class="mb-8">
-                            <p class="text-sm font-semibold text-cyan-700 mb-2">دائرة المياه والصرف الصحي</p>
-                            <h2 class="text-3xl sm:text-4xl font-extrabold leading-tight text-slate-900">
-                                نظام إدارة المياه ونظم المعلومات الجغرافية
-                            </h2>
-                            <p class="mt-5 max-w-2xl text-base sm:text-lg leading-8 text-slate-600">
-                                منصة مؤسسية لإدارة بيانات المياه، الأصول المكانية، قواعد البيانات الجغرافية،
-                                ومتابعة المعلومات التشغيلية ضمن بيئة موحدة وآمنة.
-                            </p>
-                        </div>
-
-                        <div class="grid sm:grid-cols-3 gap-3 mb-8">
-                            <div class="rounded-xl bg-red-50 border border-red-100 p-4">
-                                <p class="font-bold text-red-800">بيانات مركزية</p>
-                                <p class="mt-1 text-xs text-slate-600">إدارة منظمة للبيانات</p>
-                            </div>
-                            <div class="rounded-xl bg-green-50 border border-green-100 p-4">
-                                <p class="font-bold text-green-800">GIS</p>
-                                <p class="mt-1 text-xs text-slate-600">إدارة البيانات المكانية</p>
-                            </div>
-                            <div class="rounded-xl bg-cyan-50 border border-cyan-100 p-4">
-                                <p class="font-bold text-cyan-800">أصول المياه</p>
-                                <p class="mt-1 text-xs text-slate-600">طبقات ومعلومات موثقة</p>
-                            </div>
-                        </div>
-
-                        <a href="{{ route('login') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-900/20 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-200 transition">
-                            الدخول إلى النظام
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M20 12H4"/></svg>
-                        </a>
-                    </section>
-
-                    <aside class="lg:col-span-2 bg-slate-900 p-8 sm:p-12 text-white flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center gap-2 mb-7">
-                                <span class="h-3 w-3 rounded-full bg-red-500"></span>
-                                <span class="h-3 w-3 rounded-full bg-green-500"></span>
-                                <span class="h-3 w-3 rounded-full bg-cyan-500"></span>
-                                <span class="text-xs font-semibold text-slate-300 mr-2">بوابة الموظفين والجهات المخولة</span>
-                            </div>
-                            <h3 class="text-2xl font-bold leading-9">إدارة أفضل للبيانات، وقرارات أكثر دقة</h3>
-                            <p class="mt-4 text-sm leading-7 text-slate-300">
-                                تم تصميم النظام ليكون نقطة وصول موحدة لبيانات دائرة المياه والصرف الصحي، مع قابلية التوسع نحو الأعمال التشغيلية والميدانية.
-                            </p>
-                        </div>
-
-                        <div class="mt-10 space-y-3">
-                            <div class="rounded-xl border border-slate-700 bg-slate-800/70 p-4">
-                                <p class="text-sm font-semibold">الخرائط والبيانات المكانية</p>
-                                <p class="mt-1 text-xs text-slate-400">عرض الطبقات والبيانات الجغرافية ضمن النظام.</p>
-                            </div>
-                            <div class="rounded-xl border border-slate-700 bg-slate-800/70 p-4">
-                                <p class="text-sm font-semibold">إدارة البيانات والصلاحيات</p>
-                                <p class="mt-1 text-xs text-slate-400">صلاحيات مؤسسية حسب الدور والمسؤولية.</p>
-                            </div>
-                            <div class="rounded-xl border border-slate-700 bg-slate-800/70 p-4">
-                                <p class="text-sm font-semibold">بيئة قابلة للتوسع</p>
-                                <p class="mt-1 text-xs text-slate-400">مصممة لاستيعاب الخدمات التشغيلية المستقبلية.</p>
-                            </div>
-                        </div>
-                    </aside>
+@section('content')
+<div class="mx-auto flex min-h-[calc(100vh-57px)] max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
+    <div class="w-full border border-border bg-white">
+        <div class="h-1 bg-brand-600"></div>
+        <div class="grid lg:grid-cols-[1.35fr_.65fr]">
+            <section class="p-8 sm:p-12 lg:p-16">
+                <div class="mb-10 flex items-center gap-4">
+                    <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-brand-600 text-white" aria-hidden="true">
+                        <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 20h18M5 20V9l7-5 7 5v11M9 20v-6h6v6M17 8V5l3 2v13" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-brand-600">{{ __('messages.public.state') }}</p>
+                        <h1 class="text-2xl font-semibold leading-[1.5] text-ink">{{ __('messages.app.municipality') }}</h1>
+                    </div>
                 </div>
 
-                <footer class="border-t border-slate-200 px-6 py-4 text-center text-xs text-slate-500">
-                    بلدية دير البلح — دائرة المياه والصرف الصحي © {{ date('Y') }}
-                </footer>
-            </div>
+                <p class="mb-2 text-sm font-medium text-ink-secondary">{{ __('messages.app.department') }} — {{ __('messages.app.section') }}</p>
+                <h2 class="max-w-3xl text-3xl font-semibold leading-[1.5] text-ink sm:text-4xl">{{ __('messages.public.title') }}</h2>
+                <p class="mt-5 max-w-2xl text-base leading-[1.9] text-ink-secondary">{{ __('messages.public.description') }}</p>
+
+                <div class="mt-9 grid gap-3 sm:grid-cols-3">
+                    <div class="border border-border bg-surface-1 p-4">
+                        <p class="font-semibold text-ink">{{ __('messages.public.central_data') }}</p>
+                        <p class="mt-1 text-xs text-ink-secondary">{{ __('messages.public.central_data_desc') }}</p>
+                    </div>
+                    <div class="border border-border bg-surface-1 p-4">
+                        <p class="font-semibold text-ink">{{ __('messages.public.gis') }}</p>
+                        <p class="mt-1 text-xs text-ink-secondary">{{ __('messages.public.gis_desc') }}</p>
+                    </div>
+                    <div class="border border-border bg-surface-1 p-4">
+                        <p class="font-semibold text-ink">{{ __('messages.public.water_assets') }}</p>
+                        <p class="mt-1 text-xs text-ink-secondary">{{ __('messages.public.water_assets_desc') }}</p>
+                    </div>
+                </div>
+
+                <a href="{{ route('login') }}" class="mt-9 inline-flex items-center gap-2 rounded-md bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-100">
+                    {{ __('messages.public.login') }}
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </section>
+
+            <aside class="border-t border-border bg-surface-1 p-8 sm:p-10 lg:border-s lg:border-t-0">
+                <p class="text-xs font-medium text-brand-600">{{ __('messages.public.portal') }}</p>
+                <h3 class="mt-5 text-2xl font-semibold leading-[1.6] text-ink">{{ __('messages.public.title') }}</h3>
+                <div class="mt-8 space-y-3">
+                    <div class="border border-border bg-white p-4">
+                        <p class="text-sm font-medium text-ink">{{ __('messages.public.gis') }}</p>
+                        <p class="mt-1 text-xs text-ink-secondary">{{ __('messages.public.gis_desc') }}</p>
+                    </div>
+                    <div class="border border-border bg-white p-4">
+                        <p class="text-sm font-medium text-ink">{{ __('messages.navigation.datasets') }}</p>
+                        <p class="mt-1 text-xs text-ink-secondary">{{ __('messages.public.central_data_desc') }}</p>
+                    </div>
+                    <div class="border border-border bg-white p-4">
+                        <p class="text-sm font-medium text-ink">{{ __('messages.public.water_assets') }}</p>
+                        <p class="mt-1 text-xs text-ink-secondary">{{ __('messages.public.water_assets_desc') }}</p>
+                    </div>
+                </div>
+            </aside>
         </div>
-    </main>
-</body>
-</html>
+    </div>
+</div>
+@endsection
