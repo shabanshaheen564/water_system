@@ -13,6 +13,19 @@ class UserWebController extends Controller
             ->orderBy('name')
             ->paginate(20);
 
-        return view('users.index', compact('users'));
+        return view('users.index', [
+            'users' => $users,
+            'title' => __('Users'),
+        ]);
+    }
+
+    public function show(User $user): View
+    {
+        $user->load('roles.permissions');
+
+        return view('users.show', [
+            'user' => $user,
+            'title' => __('User Details'),
+        ]);
     }
 }
