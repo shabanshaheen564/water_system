@@ -84,9 +84,13 @@ class RoleController extends Controller
 
     public function update(UpdateRoleRequest $request, Role $role): JsonResponse
     {
-        $this->ensureRoleManagementAccess($role);
-
         $validated = $request->validated();
+
+        if ($role->name === 'System Owner' && $request->has('permissions') && empty($validated['permissions'])) {
+            abort(422, 'System Owner role must retain at least one permission.');
+        }
+
+        $this->ensureRoleManagementAccess($role);
 
         if ($role->name === 'System Owner' && $validated['name'] !== 'System Owner') {
             abort(422, 'The System Owner role name cannot be changed.');
@@ -116,6 +120,10 @@ class RoleController extends Controller
 
     public function syncPermissions(SyncRolePermissionsRequest $request, Role $role): JsonResponse
     {
+        if ($role->name === 'System Owner' && empty($request->permissions)) {
+            abort(422, 'System Owner role must retain at least one permission.');
+        }
+
         $this->ensureRoleManagementAccess($role);
         $this->syncPermissionsWithProtection($role, $request->permissions);
 
