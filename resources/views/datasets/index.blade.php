@@ -3,131 +3,96 @@
 @section('title', __('Datasets'))
 
 @section('content')
-    <div class="p-4 sm:p-6 lg:p-8">
-        <div class="mb-6 flex items-center justify-between">
+    <div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        <div class="mb-6 flex items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">{{ __('Datasets') }}</h1>
-                <p class="text-gray-600 mt-1">{{ __('Browse and manage datasets') }}</p>
+                <h2 class="text-xl font-semibold leading-[1.5] text-ink">{{ __('Datasets') }}</h2>
+                <p class="mt-1 text-sm text-ink-secondary">{{ __('Browse and manage datasets') }}</p>
             </div>
             @can('datasets.create')
-                <a href="{{ route('datasets.create') }}" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                <a href="{{ route('datasets.create') }}" class="shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
                     {{ __('Create Dataset') }}
                 </a>
             @endcan
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="card-institutional overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+                <table class="table-institutional">
+                    <thead>
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Display Name') }}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Name') }}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Type') }}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Spatial') }}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Geometry Type') }}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('SRID') }}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Status') }}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Records') }}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Features') }}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Fields') }}</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Actions') }}</th>
+                            <th>{{ __('Display Name') }}</th>
+                            <th>{{ __('Name') }}</th>
+                            <th>{{ __('Type') }}</th>
+                            <th>{{ __('Spatial') }}</th>
+                            <th>{{ __('Geometry Type') }}</th>
+                            <th>{{ __('SRID') }}</th>
+                            <th>{{ __('Status') }}</th>
+                            <th>{{ __('Records') }}</th>
+                            <th>{{ __('Features') }}</th>
+                            <th>{{ __('Fields') }}</th>
+                            <th>{{ __('Actions') }}</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody>
                         @forelse($datasets as $dataset)
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{{ $dataset->display_name }}</div>
+                            <tr class="hover:bg-surface-1">
+                                <td>
+                                    <div class="text-sm font-medium text-ink">{{ $dataset->display_name }}</div>
                                     @if($dataset->description)
-                                        <div class="text-sm text-gray-500 truncate max-w-xs">{{ $dataset->description }}</div>
+                                        <div class="max-w-xs truncate text-sm text-ink-muted">{{ $dataset->description }}</div>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <code class="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">{{ $dataset->name }}</code>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        @if($dataset->dataset_type === 'official_layer')
-                                            bg-purple-100 text-purple-800
-                                        @else
-                                            bg-green-100 text-green-800
-                                        @endif
-                                    ">
+                                <td><code class="ltr-value text-sm text-ink-secondary">{{ $dataset->name }}</code></td>
+                                <td>
+                                    <span class="inline-flex rounded-md border border-border bg-surface-1 px-2 py-1 text-xs font-medium text-ink-secondary">
                                         {{ $dataset->dataset_type === 'official_layer' ? __('Official Layer') : __('Additional Table') }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        @if($dataset->is_spatial)
-                                            bg-blue-100 text-blue-800
-                                        @else
-                                            bg-gray-100 text-gray-800
-                                        @endif
-                                    ">
+                                <td>
+                                    <span class="inline-flex rounded-md border px-2 py-1 text-xs font-medium {{ $dataset->is_spatial ? 'border-info bg-info-surface text-info' : 'border-border bg-surface-1 text-ink-secondary' }}">
                                         {{ $dataset->is_spatial ? __('Yes') : __('No') }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td>
                                     @if($dataset->is_spatial)
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                            {{ $dataset->geometry_type }}
-                                        </span>
+                                        <code class="ltr-value text-sm text-ink-secondary">{{ $dataset->geometry_type }}</code>
                                     @else
-                                        <span class="text-gray-400">—</span>
+                                        <span class="text-ink-muted">—</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td>
                                     @if($dataset->srid)
-                                        <code class="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">{{ $dataset->srid }}</code>
+                                        <code class="ltr-value text-sm text-ink-secondary">{{ $dataset->srid }}</code>
                                     @else
-                                        <span class="text-gray-400">—</span>
+                                        <span class="text-ink-muted">—</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        @if($dataset->is_active)
-                                            bg-green-100 text-green-800
-                                        @else
-                                            bg-gray-100 text-gray-800
-                                        @endif
-                                    ">
+                                <td>
+                                    <span class="inline-flex rounded-md border px-2 py-1 text-xs font-medium {{ $dataset->is_active ? 'border-success bg-success-surface text-success' : 'border-border bg-surface-1 text-ink-secondary' }}">
                                         {{ $dataset->is_active ? __('Active') : __('Inactive') }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {{ number_format($dataset->records_count ?? 0) }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {{ number_format($dataset->features_count ?? 0) }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {{ $dataset->fields_count ?? 0 }}
-                                </td>
-<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <a href="{{ route('map.index') }}?dataset={{ $dataset->id }}" 
-                                       class="text-blue-600 hover:text-blue-900 mr-3"
-                                       @unless($dataset->is_spatial && $dataset->is_active)
-                                           style="pointer-events: none; opacity: 0.5;"
-                                       @endunless
-                                     >
-                                         {{ __('View on Map') }}
-                                     </a>
-                                    <a href="{{ route('datasets.show', $dataset) }}" class="text-gray-600 hover:text-gray-900 mr-3">
-                                        {{ __('View') }}
-                                    </a>
-                                    @can('datasets.update')
-                                        <a href="{{ route('datasets.edit', $dataset) }}" class="text-gray-600 hover:text-gray-900">
-                                            {{ __('Edit') }}
-                                        </a>
-                                    @endcan
+                                <td class="text-sm text-ink">{{ number_format($dataset->records_count ?? 0) }}</td>
+                                <td class="text-sm text-ink">{{ number_format($dataset->features_count ?? 0) }}</td>
+                                <td class="text-sm text-ink">{{ $dataset->fields_count ?? 0 }}</td>
+                                <td>
+                                    <div class="flex flex-wrap items-center gap-3 text-sm font-medium">
+                                        @if($dataset->is_spatial && $dataset->is_active)
+                                            <a href="{{ route('map.index') }}?dataset={{ $dataset->id }}" class="text-brand-600 hover:text-brand-700">{{ __('View on Map') }}</a>
+                                        @else
+                                            <span class="text-ink-muted">{{ __('View on Map') }}</span>
+                                        @endif
+                                        <a href="{{ route('datasets.show', $dataset) }}" class="text-ink-secondary hover:text-ink">{{ __('View') }}</a>
+                                        @can('datasets.update')
+                                            <a href="{{ route('datasets.edit', $dataset) }}" class="text-ink-secondary hover:text-ink">{{ __('Edit') }}</a>
+                                        @endcan
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="11" class="px-6 py-12 text-center text-gray-500">
-                                    {{ __('No datasets found.') }}
-                                </td>
+                                <td colspan="11" class="py-12 text-center text-sm text-ink-muted">{{ __('No datasets found.') }}</td>
                             </tr>
                         @endforelse
                     </tbody>
