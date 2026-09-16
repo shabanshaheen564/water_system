@@ -29,6 +29,7 @@ class UserWebController extends Controller
     {
         return view('users.create', [
             'roles' => $this->assignableRoles(),
+            'permissions' => Permission::where('guard_name', 'web')->orderBy('name')->get(),
             'title' => __('Create User'),
         ]);
     }
@@ -37,6 +38,7 @@ class UserWebController extends Controller
     {
         $validated = $request->validated();
         $roles = $validated['roles'] ?? [];
+        $directPermissionIds = collect($validated['permissions'] ?? [])->map(fn ($id) => (int) $id)->unique()->values();
 
         if (! $this->canAssignRoles($roles)) {
             abort(403, __('Insufficient permissions to assign one or more selected roles.'));
@@ -50,6 +52,13 @@ class UserWebController extends Controller
         ]);
 
         $user->syncRoles($roles);
+
+        if (! $user->hasRole('System Owner')) {
+            $permissions = Permission::whereIn('id', $directPermissionIds)
+                ->where('guard_name', 'web')
+                ->get();
+            $user->syncPermissions($permissions);
+        }
 
         return redirect()->route('users.index')
             ->with('success', __('User created successfully.'));
