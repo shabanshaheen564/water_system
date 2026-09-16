@@ -19,9 +19,9 @@ Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(functio
     Route::get('/gis', [DashboardController::class, 'index'])->name('gis.index');
     Route::get('/map', [GisController::class, 'index'])->name('map.index');
     Route::get('/datasets', [DatasetWebController::class, 'index'])->name('datasets.index');
-    Route::get('/datasets/{dataset}', [DatasetWebController::class, 'show'])->name('datasets.show');
     Route::get('/datasets/{dataset}/fields', [DatasetFieldWebController::class, 'index'])->name('datasets.fields.index');
     Route::get('/datasets/{dataset}/records', [DatasetRecordWebController::class, 'index'])->name('datasets.records.index');
+    Route::get('/datasets/{dataset}', [DatasetWebController::class, 'show'])->name('datasets.show');
 });
 
 Route::middleware(['auth', 'active', 'permission:users.view'])->group(function () {
