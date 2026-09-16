@@ -86,6 +86,8 @@ class RoleController extends Controller
 
     public function update(UpdateRoleRequest $request, Role $role): JsonResponse
     {
+        $this->ensureRoleManagementAccess($role);
+
         $validated = $request->validated();
 
         $role->update([
@@ -114,6 +116,7 @@ class RoleController extends Controller
 
     public function syncPermissions(SyncRolePermissionsRequest $request, Role $role): JsonResponse
     {
+        $this->ensureRoleManagementAccess($role);
         $this->syncPermissionsWithProtection($role, $request->permissions);
 
         $role->load('permissions');
@@ -132,17 +135,21 @@ class RoleController extends Controller
         ]);
     }
 
-    /**
-     * Sync permissions with System Owner protection.
-     * System Owner role cannot have its permissions removed.
-     */
     protected function syncPermissionsWithProtection(Role $role, array $permissions): void
     {
-        // System Owner role cannot have its permissions removed
         if ($role->name === 'System Owner' && empty($permissions)) {
             abort(422, 'System Owner role must retain at least one permission.');
         }
 
         $role->syncPermissions($permissions);
+    }
+
+    protected function ensureRoleManagementAccess(Role $role): void
+    {
+        $currentUser = request()->user();
+
+        if ($role->name === 'System Owner' && ! $currentUser->hasRole('System Owner')) {
+            abort(403, 'Only the System Owner can modify the System Owner role.');
+        }
     }
 }
