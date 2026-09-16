@@ -44,3 +44,16 @@ button, input, select, textarea { font: inherit; }
 .table-institutional th, .table-institutional td { border-bottom: 1px solid var(--color-border); padding: .75rem 1rem; text-align: start; }
 .table-institutional th { font-size: 13px; font-weight: 500; }
 .map-layer-item.active { border-inline-start: 3px solid var(--color-brand-600); }
+
+#map { width: 100%; height: calc(100vh - 190px); min-height: 520px; }
+.leaflet-container { font-family: var(--font-sans); }
+.layer-item { transition: background-color .15s ease, border-color .15s ease; }
+.layer-item:hover { background: var(--color-surface-1); }
+.layer-item.layer-loading { opacity: .6; pointer-events: none; }
+.layer-item.layer-error { border-color: var(--color-danger); background: var(--color-danger-surface); }
+.layer-item.layer-error::after { content: attr(data-error); display: block; margin-top: .5rem; color: var(--color-danger); font-size: .75rem; }
+.feature-popup { min-width: 220px; max-width: 320px; direction: rtl; }
+.feature-popup strong { display: block; margin-bottom: .5rem; color: var(--color-ink); }
+.feature-popup .property-row { display: flex; gap: .75rem; padding: .35rem 0; border-bottom: 1px solid var(--color-border); }
+.feature-popup .property-key { min-width: 90px; font-weight: 600; color: var(--color-ink); }
+.feature-popup .property-value { min-width: 0; flex: 1; overflow-wrap: anywhere; color: var(--color-ink-secondary); }
