@@ -8,4 +8,49 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Civic palette inspired by the Deir al-Balah Municipality emblem:
+       red, palm green and coastal water blue. */
+    --color-blue-50: #fdf2f2;
+    --color-blue-100: #fce4e4;
+    --color-blue-200: #f8caca;
+    --color-blue-300: #f2a0a0;
+    --color-blue-400: #e66f6f;
+    --color-blue-500: #d94a4a;
+    --color-blue-600: #c62828;
+    --color-blue-700: #a91f1f;
+    --color-blue-800: #8b1a1a;
+    --color-blue-900: #741919;
+    --color-blue-950: #410909;
+
+    --color-purple-50: #eef9fc;
+    --color-purple-100: #d9f1f7;
+    --color-purple-200: #b8e3ee;
+    --color-purple-300: #84cfdf;
+    --color-purple-400: #4eb6cd;
+    --color-purple-500: #279bb7;
+    --color-purple-600: #1383a0;
+    --color-purple-700: #116b84;
+    --color-purple-800: #12576b;
+    --color-purple-900: #12495a;
+    --color-purple-950: #082f3c;
+}
+
+/* Ensure the desktop application area starts after the fixed RTL sidebar. */
+@media (min-width: 1024px) {
+    body > div.min-h-screen.lg\\:ms-64 {
+        margin-inline-start: 16rem !important;
+        margin-right: 16rem !important;
+        margin-left: 0 !important;
+    }
+}
+
+html,
+body {
+    font-family: var(--font-sans);
+}
+
+::selection {
+    background: #f8caca;
+    color: #741919;
 }
