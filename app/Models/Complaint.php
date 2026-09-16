@@ -12,16 +12,20 @@ class Complaint extends Model
         'complaint_number',
         'title',
         'description',
+        'processing_notes',
+        'solution',
         'status',
         'priority',
         'reported_by',
         'assigned_to',
+        'processed_by',
         'contact_name',
         'contact_phone',
         'address',
         'latitude',
         'longitude',
         'resolved_at',
+        'processed_at',
     ];
 
     protected function casts(): array
@@ -30,6 +34,7 @@ class Complaint extends Model
             'latitude' => 'decimal:8',
             'longitude' => 'decimal:8',
             'resolved_at' => 'datetime',
+            'processed_at' => 'datetime',
         ];
     }
 
@@ -41,6 +46,11 @@ class Complaint extends Model
     public function assignedTo(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function processedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'processed_by');
     }
 
     public function workOrders(): HasMany
