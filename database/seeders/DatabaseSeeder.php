@@ -16,12 +16,17 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RolesAndPermissionsSeeder::class);
 
-        // Create the real System Owner (not a demo account)
+        $systemOwnerPassword = env('SYSTEM_OWNER_PASSWORD');
+
+        if (! $systemOwnerPassword) {
+            throw new \RuntimeException('SYSTEM_OWNER_PASSWORD must be set before running DatabaseSeeder.');
+        }
+
         $systemOwner = User::firstOrCreate(
             ['email' => 'shabanshaheen564@gmail.com'],
             [
                 'name' => 'Eng.Shaban Shaheen',
-                'password' => Hash::make('12345678'),
+                'password' => Hash::make($systemOwnerPassword),
                 'is_active' => true,
             ]
         );
