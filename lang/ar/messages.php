@@ -48,4 +48,9 @@ return [
         'permissions' => 'الصلاحيات',
         'logout' => 'تسجيل الخروج',
     ],
+    'ui' => [
+        'close_menu' => 'إغلاق القائمة',
+        'open_menu' => 'فتح القائمة',
+        'main_navigation' => 'التنقل الرئيسي',
+    ],
 ];
