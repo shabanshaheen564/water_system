@@ -1,6 +1,7 @@
 {
     "Dashboard": "لوحة التحكم",
     "Dashboard and GIS overview": "نظرة عامة على النظام والبيانات الجغرافية",
+    "System overview and key data indicators": "نظرة عامة على النظام وأهم مؤشرات البيانات",
     "Total Datasets": "إجمالي مجموعات البيانات",
     "Total Records": "إجمالي السجلات",
     "Spatial Datasets": "مجموعات البيانات المكانية",
@@ -100,6 +101,7 @@
     "Current System Status": "حالة النظام الحالية",
     "System Status": "حالة النظام",
     "Database": "قاعدة البيانات",
+    "Online": "متصل",
     "Connected": "متصل",
     "GIS Engine": "محرك نظم المعلومات الجغرافية",
     "Available": "متاح",
