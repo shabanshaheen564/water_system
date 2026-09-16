@@ -27,7 +27,7 @@ class UserWebController extends Controller
     public function create(): View
     {
         return view('users.create', [
-            'roles' => Role::orderBy('name')->get(),
+            'roles' => $this->assignableRoles(),
             'title' => __('Create User'),
         ]);
     }
@@ -35,6 +35,11 @@ class UserWebController extends Controller
     public function store(StoreUserRequest $request): RedirectResponse
     {
         $validated = $request->validated();
+        $roles = $validated['roles'] ?? [];
+
+        if (! $this->canAssignRoles($roles)) {
+            abort(403, __('Insufficient permissions to assign one or more selected roles.'));
+        }
 
         $user = User::create([
             'name' => $validated['name'],
@@ -43,7 +48,7 @@ class UserWebController extends Controller
             'is_active' => $validated['is_active'] ?? true,
         ]);
 
-        $user->syncRoles($validated['roles'] ?? []);
+        $user->syncRoles($roles);
 
         return redirect()->route('users.index')
             ->with('success', __('User created successfully.'));
@@ -65,7 +70,7 @@ class UserWebController extends Controller
 
         return view('users.edit', [
             'user' => $user,
-            'roles' => Role::orderBy('name')->get(),
+            'roles' => $this->assignableRoles(),
             'title' => __('Edit User'),
         ]);
     }
@@ -73,8 +78,26 @@ class UserWebController extends Controller
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
         $validated = $request->validated();
+        $roles = $validated['roles'] ?? [];
         $wasSystemOwner = $user->hasRole('System Owner');
         $willBeActive = (bool) $validated['is_active'];
+
+        if (! $this->canAssignRoles($roles)) {
+            abort(403, __('Insufficient permissions to assign one or more selected roles.'));
+        }
+
+        if ($wasSystemOwner && ! in_array('System Owner', $roles, true)) {
+            $activeSystemOwners = User::role('System Owner')
+                ->where('is_active', true)
+                ->where('id', '!=', $user->id)
+                ->count();
+
+            if ($activeSystemOwners === 0) {
+                return back()->withErrors([
+                    'roles' => __('Cannot remove the last active System Owner role.'),
+                ])->withInput();
+            }
+        }
 
         if ($wasSystemOwner && ! $willBeActive) {
             $activeSystemOwners = User::role('System Owner')
@@ -95,9 +118,33 @@ class UserWebController extends Controller
             'is_active' => $willBeActive,
         ]);
 
-        $user->syncRoles($validated['roles'] ?? []);
+        $user->syncRoles($roles);
 
         return redirect()->route('users.index')
             ->with('success', __('User updated successfully.'));
+    }
+
+    private function assignableRoles()
+    {
+        $roles = Role::orderBy('name');
+
+        if (auth()->user()->hasRole('Admin') && ! auth()->user()->hasRole('System Owner')) {
+            $roles->where('name', '!=', 'System Owner');
+        }
+
+        return $roles->get();
+    }
+
+    private function canAssignRoles(array $roles): bool
+    {
+        if (auth()->user()->hasRole('System Owner')) {
+            return true;
+        }
+
+        if (auth()->user()->hasRole('Admin')) {
+            return ! in_array('System Owner', $roles, true);
+        }
+
+        return false;
     }
 }
