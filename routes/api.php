@@ -31,6 +31,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 Route::middleware(['auth:sanctum', 'permission:users.view'])->group(function () { Route::get('/users', [UserController::class, 'index']); Route::get('/users/{user}', [UserController::class, 'show']); });
 Route::middleware(['auth:sanctum', 'permission:users.create'])->group(function () { Route::post('/users', [UserController::class, 'store']); Route::post('/register', [RegisterController::class, 'register']); });
 Route::middleware(['auth:sanctum', 'permission:users.update'])->group(function () { Route::put('/users/{user}', [UserController::class, 'update']); Route::put('/users/{user}/roles', [UserController::class, 'syncRoles']); Route::put('/users/{user}/status', [UserController::class, 'updateStatus']); });
+Route::middleware(['auth:sanctum', 'permission:users.delete'])->delete('/users/{user}', [UserController::class, 'destroy']);
 Route::middleware(['auth:sanctum', 'permission:roles.view'])->group(function () { Route::get('/roles', [RoleController::class, 'index']); Route::get('/roles/{role}', [RoleController::class, 'show']); });
 Route::middleware(['auth:sanctum', 'permission:roles.create'])->post('/roles', [RoleController::class, 'store']);
 Route::middleware(['auth:sanctum', 'permission:roles.update'])->group(function () { Route::put('/roles/{role}', [RoleController::class, 'update']); Route::put('/roles/{role}/permissions', [RoleController::class, 'syncPermissions']); });
