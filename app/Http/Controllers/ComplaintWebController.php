@@ -16,7 +16,9 @@ class ComplaintWebController extends Controller
     public function index(Request $request): View
     {
         $search = trim((string) $request->input('search'));
-        $query = Complaint::with(['reportedBy:id,name', 'assignedTo:id,name'])->latest();
+        $query = Complaint::with(['reportedBy:id,name', 'assignedTo:id,name'])
+            ->withCount('workOrders')
+            ->latest();
 
         if ($search !== '') {
             $escaped = str_replace(['%', '_'], ['\\%', '\\_'], $search);
