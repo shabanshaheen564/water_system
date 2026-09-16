@@ -77,6 +77,14 @@ class UserController extends Controller
     public function store(StoreUserRequest $request): JsonResponse
     {
         return DB::transaction(function () use ($request) {
+            $roles = $request->input('roles', []);
+
+            if (! $this->canAssignRoles($roles)) {
+                return response()->json([
+                    'message' => 'Insufficient permissions to assign one or more selected roles.',
+                ], 403);
+            }
+
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -84,10 +92,7 @@ class UserController extends Controller
                 'is_active' => $request->boolean('is_active', true),
             ]);
 
-            if ($request->has('roles')) {
-                $user->syncRoles($request->roles);
-            }
-
+            $user->syncRoles($roles);
             $user->load('roles');
 
             return response()->json([
@@ -109,16 +114,31 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
         $validated = $request->validated();
+        $roles = $validated['roles'] ?? [];
 
-        // Remove password from validated data if present (should not be updated via this endpoint)
+        if (! $this->canAssignRoles($roles)) {
+            return response()->json([
+                'message' => 'Insufficient permissions to assign one or more selected roles.',
+            ], 403);
+        }
+
+        if ($user->hasRole('System Owner') && ! in_array('System Owner', $roles, true)) {
+            $activeSystemOwners = User::role('System Owner')
+                ->where('is_active', true)
+                ->where('id', '!=', $user->id)
+                ->count();
+
+            if ($activeSystemOwners === 0) {
+                return response()->json([
+                    'message' => 'Cannot remove the last active System Owner role.',
+                ], 422);
+            }
+        }
+
         unset($validated['password'], $validated['password_confirmation']);
 
         $user->update(array_diff_key($validated, array_flip(['roles'])));
-
-        if ($request->has('roles')) {
-            $user->syncRoles($request->roles);
-        }
-
+        $user->syncRoles($roles);
         $user->load('roles');
 
         return response()->json([
@@ -138,8 +158,28 @@ class UserController extends Controller
 
     public function syncRoles(SyncUserRolesRequest $request, User $user): JsonResponse
     {
-        $user->syncRoles($request->roles);
+        $roles = $request->input('roles', []);
 
+        if (! $this->canAssignRoles($roles)) {
+            return response()->json([
+                'message' => 'Insufficient permissions to assign one or more selected roles.',
+            ], 403);
+        }
+
+        if ($user->hasRole('System Owner') && ! in_array('System Owner', $roles, true)) {
+            $activeSystemOwners = User::role('System Owner')
+                ->where('is_active', true)
+                ->where('id', '!=', $user->id)
+                ->count();
+
+            if ($activeSystemOwners === 0) {
+                return response()->json([
+                    'message' => 'Cannot remove the last active System Owner role.',
+                ], 422);
+            }
+        }
+
+        $user->syncRoles($roles);
         $user->load('roles');
 
         return response()->json([
@@ -161,13 +201,13 @@ class UserController extends Controller
     {
         $isActive = $request->boolean('is_active');
 
-        // Prevent deactivating the last active System Owner
         if (! $isActive && $user->hasRole('System Owner')) {
             $activeSystemOwners = User::role('System Owner')
                 ->where('is_active', true)
+                ->where('id', '!=', $user->id)
                 ->count();
 
-            if ($activeSystemOwners <= 1) {
+            if ($activeSystemOwners === 0) {
                 return response()->json([
                     'message' => 'Cannot deactivate the last active System Owner.',
                 ], 422);
@@ -193,5 +233,20 @@ class UserController extends Controller
                 'name' => $role->name,
             ])->values(),
         ]);
+    }
+
+    private function canAssignRoles(array $roles): bool
+    {
+        $currentUser = request()->user();
+
+        if ($currentUser->hasRole('System Owner')) {
+            return true;
+        }
+
+        if ($currentUser->hasRole('Admin')) {
+            return ! in_array('System Owner', $roles, true);
+        }
+
+        return false;
     }
 }
