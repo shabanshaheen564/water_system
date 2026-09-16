@@ -24,7 +24,7 @@ class RoleController extends Controller
                 'guard_name' => $role->guard_name,
                 'created_at' => $role->created_at?->toISOString(),
                 'updated_at' => $role->updated_at?->toISOString(),
-                'permissions' => $role->permissions->map(fn($permission) => [
+                'permissions' => $role->permissions->map(fn ($permission) => [
                     'id' => $permission->id,
                     'name' => $permission->name,
                     'guard_name' => $permission->guard_name,
@@ -32,9 +32,7 @@ class RoleController extends Controller
             ];
         });
 
-        return response()->json([
-            'data' => $data,
-        ]);
+        return response()->json(['data' => $data]);
     }
 
     public function show(Role $role): JsonResponse
@@ -47,7 +45,7 @@ class RoleController extends Controller
             'guard_name' => $role->guard_name,
             'created_at' => $role->created_at?->toISOString(),
             'updated_at' => $role->updated_at?->toISOString(),
-            'permissions' => $role->permissions->map(fn($permission) => [
+            'permissions' => $role->permissions->map(fn ($permission) => [
                 'id' => $permission->id,
                 'name' => $permission->name,
                 'guard_name' => $permission->guard_name,
@@ -75,7 +73,7 @@ class RoleController extends Controller
                 'guard_name' => $role->guard_name,
                 'created_at' => $role->created_at?->toISOString(),
                 'updated_at' => $role->updated_at?->toISOString(),
-                'permissions' => $role->permissions->map(fn($permission) => [
+                'permissions' => $role->permissions->map(fn ($permission) => [
                     'id' => $permission->id,
                     'name' => $permission->name,
                     'guard_name' => $permission->guard_name,
@@ -90,9 +88,11 @@ class RoleController extends Controller
 
         $validated = $request->validated();
 
-        $role->update([
-            'name' => $validated['name'],
-        ]);
+        if ($role->name === 'System Owner' && $validated['name'] !== 'System Owner') {
+            abort(422, 'The System Owner role name cannot be changed.');
+        }
+
+        $role->update(['name' => $validated['name']]);
 
         if ($request->has('permissions')) {
             $this->syncPermissionsWithProtection($role, $validated['permissions']);
@@ -106,7 +106,7 @@ class RoleController extends Controller
             'guard_name' => $role->guard_name,
             'created_at' => $role->created_at?->toISOString(),
             'updated_at' => $role->updated_at?->toISOString(),
-            'permissions' => $role->permissions->map(fn($permission) => [
+            'permissions' => $role->permissions->map(fn ($permission) => [
                 'id' => $permission->id,
                 'name' => $permission->name,
                 'guard_name' => $permission->guard_name,
@@ -127,7 +127,7 @@ class RoleController extends Controller
             'guard_name' => $role->guard_name,
             'created_at' => $role->created_at?->toISOString(),
             'updated_at' => $role->updated_at?->toISOString(),
-            'permissions' => $role->permissions->map(fn($permission) => [
+            'permissions' => $role->permissions->map(fn ($permission) => [
                 'id' => $permission->id,
                 'name' => $permission->name,
                 'guard_name' => $permission->guard_name,
