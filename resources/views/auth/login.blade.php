@@ -1,170 +1,105 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ config('app.direction', 'rtl') }}">
-
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
-    <title>{{ config('app.name', 'نظام إدارة بيانات المياه ونظم المعلومات الجغرافية') }} - {{ __('Login') }}</title>
-
+    <title>تسجيل الدخول - نظام إدارة المياه ونظم المعلومات الجغرافية</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-
-<body class="bg-slate-50 dark:bg-slate-900 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-        <div class="text-center">
-            <div class="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/25">
-                <svg class="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
-                </svg>
-            </div>
-            <h2 class="mt-6 text-2xl font-bold text-gray-900 dark:text-white">
-                {{ config('app.name', 'نظام إدارة بيانات المياه') }}
-            </h2>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('نظام إدارة بيانات المياه ونظم المعلومات الجغرافية') }}
-            </p>
+<body class="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-10">
+    <div class="w-full max-w-md">
+        <div class="mb-6 text-center">
+            <a href="{{ route('home') }}" class="inline-flex items-center gap-3 group">
+                <div class="h-16 w-16 rounded-2xl bg-red-700 flex items-center justify-center shadow-lg shadow-red-900/20 group-hover:bg-red-800 transition">
+                    <svg class="h-10 w-10 text-white" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                        <path d="M8 48h48" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M14 45V25l12-8 12 8v20" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+                        <path d="M43 45V28l8-5 5 4v18" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+                        <path d="M20 45V32h6v13M31 45V32h6v13" stroke="currentColor" stroke-width="3"/>
+                    </svg>
+                </div>
+            </a>
+            <p class="mt-5 text-sm font-semibold text-red-700">بلدية دير البلح</p>
+            <h1 class="mt-1 text-2xl font-extrabold text-slate-900">تسجيل الدخول إلى النظام</h1>
+            <p class="mt-2 text-sm text-slate-500">نظام إدارة المياه ونظم المعلومات الجغرافية</p>
         </div>
 
-        <form id="login-form" class="mt-8 space-y-6" method="POST" action="{{ route('login') }}">
-            @csrf
+        <div class="rounded-2xl bg-white border border-slate-200 shadow-xl p-6 sm:p-8">
+            <form id="login-form" method="POST" action="{{ route('login') }}" class="space-y-5">
+                @csrf
 
-            <div class="space-y-4">
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        {{ __('Email address') }}
-                    </label>
-                    <div class="relative">
-                        <input
-                            id="email"
-                            name="email"
-                            type="email"
-                            autocomplete="email"
-                            required
-                            class="appearance-none relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800"
-                            placeholder="{{ __('Email address') }}"
-                            value="{{ old('email') }}"
-                            aria-describedby="email-error">
-                        <div class="absolute inset-y-0 end-0 flex items-center pe-3 pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v10a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                    </div>
+                    <label for="email" class="block text-sm font-semibold text-slate-700 mb-2">البريد الإلكتروني</label>
+                    <input id="email" name="email" type="email" autocomplete="email" required value="{{ old('email') }}"
+                        class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-red-600 focus:ring-4 focus:ring-red-100"
+                        placeholder="أدخل البريد الإلكتروني">
                     @error('email')
-                    <p id="email-error" class="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">{{ $message }}</p>
+                        <p class="mt-2 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        {{ __('Password') }}
-                    </label>
+                    <label for="password" class="block text-sm font-semibold text-slate-700 mb-2">كلمة المرور</label>
                     <div class="relative">
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            autocomplete="current-password"
-                            required
-                            class="appearance-none relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800 pr-12"
-                            placeholder="{{ __('Password') }}"
-                            aria-describedby="password-error">
-                        <button
-                            type="button"
-                            id="toggle-password"
-                            class="absolute inset-y-0 end-0 flex items-center pe-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-r-lg transition-colors"
-                            aria-label="{{ __('Show password') }}"
-                            aria-pressed="false">
-                            <svg id="eye-open" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            <svg id="eye-closed" class="h-5 w-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88a3 3 0 114.242 4.25M12 6c2.146 0 4.108.794 5.646 2.155" />
-                            </svg>
+                        <input id="password" name="password" type="password" autocomplete="current-password" required
+                            class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pe-12 text-slate-900 outline-none transition focus:border-red-600 focus:ring-4 focus:ring-red-100"
+                            placeholder="أدخل كلمة المرور">
+                        <button type="button" id="toggle-password" class="absolute inset-y-0 end-0 px-4 text-slate-400 hover:text-red-700 focus:outline-none" aria-label="إظهار كلمة المرور" aria-pressed="false">
+                            <svg id="eye-open" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            <svg id="eye-closed" class="hidden h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18M10.584 10.587a2 2 0 002.829 2.828M9.88 4.24A9.987 9.987 0 0112 4c4.478 0 8.268 2.943 9.542 7a9.953 9.953 0 01-3.214 4.55M6.228 6.228A9.953 9.953 0 002.458 12C3.732 16.057 7.523 19 12 19a9.987 9.987 0 004.12-.885"/></svg>
                         </button>
                     </div>
                     @error('password')
-                    <p id="password-error" class="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">{{ $message }}</p>
+                        <p class="mt-2 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
-            </div>
 
-            <div id="api-error" class="hidden p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm" role="alert" aria-live="polite"></div>
+                <div id="api-error" class="hidden rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert"></div>
 
-            <div>
-                <button
-                    type="submit"
-                    id="login-button"
-                    class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md">
-                    <span id="button-text">{{ __('Sign in') }}</span>
-                    <svg id="button-spinner" class="hidden animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
+                <button id="login-button" type="submit" class="w-full rounded-xl bg-red-700 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-900/20 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-200 disabled:cursor-not-allowed disabled:opacity-60 transition">
+                    <span id="button-text">دخول النظام</span>
+                    <span id="button-spinner" class="hidden"> جارٍ تسجيل الدخول...</span>
                 </button>
-            </div>
-        </form>
+            </form>
 
-        <div class="text-center text-sm text-gray-500 dark:text-gray-400">
-            <p>{{ __('نظام إدارة بيانات المياه ونظم المعلومات الجغرافية') }}</p>
-            <p class="mt-1">{{ config('app.name', 'Water GIS Management System') }} &copy; {{ date('Y') }}</p>
+            <div class="mt-6 border-t border-slate-100 pt-5 text-center text-xs text-slate-500">
+                <p>دائرة المياه والصرف الصحي</p>
+                <p class="mt-1">بلدية دير البلح © {{ date('Y') }}</p>
+            </div>
+        </div>
+
+        <div class="mt-5 text-center">
+            <a href="{{ route('home') }}" class="text-sm font-semibold text-slate-500 hover:text-red-700">العودة إلى الصفحة الرئيسية</a>
         </div>
     </div>
 
     <script>
-        (function() {
-            'use strict';
-
+        document.addEventListener('DOMContentLoaded', function () {
             const form = document.getElementById('login-form');
-            const passwordInput = document.getElementById('password');
-            const togglePasswordBtn = document.getElementById('toggle-password');
-            const eyeOpen = document.getElementById('eye-open');
-            const eyeClosed = document.getElementById('eye-closed');
-            const loginButton = document.getElementById('login-button');
-            const buttonText = document.getElementById('button-text');
-            const buttonSpinner = document.getElementById('button-spinner');
+            const password = document.getElementById('password');
+            const toggle = document.getElementById('toggle-password');
+            const openIcon = document.getElementById('eye-open');
+            const closedIcon = document.getElementById('eye-closed');
+            const button = document.getElementById('login-button');
+            const text = document.getElementById('button-text');
+            const spinner = document.getElementById('button-spinner');
 
-            // Show/hide password toggle
-            togglePasswordBtn.addEventListener('click', function() {
-                const isPassword = passwordInput.type === 'password';
-                passwordInput.type = isPassword ? 'text' : 'password';
-                eyeOpen.classList.toggle('hidden', isPassword);
-                eyeClosed.classList.toggle('hidden', !isPassword);
-                togglePasswordBtn.setAttribute('aria-label', isPassword ? '{{ __('
-                    Hide password ') }}' : '{{ __('
-                    Show password ') }}');
-                togglePasswordBtn.setAttribute('aria-pressed', isPassword);
+            toggle.addEventListener('click', function () {
+                const showing = password.type === 'password';
+                password.type = showing ? 'text' : 'password';
+                openIcon.classList.toggle('hidden', showing);
+                closedIcon.classList.toggle('hidden', !showing);
+                toggle.setAttribute('aria-pressed', showing ? 'true' : 'false');
+                toggle.setAttribute('aria-label', showing ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
             });
 
-            // Form submission - show loading state, then let browser handle the rest
-            form.addEventListener('submit', function(e) {
-                // Client-side validation
-                const emailInput = document.getElementById('email');
-                if (!emailInput.value.trim()) {
-                    e.preventDefault();
-                    emailInput.focus();
-                    return;
-                }
-                if (!passwordInput.value) {
-                    e.preventDefault();
-                    passwordInput.focus();
-                    return;
-                }
-
-                // Show loading state
-                loginButton.disabled = true;
-                buttonText.textContent = '{{ __('
-                Signing in ...') }}';
-                buttonSpinner.classList.remove('hidden');
-
-                // Let the form submit normally to /login (web endpoint)
-                // which uses webLogin() -> Auth::login() -> session -> redirect to /gis (Dashboard)
+            form.addEventListener('submit', function () {
+                button.disabled = true;
+                text.classList.add('hidden');
+                spinner.classList.remove('hidden');
             });
-        })();
+        });
     </script>
 </body>
-
 </html>
