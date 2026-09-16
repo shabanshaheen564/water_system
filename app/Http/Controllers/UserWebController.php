@@ -79,7 +79,7 @@ class UserWebController extends Controller
         if ($wasSystemOwner && ! $willBeActive) {
             $activeSystemOwners = User::role('System Owner')
                 ->where('is_active', true)
-                ->whereKeyNot($user->id)
+                ->where('id', '!=', $user->id)
                 ->count();
 
             if ($activeSystemOwners === 0) {
