@@ -247,10 +247,10 @@ class UserController extends Controller
             return true;
         }
 
-        if ($currentUser->hasRole('Admin')) {
-            return ! in_array('System Owner', $roles, true);
+        if (in_array('System Owner', $roles, true)) {
+            return false;
         }
 
-        return false;
+        return $currentUser->hasAnyPermission(['users.create', 'users.update']);
     }
 }
