@@ -18,7 +18,6 @@ Route::post('/login', [LoginController::class, 'webLogin']);
 
 Route::middleware(['auth', 'active', 'permission:complaints.view'])->group(function () {
     Route::get('/complaints', [ComplaintWebController::class, 'index'])->name('complaints.index');
-    Route::get('/complaints/{complaint}', [ComplaintWebController::class, 'show'])->name('complaints.show');
 });
 
 Route::middleware(['auth', 'active', 'permission:complaints.create'])->group(function () {
@@ -32,6 +31,8 @@ Route::middleware(['auth', 'active', 'permission:complaints.update'])->group(fun
 });
 
 Route::middleware(['auth', 'active', 'permission:complaints.delete'])->delete('/complaints/{complaint}', [ComplaintWebController::class, 'destroy'])->name('complaints.destroy');
+
+Route::middleware(['auth', 'active', 'permission:complaints.view'])->get('/complaints/{complaint}', [ComplaintWebController::class, 'show'])->name('complaints.show');
 
 Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(function () {
     Route::get('/gis', [DashboardController::class, 'index'])->name('gis.index');
