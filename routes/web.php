@@ -19,6 +19,16 @@ Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(functio
     Route::get('/gis', [DashboardController::class, 'index'])->name('gis.index');
     Route::get('/map', [GisController::class, 'index'])->name('map.index');
     Route::get('/datasets', [DatasetWebController::class, 'index'])->name('datasets.index');
+});
+
+// Static dataset routes must be registered before /datasets/{dataset}
+// so "create" is not interpreted as a numeric dataset ID.
+Route::middleware(['auth', 'active', 'permission:datasets.create'])->group(function () {
+    Route::get('/datasets/create', [DatasetWebController::class, 'create'])->name('datasets.create');
+    Route::post('/datasets', [DatasetWebController::class, 'store'])->name('datasets.store');
+});
+
+Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(function () {
     Route::get('/datasets/{dataset}/fields', [DatasetFieldWebController::class, 'index'])->name('datasets.fields.index');
     Route::get('/datasets/{dataset}/records', [DatasetRecordWebController::class, 'index'])->name('datasets.records.index');
     Route::get('/datasets/{dataset}', [DatasetWebController::class, 'show'])->name('datasets.show');
@@ -51,8 +61,6 @@ Route::middleware(['auth', 'active', 'permission:permissions.view'])->group(func
 });
 
 Route::middleware(['auth', 'active', 'permission:datasets.create'])->group(function () {
-    Route::get('/datasets/create', [DatasetWebController::class, 'create'])->name('datasets.create');
-    Route::post('/datasets', [DatasetWebController::class, 'store'])->name('datasets.store');
     Route::get('/datasets/{dataset}/fields/create', [DatasetFieldWebController::class, 'create'])->name('datasets.fields.create');
     Route::post('/datasets/{dataset}/fields', [DatasetFieldWebController::class, 'store'])->name('datasets.fields.store');
     Route::get('/datasets/{dataset}/records/create', [DatasetRecordWebController::class, 'create'])->name('datasets.records.create');
