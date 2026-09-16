@@ -114,15 +114,15 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
         $validated = $request->validated();
-        $roles = $validated['roles'] ?? [];
+        $rolesProvided = array_key_exists('roles', $validated);
 
-        if (! $this->canAssignRoles($roles)) {
+        if ($rolesProvided && ! $this->canAssignRoles($validated['roles'])) {
             return response()->json([
                 'message' => 'Insufficient permissions to assign one or more selected roles.',
             ], 403);
         }
 
-        if ($user->hasRole('System Owner') && ! in_array('System Owner', $roles, true)) {
+        if ($rolesProvided && $user->hasRole('System Owner') && ! in_array('System Owner', $validated['roles'], true)) {
             $activeSystemOwners = User::role('System Owner')
                 ->where('is_active', true)
                 ->where('id', '!=', $user->id)
@@ -138,7 +138,11 @@ class UserController extends Controller
         unset($validated['password'], $validated['password_confirmation']);
 
         $user->update(array_diff_key($validated, array_flip(['roles'])));
-        $user->syncRoles($roles);
+
+        if ($rolesProvided) {
+            $user->syncRoles($validated['roles']);
+        }
+
         $user->load('roles');
 
         return response()->json([
