@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GisController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ComplaintWebController;
 use App\Http\Controllers\DatasetWebController;
 use App\Http\Controllers\DatasetFieldWebController;
 use App\Http\Controllers\DatasetRecordWebController;
@@ -14,6 +15,23 @@ use App\Http\Controllers\Auth\LoginController;
 Route::get('/', function () { return view('welcome'); })->name('home');
 Route::get('/login', [LoginController::class, 'create'])->name('login');
 Route::post('/login', [LoginController::class, 'webLogin']);
+
+Route::middleware(['auth', 'active', 'permission:complaints.view'])->group(function () {
+    Route::get('/complaints', [ComplaintWebController::class, 'index'])->name('complaints.index');
+    Route::get('/complaints/{complaint}', [ComplaintWebController::class, 'show'])->name('complaints.show');
+});
+
+Route::middleware(['auth', 'active', 'permission:complaints.create'])->group(function () {
+    Route::get('/complaints/create', [ComplaintWebController::class, 'create'])->name('complaints.create');
+    Route::post('/complaints', [ComplaintWebController::class, 'store'])->name('complaints.store');
+});
+
+Route::middleware(['auth', 'active', 'permission:complaints.update'])->group(function () {
+    Route::get('/complaints/{complaint}/edit', [ComplaintWebController::class, 'edit'])->name('complaints.edit');
+    Route::put('/complaints/{complaint}', [ComplaintWebController::class, 'update'])->name('complaints.update');
+});
+
+Route::middleware(['auth', 'active', 'permission:complaints.delete'])->delete('/complaints/{complaint}', [ComplaintWebController::class, 'destroy'])->name('complaints.destroy');
 
 Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(function () {
     Route::get('/gis', [DashboardController::class, 'index'])->name('gis.index');
