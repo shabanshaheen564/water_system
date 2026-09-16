@@ -22,6 +22,8 @@ class UpdateUserRequest extends FormRequest
             'is_active' => ['required', 'boolean'],
             'roles' => ['sometimes', 'array'],
             'roles.*' => ['exists:roles,name'],
+            'permissions' => ['sometimes', 'array'],
+            'permissions.*' => ['integer', 'exists:permissions,id'],
         ];
     }
 }
