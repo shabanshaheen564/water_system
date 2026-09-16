@@ -26,12 +26,15 @@ Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(functio
 
 Route::middleware(['auth', 'active', 'permission:users.view'])->group(function () {
     Route::get('/users', [UserWebController::class, 'index'])->name('users.index');
-    Route::get('/users/{user}', [UserWebController::class, 'show'])->name('users.show');
 });
 
 Route::middleware(['auth', 'active', 'permission:users.create'])->group(function () {
     Route::get('/users/create', [UserWebController::class, 'create'])->name('users.create');
     Route::post('/users', [UserWebController::class, 'store'])->name('users.store');
+});
+
+Route::middleware(['auth', 'active', 'permission:users.view'])->group(function () {
+    Route::get('/users/{user}', [UserWebController::class, 'show'])->name('users.show');
 });
 
 Route::middleware(['auth', 'active', 'permission:users.update'])->group(function () {
