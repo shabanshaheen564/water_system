@@ -10,13 +10,13 @@
                 <p class="mt-1 text-sm text-ink-secondary">{{ __('Browse and manage datasets') }}</p>
             </div>
             @can('datasets.create')
-                <a href="{{ route('datasets.create') }}" class="shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                <a href="{{ route('datasets.create') }}" class="btn-motion shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
                     {{ __('Create Dataset') }}
                 </a>
             @endcan
         </div>
 
-        <div class="card-institutional overflow-hidden">
+        <div data-enter class="card-institutional overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="table-institutional">
                     <thead>

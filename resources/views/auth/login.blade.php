@@ -5,7 +5,7 @@
     <div class="w-full">
         <div class="mb-7 text-center">
             <a href="{{ route('home') }}" class="inline-flex items-center justify-center">
-                <div class="flex h-16 w-16 items-center justify-center rounded-md bg-brand-600 text-white" aria-hidden="true">
+                <div class="btn-motion flex h-16 w-16 items-center justify-center rounded-md bg-brand-600 text-white" aria-hidden="true">
                     <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 20h18M5 20V9l7-5 7 5v11M9 20v-6h6v6M17 8V5l3 2v13" stroke-linejoin="round"/></svg>
                 </div>
             </a>
@@ -33,7 +33,7 @@
                     @error('password')<p class="mt-2 text-sm text-danger" role="alert">{{ $message }}</p>@enderror
                 </div>
                 @if(session('error'))<div class="border border-danger bg-danger-surface p-3 text-sm text-danger" role="alert">{{ session('error') }}</div>@endif
-                <button id="login-button" type="submit" class="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60">
+                <button id="login-button" type="submit" class="btn-motion w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60">
                     <span id="button-text">{{ __('messages.public.login_short') }}</span>
                     <span id="button-spinner" class="hidden">{{ __('messages.public.logging_in') }}</span>
                 </button>

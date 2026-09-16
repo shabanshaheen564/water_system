@@ -9,12 +9,12 @@
     @stack('styles')
 </head>
 <body class="min-h-screen bg-white text-ink">
-    <div id="sidebar-overlay" class="fixed inset-0 z-40 hidden bg-black/30 lg:hidden" aria-hidden="true"></div>
+    <div id="sidebar-overlay" class="fixed inset-0 z-40 hidden bg-black/30 opacity-0 transition-opacity duration-[220ms] lg:hidden" aria-hidden="true"></div>
 
-    <aside id="sidebar" class="fixed inset-y-0 end-0 z-50 flex w-64 translate-x-full flex-col border-s border-border bg-white transition-transform duration-200 lg:translate-x-0" role="navigation" aria-label="{{ __('messages.navigation.dashboard') }}">
+    <aside id="sidebar" class="fixed inset-y-0 start-0 z-50 flex w-64 translate-x-full flex-col border-e border-border bg-white transition-transform duration-[360ms] ease-[cubic-bezier(0.32,0.72,0.28,1)] lg:translate-x-0" role="navigation" aria-label="{{ __('messages.ui.sidebar') }}">
         <div class="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
             <a href="{{ route('gis.index') }}" class="flex min-w-0 items-center gap-3">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-600 text-white" aria-hidden="true">
+                <div class="btn-motion flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-600 text-white" aria-hidden="true">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 20h18M5 20V9l7-5 7 5v11M9 20v-6h6v6M17 8V5l3 2v13" stroke-linejoin="round"/></svg>
                 </div>
                 <span class="truncate text-sm font-semibold text-ink">{{ __('messages.app.municipality') }}</span>
@@ -25,40 +25,40 @@
         </div>
 
         <nav class="min-h-0 flex-1 overflow-y-auto p-3" aria-label="{{ __('messages.ui.main_navigation') }}">
-            <a href="{{ route('gis.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('gis.index') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+            <a href="{{ route('gis.index') }}" class="nav-item mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('gis.index') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}" @if(request()->routeIs('gis.index')) aria-current="page" @endif>
                 <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-3H4v3Zm10-12h6V4h-6v4Z"/></svg>
                 <span>{{ __('messages.navigation.dashboard') }}</span>
             </a>
-            <a href="{{ route('datasets.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('datasets.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+            <a href="{{ route('datasets.index') }}" class="nav-item mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('datasets.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}" @if(request()->routeIs('datasets.*')) aria-current="page" @endif>
                 <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12v7c0 1.66 3.58 3 8 3s8-1.34 8-3v-7"/></svg>
                 <span>{{ __('messages.navigation.datasets') }}</span>
             </a>
             @can('datasets.create')
-                <a href="{{ route('datasets.create') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('datasets.create') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                <a href="{{ route('datasets.create') }}" class="nav-item mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('datasets.create') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}" @if(request()->routeIs('datasets.create')) aria-current="page" @endif>
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
                     <span>{{ __('messages.navigation.create_dataset') }}</span>
                 </a>
             @endcan
             @if (($spatialDatasetsCount ?? 0) > 0)
-                <a href="{{ route('map.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('map.index') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                <a href="{{ route('map.index') }}" class="nav-item mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('map.index') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}" @if(request()->routeIs('map.index')) aria-current="page" @endif>
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 21s7-6.1 7-12A7 7 0 1 0 5 9c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>
                     <span>{{ __('messages.navigation.map') }}</span>
                 </a>
             @endif
             @can('users.view')
-                <a href="{{ route('users.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('users.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                <a href="{{ route('users.index') }}" class="nav-item mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('users.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}" @if(request()->routeIs('users.*')) aria-current="page" @endif>
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><circle cx="9" cy="8" r="3"/><path d="M3 20c.4-4 2.3-6 6-6s5.6 2 6 6M16 11a3 3 0 1 0 0-6M16 14c3.1.2 4.7 2.2 5 6"/></svg>
                     <span>{{ __('messages.navigation.users') }}</span>
                 </a>
             @endcan
             @can('roles.view')
-                <a href="{{ route('roles.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('roles.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                <a href="{{ route('roles.index') }}" class="nav-item mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('roles.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}" @if(request()->routeIs('roles.*')) aria-current="page" @endif>
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 3 5 6v5c0 4.7 2.8 8.5 7 10 4.2-1.5 7-5.3 7-10V6l-7-3Z"/><path stroke-linecap="round" d="m9 12 2 2 4-4"/></svg>
                     <span>{{ __('messages.navigation.roles') }}</span>
                 </a>
             @endcan
             @can('permissions.view')
-                <a href="{{ route('permissions.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('permissions.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
+                <a href="{{ route('permissions.index') }}" class="nav-item mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('permissions.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}" @if(request()->routeIs('permissions.*')) aria-current="page" @endif>
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 11a5 5 0 1 1 9.9-1H21v4h-3v3h-3v3h-3l-2-2.2A5 5 0 0 1 7 11Z"/><circle cx="12" cy="11" r="1"/></svg>
                     <span>{{ __('messages.navigation.permissions') }}</span>
                 </a>
@@ -92,10 +92,10 @@
                 </div>
                 @auth
                     <div id="user-menu-container" class="relative">
-                        <button id="user-menu-toggle" class="flex items-center gap-2 rounded-md p-1.5 hover:bg-surface-1" aria-expanded="false" aria-haspopup="true">
+                        <button id="user-menu-toggle" class="btn-motion flex items-center gap-2 rounded-md p-1.5 hover:bg-surface-1" aria-expanded="false" aria-haspopup="true">
                             <div class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">{{ Str::upper(mb_substr(auth()->user()->name, 0, 1)) }}</div>
                             <span class="hidden text-sm font-medium text-ink-secondary sm:block">{{ auth()->user()->name }}</span>
-                            <svg class="h-4 w-4 text-ink-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="m7 10 5 5 5-5"/></svg>
+                            <svg id="user-menu-chevron" class="h-4 w-4 text-ink-muted transition-transform duration-[220ms]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="m7 10 5 5 5-5"/></svg>
                         </button>
                         <div id="user-menu" class="absolute end-0 top-full z-50 mt-2 hidden w-64 rounded-md border border-border bg-white py-2 shadow-md">
                             <div class="border-b border-border px-4 py-3">
@@ -107,7 +107,7 @@
                             </div>
                             <form method="POST" action="{{ route('logout') }}" class="p-2">
                                 @csrf
-                                <button type="submit" class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-start text-sm font-medium text-danger hover:bg-danger-surface">
+                                <button type="submit" class="btn-motion flex w-full items-center gap-2 rounded-md px-3 py-2 text-start text-sm font-medium text-danger hover:bg-danger-surface">
                                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M10 17l5-5-5-5M15 12H3M21 3v18"/></svg>
                                     {{ __('messages.navigation.logout') }}
                                 </button>
@@ -120,10 +120,10 @@
 
         <main class="min-w-0">
             @if (session('success'))
-                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-md border border-success bg-success-surface px-4 py-3 text-success" role="alert">{{ session('success') }}</div></div>
+                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="enter-alert rounded-md border border-success bg-success-surface px-4 py-3 text-success" role="alert">{{ session('success') }}</div></div>
             @endif
             @if (session('error'))
-                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-md border border-danger bg-danger-surface px-4 py-3 text-danger" role="alert">{{ session('error') }}</div></div>
+                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="enter-alert rounded-md border border-danger bg-danger-surface px-4 py-3 text-danger" role="alert">{{ session('error') }}</div></div>
             @endif
             @yield('content')
         </main>

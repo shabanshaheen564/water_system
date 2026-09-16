@@ -1,6 +1,6 @@
-@import '@fontsource/ibm-plex-sans-arabic/400.css';
-@import '@fontsource/ibm-plex-sans-arabic/500.css';
-@import '@fontsource/ibm-plex-sans-arabic/600.css';
+@import '@fontsource/noto-sans-arabic/400.css';
+@import '@fontsource/noto-sans-arabic/500.css';
+@import '@fontsource/noto-sans-arabic/600.css';
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -9,7 +9,7 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+    --font-sans: 'Noto Sans Arabic', 'Segoe UI', system-ui, sans-serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
     --color-surface-0: #ffffff;
     --color-surface-1: #f7f8f9;
@@ -30,6 +30,12 @@
     --color-danger-surface: #fdf2f2;
     --color-info: #14556b;
     --color-info-surface: #f0f7f9;
+
+    /* Motion tokens — one easing curve and three durations for the whole system. */
+    --ease-institutional: cubic-bezier(0.32, 0.72, 0.28, 1);
+    --duration-fast: 140ms;
+    --duration-base: 220ms;
+    --duration-slow: 360ms;
 }
 
 html, body { min-height: 100%; font-family: var(--font-sans); background: #fff; color: var(--color-ink); }
@@ -57,3 +63,127 @@ button, input, select, textarea { font: inherit; }
 .feature-popup .property-row { display: flex; gap: .75rem; padding: .35rem 0; border-bottom: 1px solid var(--color-border); }
 .feature-popup .property-key { min-width: 90px; font-weight: 600; color: var(--color-ink); }
 .feature-popup .property-value { min-width: 0; flex: 1; overflow-wrap: anywhere; color: var(--color-ink-secondary); }
+
+
+/* ─────────────────────────────────────────────────────────────
+   Motion system
+   One easing curve, three durations. Movement is small and
+   purposeful: 2-8px, never bounce, never scale beyond 1.02.
+   Everything is disabled under prefers-reduced-motion.
+   ───────────────────────────────────────────────────────────── */
+
+@keyframes surface-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes menu-enter {
+    from { opacity: 0; transform: translateY(-4px) scale(.985); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes alert-enter {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+}
+
+/* Page content settles in once on load. Staggered so cards
+   arrive in reading order instead of all at once. */
+.enter-surface { animation: surface-enter var(--duration-slow) var(--ease-institutional) both; }
+.enter-delay-1 { animation-delay: 40ms; }
+.enter-delay-2 { animation-delay: 80ms; }
+.enter-delay-3 { animation-delay: 120ms; }
+.enter-delay-4 { animation-delay: 160ms; }
+
+.enter-menu  { animation: menu-enter var(--duration-fast) var(--ease-institutional) both; }
+.enter-alert { animation: alert-enter var(--duration-base) var(--ease-institutional) both; }
+
+/* Interactive surfaces */
+.card-institutional {
+    transition: border-color var(--duration-base) var(--ease-institutional),
+                box-shadow var(--duration-base) var(--ease-institutional),
+                transform var(--duration-base) var(--ease-institutional);
+}
+.card-interactive:hover {
+    border-color: var(--color-border-strong);
+    box-shadow: 0 1px 2px rgb(26 29 33 / .04), 0 8px 20px -12px rgb(26 29 33 / .18);
+    transform: translateY(-2px);
+}
+
+.input-institutional {
+    transition: border-color var(--duration-fast) var(--ease-institutional),
+                box-shadow var(--duration-fast) var(--ease-institutional);
+}
+.input-institutional:focus {
+    outline: none;
+    border-color: var(--color-brand-600);
+    box-shadow: 0 0 0 3px var(--color-brand-50);
+}
+
+.btn-motion {
+    transition: background-color var(--duration-fast) var(--ease-institutional),
+                border-color var(--duration-fast) var(--ease-institutional),
+                color var(--duration-fast) var(--ease-institutional),
+                transform var(--duration-fast) var(--ease-institutional);
+}
+.btn-motion:active { transform: translateY(1px); }
+
+/* Table rows */
+.table-institutional tbody tr {
+    transition: background-color var(--duration-fast) var(--ease-institutional);
+}
+.table-institutional tbody tr:hover { background: var(--color-surface-1); }
+
+/* Sidebar navigation: an accent rule grows in on the inline-start
+   edge instead of the whole item changing colour abruptly. */
+.nav-item {
+    position: relative;
+    transition: background-color var(--duration-fast) var(--ease-institutional),
+                color var(--duration-fast) var(--ease-institutional);
+}
+.nav-item::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    top: 50%;
+    height: 0;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--color-brand-600);
+    transform: translateY(-50%);
+    transition: height var(--duration-base) var(--ease-institutional);
+}
+.nav-item[aria-current='page']::before { height: 60%; }
+.nav-item svg { transition: transform var(--duration-base) var(--ease-institutional); }
+.nav-item:hover svg { transform: translateX(-2px); }
+
+/* Loading placeholder for map layers and async tables */
+.skeleton {
+    background: linear-gradient(90deg,
+        var(--color-surface-1) 25%,
+        #eef0f2 37%,
+        var(--color-surface-1) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* Keyboard focus is always visible, never removed. */
+:where(a, button, [role='button'], summary):focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+    }
+    .card-interactive:hover, .btn-motion:active { transform: none; }
+}

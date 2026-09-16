@@ -11,7 +11,7 @@
 
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             @forelse($roles as $role)
-                <div class="card-institutional p-5">
+                <div data-enter class="card-institutional p-5">
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <h3 class="font-semibold text-ink">{{ __('messages.roles.' . $role->name) }}</h3>
@@ -26,7 +26,7 @@
                     </div>
                 </div>
             @empty
-                <div class="card-institutional p-8 text-center text-sm text-ink-muted sm:col-span-2 xl:col-span-3">{{ __('No roles found.') }}</div>
+                <div data-enter class="card-institutional p-8 text-center text-sm text-ink-muted sm:col-span-2 xl:col-span-3">{{ __('No roles found.') }}</div>
             @endforelse
         </div>
     </div>

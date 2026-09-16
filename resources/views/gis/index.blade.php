@@ -6,7 +6,7 @@
 <div class="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
     <div class="mb-6"><h2 class="text-xl font-semibold leading-[1.5] text-ink">{{ __('GIS Map') }}</h2><p class="mt-1 text-sm text-ink-secondary">{{ __('Interactive map for spatial data visualization') }}</p></div>
     <div class="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-        <aside class="card-institutional p-4">
+        <aside data-enter class="card-institutional p-4">
             <h3 class="mb-3 text-sm font-semibold text-ink">{{ __('Layers') }}</h3>
             <div id="layer-list" class="space-y-2">
                 @forelse($spatialDatasets as $dataset)
@@ -26,7 +26,7 @@
             </div>
             <div class="mt-4 border-t border-border pt-4"><h3 class="mb-3 text-sm font-semibold text-ink">{{ __('Map Controls') }}</h3><div class="space-y-2"><button id="zoom-to-layers" class="w-full rounded-md border border-border-strong bg-white px-3 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Zoom to Layers') }}</button><button id="reset-view" class="w-full rounded-md border border-border-strong bg-white px-3 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Reset View') }}</button></div></div>
         </aside>
-        <section class="card-institutional overflow-hidden"><div id="map"></div></section>
+        <section data-enter class="card-institutional overflow-hidden"><div id="map" data-msg-load-failed="{{ __('messages.map.layer_load_failed') }}" data-msg-feature-details="{{ __('messages.map.feature_details') }}"></div></section>
     </div>
 </div>
 @endsection

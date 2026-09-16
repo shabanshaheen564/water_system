@@ -16,7 +16,7 @@
             ['Spatial Datasets', $spatialDatasets],
             ['GIS Features', $gisFeatures],
         ] as [$label, $value])
-            <div class="card-institutional p-5">
+            <div data-enter class="card-institutional card-interactive p-5">
                 <p class="text-sm font-medium text-ink-secondary">{{ __($label) }}</p>
                 <p class="mt-2 text-3xl font-semibold text-ink">{{ number_format($value) }}</p>
             </div>
@@ -24,7 +24,7 @@
     </div>
 
     <div class="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section class="card-institutional overflow-hidden">
+        <section data-enter class="card-institutional card-interactive overflow-hidden">
             <div class="flex items-center justify-between border-b border-border p-4">
                 <h2 class="text-base font-semibold text-ink">{{ __('Recent Datasets') }}</h2>
                 <a href="{{ route('datasets.index') }}" class="text-sm font-medium text-brand-600 hover:text-brand-700">{{ __('View All') }}</a>
@@ -60,13 +60,13 @@
                 <div class="p-8 text-center">
                     <p class="text-sm text-ink-muted">{{ __('No datasets yet') }}</p>
                     @can('datasets.create')
-                        <a href="{{ route('datasets.create') }}" class="mt-4 inline-flex rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Create Dataset') }}</a>
+                        <a href="{{ route('datasets.create') }}" class="btn-motion mt-4 inline-flex rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Create Dataset') }}</a>
                     @endcan
                 </div>
             @endif
         </section>
 
-        <section class="card-institutional overflow-hidden">
+        <section data-enter class="card-institutional card-interactive overflow-hidden">
             <div class="border-b border-border p-4">
                 <h2 class="text-base font-semibold text-ink">{{ __('Quick Actions') }}</h2>
             </div>
@@ -108,7 +108,7 @@
         </section>
     </div>
 
-    <section class="card-institutional overflow-hidden">
+    <section data-enter class="card-institutional card-interactive overflow-hidden">
         <div class="border-b border-border p-4">
             <h2 class="text-base font-semibold text-ink">{{ __('System Status') }}</h2>
         </div>

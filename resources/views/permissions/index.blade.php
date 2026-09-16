@@ -9,7 +9,7 @@
             <p class="mt-1 text-sm text-ink-secondary">{{ __('View available system permissions and their role assignments') }}</p>
         </div>
 
-        <div class="card-institutional overflow-hidden">
+        <div data-enter class="card-institutional overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="table-institutional">
                     <thead>

@@ -10,11 +10,11 @@
                 <p class="mt-1 text-sm text-ink-secondary">{{ __('Browse and manage system users') }}</p>
             </div>
             @can('users.create')
-                <a href="{{ route('users.create') }}" class="shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Create User') }}</a>
+                <a href="{{ route('users.create') }}" class="btn-motion shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Create User') }}</a>
             @endcan
         </div>
 
-        <div class="card-institutional overflow-hidden">
+        <div data-enter class="card-institutional overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="table-institutional">
                     <thead>

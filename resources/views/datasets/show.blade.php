@@ -14,12 +14,12 @@
                     <a href="{{ route('datasets.edit', $dataset) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Edit') }}</a>
                 @endcan
                 @if($dataset->is_spatial && $dataset->is_active)
-                    <a href="{{ route('map.index') }}?dataset={{ $dataset->id }}" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('View on Map') }}</a>
+                    <a href="{{ route('map.index') }}?dataset={{ $dataset->id }}" class="btn-motion rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('View on Map') }}</a>
                 @endif
             </div>
         </div>
 
-        <div class="card-institutional overflow-hidden">
+        <div data-enter class="card-institutional overflow-hidden">
             <div class="border-b border-border p-6">
                 <dl class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
                     @foreach([
@@ -54,16 +54,16 @@
         </div>
 
         @if($dataset->is_spatial && $featuresCount > 0)
-            <section class="card-institutional mt-6 overflow-hidden">
+            <section data-enter class="card-institutional mt-6 overflow-hidden">
                 <div class="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
                     <h3 class="text-base font-semibold text-ink">{{ __('GIS Features') }}</h3>
-                    <a href="{{ route('map.index') }}?dataset={{ $dataset->id }}" class="rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('View on Map') }}</a>
+                    <a href="{{ route('map.index') }}?dataset={{ $dataset->id }}" class="btn-motion rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('View on Map') }}</a>
                 </div>
                 <p class="px-6 py-4 text-sm text-ink-secondary">{{ $featuresCount }} {{ __('features on map') }}</p>
             </section>
         @endif
 
-        <section class="card-institutional mt-6 overflow-hidden">
+        <section data-enter class="card-institutional mt-6 overflow-hidden">
             <div class="border-b border-border px-6 py-4">
                 <h3 class="text-base font-semibold text-ink">{{ __('Fields') }}</h3>
             </div>
@@ -93,7 +93,7 @@
                 <div class="p-8 text-center">
                     <p class="text-sm text-ink-muted">{{ __('No fields defined yet') }}</p>
                     @can('datasets.create')
-                        <a href="{{ route('datasets.fields.create', $dataset) }}" class="mt-4 inline-block rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Add First Field') }}</a>
+                        <a href="{{ route('datasets.fields.create', $dataset) }}" class="btn-motion mt-4 inline-block rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Add First Field') }}</a>
                     @endcan
                 </div>
             @endif

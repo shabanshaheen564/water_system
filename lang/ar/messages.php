@@ -57,5 +57,11 @@ return [
         'close_menu' => 'إغلاق القائمة',
         'open_menu' => 'فتح القائمة',
         'main_navigation' => 'التنقل الرئيسي',
+        'sidebar' => 'القائمة الجانبية',
+    ],
+
+    'map' => [
+        'layer_load_failed' => 'تعذر تحميل الطبقة',
+        'feature_details' => 'تفاصيل المعلم',
     ],
 ];

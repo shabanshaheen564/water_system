@@ -8,7 +8,7 @@
             <h2 class="text-xl font-semibold leading-[1.5] text-ink">{{ __('Create Dataset') }}</h2>
             <p class="mt-1 text-sm text-ink-secondary">{{ __('Create a new dataset for managing spatial or tabular data') }}</p>
         </div>
-        <div class="card-institutional overflow-hidden">
+        <div data-enter class="card-institutional overflow-hidden">
             <form method="POST" action="{{ route('datasets.store') }}" class="space-y-6 p-6">
                 @csrf
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -80,7 +80,7 @@
                 </div>
                 <div class="flex justify-end gap-3 border-t border-border pt-6">
                     <a href="{{ route('datasets.index') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Cancel') }}</a>
-                    <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Create Dataset') }}</button>
+                    <button type="submit" class="btn-motion rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Create Dataset') }}</button>
                 </div>
             </form>
         </div>
