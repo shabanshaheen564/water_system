@@ -29,6 +29,12 @@
                 <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-3H4v3Zm10-12h6V4h-6v4Z"/></svg>
                 <span>{{ __('messages.navigation.dashboard') }}</span>
             </a>
+            @can('complaints.view')
+                <a href="{{ route('complaints.index') }}" class="nav-item mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('complaints.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}" @if(request()->routeIs('complaints.*')) aria-current="page" @endif>
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 5h14v11H9l-4 4V5Z"/><path stroke-linecap="round" d="M8 9h8M8 12h5"/></svg>
+                    <span>الشكاوى</span>
+                </a>
+            @endcan
             <a href="{{ route('datasets.index') }}" class="nav-item mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('datasets.*') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}" @if(request()->routeIs('datasets.*')) aria-current="page" @endif>
                 <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12v7c0 1.66 3.58 3 8 3s8-1.34 8-3v-7"/></svg>
                 <span>{{ __('messages.navigation.datasets') }}</span>
@@ -69,10 +75,7 @@
             <div class="shrink-0 border-t border-border p-3">
                 <div class="flex min-w-0 items-center gap-3">
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">{{ Str::upper(mb_substr(auth()->user()->name, 0, 1)) }}</div>
-                    <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-semibold text-ink">{{ auth()->user()->name }}</p>
-                        <p class="truncate text-xs text-ink-muted ltr-value">{{ auth()->user()->email }}</p>
-                    </div>
+                    <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-ink">{{ auth()->user()->name }}</p><p class="truncate text-xs text-ink-muted ltr-value">{{ auth()->user()->email }}</p></div>
                 </div>
             </div>
         @endauth
@@ -82,36 +85,15 @@
         <header class="sticky top-0 z-30 h-16 border-b border-border bg-white">
             <div class="flex h-full items-center justify-between px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center gap-3">
-                    <button id="sidebar-toggle" class="rounded-md p-2 text-ink-secondary hover:bg-surface-1 lg:hidden" aria-label="{{ __('messages.ui.open_menu') }}" aria-expanded="false" aria-controls="sidebar">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    </button>
-                    <div>
-                        <p class="text-xs font-medium text-brand-600">{{ __('messages.app.municipality') }}</p>
-                        <h1 class="text-xl font-semibold leading-[1.5] text-ink">{{ $title ?? __('messages.navigation.dashboard') }}</h1>
-                    </div>
+                    <button id="sidebar-toggle" class="rounded-md p-2 text-ink-secondary hover:bg-surface-1 lg:hidden" aria-label="{{ __('messages.ui.open_menu') }}" aria-expanded="false" aria-controls="sidebar"><svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+                    <div><p class="text-xs font-medium text-brand-600">{{ __('messages.app.municipality') }}</p><h1 class="text-xl font-semibold leading-[1.5] text-ink">{{ $title ?? __('messages.navigation.dashboard') }}</h1></div>
                 </div>
                 @auth
                     <div id="user-menu-container" class="relative">
-                        <button id="user-menu-toggle" class="btn-motion flex items-center gap-2 rounded-md p-1.5 hover:bg-surface-1" aria-expanded="false" aria-haspopup="true">
-                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">{{ Str::upper(mb_substr(auth()->user()->name, 0, 1)) }}</div>
-                            <span class="hidden text-sm font-medium text-ink-secondary sm:block">{{ auth()->user()->name }}</span>
-                            <svg id="user-menu-chevron" class="h-4 w-4 text-ink-muted transition-transform duration-[220ms]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="m7 10 5 5 5-5"/></svg>
-                        </button>
+                        <button id="user-menu-toggle" class="btn-motion flex items-center gap-2 rounded-md p-1.5 hover:bg-surface-1" aria-expanded="false" aria-haspopup="true"><div class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600">{{ Str::upper(mb_substr(auth()->user()->name, 0, 1)) }}</div><span class="hidden text-sm font-medium text-ink-secondary sm:block">{{ auth()->user()->name }}</span><svg id="user-menu-chevron" class="h-4 w-4 text-ink-muted transition-transform duration-[220ms]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="m7 10 5 5 5-5"/></svg></button>
                         <div id="user-menu" class="absolute end-0 top-full z-50 mt-2 hidden w-64 rounded-md border border-border bg-white py-2 shadow-md">
-                            <div class="border-b border-border px-4 py-3">
-                                <p class="text-sm font-semibold text-ink">{{ auth()->user()->name }}</p>
-                                <p class="mt-1 text-xs text-ink-muted ltr-value">{{ auth()->user()->email }}</p>
-                                @if(auth()->user()->roles->count())
-                                    <p class="mt-2 text-xs font-medium text-brand-600">{{ auth()->user()->roles->map(fn ($role) => __('messages.roles.' . $role->name))->implode('، ') }}</p>
-                                @endif
-                            </div>
-                            <form method="POST" action="{{ route('logout') }}" class="p-2">
-                                @csrf
-                                <button type="submit" class="btn-motion flex w-full items-center gap-2 rounded-md px-3 py-2 text-start text-sm font-medium text-danger hover:bg-danger-surface">
-                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M10 17l5-5-5-5M15 12H3M21 3v18"/></svg>
-                                    {{ __('messages.navigation.logout') }}
-                                </button>
-                            </form>
+                            <div class="border-b border-border px-4 py-3"><p class="text-sm font-semibold text-ink">{{ auth()->user()->name }}</p><p class="mt-1 text-xs text-ink-muted ltr-value">{{ auth()->user()->email }}</p>@if(auth()->user()->roles->count())<p class="mt-2 text-xs font-medium text-brand-600">{{ auth()->user()->roles->map(fn ($role) => __('messages.roles.' . $role->name))->implode('، ') }}</p>@endif</div>
+                            <form method="POST" action="{{ route('logout') }}" class="p-2">@csrf<button type="submit" class="btn-motion flex w-full items-center gap-2 rounded-md px-3 py-2 text-start text-sm font-medium text-danger hover:bg-danger-surface"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M10 17l5-5-5-5M15 12H3M21 3v18"/></svg>{{ __('messages.navigation.logout') }}</button></form>
                         </div>
                     </div>
                 @endauth
@@ -119,15 +101,10 @@
         </header>
 
         <main class="min-w-0">
-            @if (session('success'))
-                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="enter-alert rounded-md border border-success bg-success-surface px-4 py-3 text-success" role="alert">{{ session('success') }}</div></div>
-            @endif
-            @if (session('error'))
-                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="enter-alert rounded-md border border-danger bg-danger-surface px-4 py-3 text-danger" role="alert">{{ session('error') }}</div></div>
-            @endif
+            @if (session('success'))<div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="enter-alert rounded-md border border-success bg-success-surface px-4 py-3 text-success" role="alert">{{ session('success') }}</div></div>@endif
+            @if (session('error'))<div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="enter-alert rounded-md border border-danger bg-danger-surface px-4 py-3 text-danger" role="alert">{{ session('error') }}</div></div>@endif
             @yield('content')
         </main>
-
         <footer class="border-t border-border bg-white py-4 text-center text-xs text-ink-muted">{{ __('messages.app.municipality') }} — {{ __('messages.app.department') }} © {{ date('Y') }}</footer>
     </div>
 </body>
