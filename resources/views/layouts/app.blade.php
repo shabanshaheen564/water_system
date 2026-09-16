@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name') }} — {{ $title ?? __('Dashboard') }}</title>
+    <title>{{ config('app.name') }} — {{ $title ?? __('messages.navigation.dashboard') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
@@ -19,12 +19,12 @@
                 </div>
                 <span class="truncate text-sm font-semibold text-ink">{{ __('messages.app.municipality') }}</span>
             </a>
-            <button id="sidebar-close" class="rounded-md p-2 text-ink-secondary hover:bg-surface-1 lg:hidden" aria-label="إغلاق القائمة">
+            <button id="sidebar-close" class="rounded-md p-2 text-ink-secondary hover:bg-surface-1 lg:hidden" aria-label="{{ __('messages.ui.close_menu') }}">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="m6 6 12 12M18 6 6 18"/></svg>
             </button>
         </div>
 
-        <nav class="min-h-0 flex-1 overflow-y-auto p-3" aria-label="{{ __('messages.navigation.dashboard') }}">
+        <nav class="min-h-0 flex-1 overflow-y-auto p-3" aria-label="{{ __('messages.ui.main_navigation') }}">
             <a href="{{ route('gis.index') }}" class="mb-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('gis.index') ? 'bg-brand-50 text-brand-600' : 'text-ink-secondary hover:bg-surface-1 hover:text-ink' }}">
                 <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-3H4v3Zm10-12h6V4h-6v4Z"/></svg>
                 <span>{{ __('messages.navigation.dashboard') }}</span>
@@ -82,12 +82,12 @@
         <header class="sticky top-0 z-30 h-16 border-b border-border bg-white">
             <div class="flex h-full items-center justify-between px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center gap-3">
-                    <button id="sidebar-toggle" class="rounded-md p-2 text-ink-secondary hover:bg-surface-1 lg:hidden" aria-label="فتح القائمة" aria-expanded="false" aria-controls="sidebar">
+                    <button id="sidebar-toggle" class="rounded-md p-2 text-ink-secondary hover:bg-surface-1 lg:hidden" aria-label="{{ __('messages.ui.open_menu') }}" aria-expanded="false" aria-controls="sidebar">
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
                     <div>
                         <p class="text-xs font-medium text-brand-600">{{ __('messages.app.municipality') }}</p>
-                        <h1 class="text-xl font-semibold leading-[1.5] text-ink">{{ $title ?? __('Dashboard') }}</h1>
+                        <h1 class="text-xl font-semibold leading-[1.5] text-ink">{{ $title ?? __('messages.navigation.dashboard') }}</h1>
                     </div>
                 </div>
                 @auth
@@ -120,10 +120,10 @@
 
         <main class="min-w-0">
             @if (session('success'))
-                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-md border border-green-200 bg-success-surface px-4 py-3 text-success" role="alert">{{ session('success') }}</div></div>
+                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-md border border-success bg-success-surface px-4 py-3 text-success" role="alert">{{ session('success') }}</div></div>
             @endif
             @if (session('error'))
-                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-md border border-red-200 bg-danger-surface px-4 py-3 text-danger" role="alert">{{ session('error') }}</div></div>
+                <div class="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"><div class="rounded-md border border-danger bg-danger-surface px-4 py-3 text-danger" role="alert">{{ session('error') }}</div></div>
             @endif
             @yield('content')
         </main>
