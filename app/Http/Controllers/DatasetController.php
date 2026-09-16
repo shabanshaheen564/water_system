@@ -87,7 +87,7 @@ class DatasetController extends Controller
 
         if ($this->changesProtectedConfiguration($dataset, $validated) && $this->hasDependentData($dataset)) {
             return response()->json([
-                'message' => 'Spatial and type configuration cannot be changed after records, features, or relationships exist.',
+                'message' => __('messages.controllers.dataset.protected_configuration'),
             ], 422);
         }
 
