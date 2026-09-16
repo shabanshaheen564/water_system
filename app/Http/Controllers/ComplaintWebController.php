@@ -85,14 +85,19 @@ class ComplaintWebController extends Controller
 
     public function show(Complaint $complaint): View
     {
-        $complaint->load(['reportedBy:id,name,email', 'assignedTo:id,name,email', 'workOrders']);
+        $complaint->load([
+            'reportedBy:id,name,email',
+            'assignedTo:id,name,email',
+            'processedBy:id,name,email',
+            'workOrders',
+        ]);
 
         return view('complaints.show', compact('complaint'));
     }
 
     public function edit(Complaint $complaint): View
     {
-        $complaint->load(['reportedBy:id,name', 'assignedTo:id,name']);
+        $complaint->load(['reportedBy:id,name', 'assignedTo:id,name', 'processedBy:id,name']);
 
         return view('complaints.edit', [
             'complaint' => $complaint,
@@ -121,10 +126,17 @@ class ComplaintWebController extends Controller
             if (! in_array($validated['status'], $validTransitions[$oldStatus] ?? [], true)) {
                 return back()->withErrors(['status' => "لا يمكن تغيير الحالة من {$oldStatus} إلى {$validated['status']}."])->withInput();
             }
+        }
 
-            if ($validated['status'] === 'resolved' && ! $complaint->resolved_at) {
-                $validated['resolved_at'] = now();
-            }
+        if (array_key_exists('processing_notes', $validated) || array_key_exists('solution', $validated)) {
+            $validated['processed_by'] = $request->user()->id;
+            $validated['processed_at'] = now();
+        }
+
+        if (($validated['status'] ?? null) === 'resolved' && ! $complaint->resolved_at) {
+            $validated['resolved_at'] = now();
+            $validated['processed_by'] ??= $request->user()->id;
+            $validated['processed_at'] ??= now();
         }
 
         $complaint->update($validated);
