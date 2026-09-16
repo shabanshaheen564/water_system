@@ -7,6 +7,8 @@ use App\Http\Controllers\DatasetWebController;
 use App\Http\Controllers\DatasetFieldWebController;
 use App\Http\Controllers\DatasetRecordWebController;
 use App\Http\Controllers\UserWebController;
+use App\Http\Controllers\RoleWebController;
+use App\Http\Controllers\PermissionWebController;
 use App\Http\Controllers\Auth\LoginController;
 
 Route::get('/', function () { return view('welcome'); })->name('home');
@@ -24,6 +26,15 @@ Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(functio
 
 Route::middleware(['auth', 'active', 'permission:users.view'])->group(function () {
     Route::get('/users', [UserWebController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}', [UserWebController::class, 'show'])->name('users.show');
+});
+
+Route::middleware(['auth', 'active', 'permission:roles.view'])->group(function () {
+    Route::get('/roles', [RoleWebController::class, 'index'])->name('roles.index');
+});
+
+Route::middleware(['auth', 'active', 'permission:permissions.view'])->group(function () {
+    Route::get('/permissions', [PermissionWebController::class, 'index'])->name('permissions.index');
 });
 
 Route::middleware(['auth', 'active', 'permission:datasets.create'])->group(function () {
