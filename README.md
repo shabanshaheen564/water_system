@@ -1,59 +1,90 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# نظام إدارة المياه ونظم المعلومات الجغرافية
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+نظام مؤسسي لإدارة بيانات **بلدية دير البلح — دائرة المياه والصرف الصحي، قسم نظم المعلومات الجغرافية**. يوفّر النظام إدارة مركزية لمجموعات البيانات والحقول والسجلات والمعالم المكانية، مع خريطة GIS وصلاحيات مؤسسية.
 
-## About Laravel
+## التقنيات
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Laravel 12
+- PHP 8.2+
+- PostgreSQL + PostGIS
+- Laravel Sanctum
+- Spatie Laravel Permission
+- Blade + Tailwind CSS v4 + Vite
+- Leaflet 1.9.4
+- IBM Plex Sans Arabic محلياً عبر npm
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## الوظائف الحالية
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- المصادقة وتسجيل الدخول وتسجيل الخروج
+- الأدوار والصلاحيات
+- إدارة المستخدمين
+- إدارة مجموعات البيانات والحقول والسجلات
+- إدارة المعالم المكانية
+- استيراد البيانات
+- العلاقات بين مجموعات البيانات
+- لوحة تحكم إحصائية
+- خريطة GIS تفاعلية باستخدام Leaflet
+- واجهة عربية RTL موجهة للاستخدام المؤسسي
 
-## Learning Laravel
+## المتطلبات
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- PHP 8.2 أو أحدث
+- Composer
+- Node.js و npm
+- PostgreSQL 17 أو إصدار متوافق
+- PostGIS
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## التشغيل المحلي
 
-## Laravel Sponsors
+```bash
+git clone https://github.com/shabanshaheen564/water_system.git
+cd water_system
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan db:seed
+npm run build
+php artisan serve
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+بعد ذلك افتح عنوان الخادم المحلي الذي يعرضه Laravel.
 
-### Premium Partners
+## إعداد قاعدة البيانات
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+اضبط قيم PostgreSQL في ملف `.env`، بما في ذلك:
 
-## Contributing
+```env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=water_gis
+DB_USERNAME=postgres
+DB_PASSWORD=
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+تأكد من تفعيل PostGIS في قاعدة البيانات قبل تشغيل البيانات المكانية.
 
-## Code of Conduct
+## حساب مالك النظام
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+يقرأ Seeder كلمة مرور مالك النظام من:
 
-## Security Vulnerabilities
+```env
+SYSTEM_OWNER_PASSWORD=
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+لا تضع كلمة مرور حقيقية داخل ملفات Git أو الكود المصدري.
 
-## License
+## البناء والاختبار
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+npm run build
+php artisan test
+```
+
+## ملاحظات التطوير
+
+- لا يتم تغيير أسماء الأدوار والصلاحيات المخزنة في قاعدة البيانات عند ترجمة الواجهة.
+- القيم التقنية مثل أسماء الحقول والمعرفات والإحداثيات وSRID والبريد الإلكتروني تُعرض باتجاه LTR عند الحاجة.
+- قاعدة البيانات والمخططات والهندسة المكانية يجب أن تبقى متوافقة مع PostgreSQL/PostGIS.
