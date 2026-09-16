@@ -32,7 +32,7 @@
                     </div>
                     @error('password')<p class="mt-2 text-sm text-danger" role="alert">{{ $message }}</p>@enderror
                 </div>
-                @if(session('error'))<div class="border border-red-200 bg-danger-surface p-3 text-sm text-danger" role="alert">{{ session('error') }}</div>@endif
+                @if(session('error'))<div class="border border-danger bg-danger-surface p-3 text-sm text-danger" role="alert">{{ session('error') }}</div>@endif
                 <button id="login-button" type="submit" class="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60">
                     <span id="button-text">{{ __('messages.public.login_short') }}</span>
                     <span id="button-spinner" class="hidden">{{ __('messages.public.logging_in') }}</span>
