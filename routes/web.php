@@ -21,8 +21,6 @@ Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(functio
     Route::get('/datasets', [DatasetWebController::class, 'index'])->name('datasets.index');
 });
 
-// Static dataset routes must be registered before /datasets/{dataset}
-// so "create" is not interpreted as a numeric dataset ID.
 Route::middleware(['auth', 'active', 'permission:datasets.create'])->group(function () {
     Route::get('/datasets/create', [DatasetWebController::class, 'create'])->name('datasets.create');
     Route::post('/datasets', [DatasetWebController::class, 'store'])->name('datasets.store');
@@ -52,8 +50,15 @@ Route::middleware(['auth', 'active', 'permission:users.update'])->group(function
     Route::put('/users/{user}', [UserWebController::class, 'update'])->name('users.update');
 });
 
+Route::middleware(['auth', 'active', 'permission:users.delete'])->delete('/users/{user}', [UserWebController::class, 'destroy'])->name('users.destroy');
+
 Route::middleware(['auth', 'active', 'permission:roles.view'])->group(function () {
     Route::get('/roles', [RoleWebController::class, 'index'])->name('roles.index');
+});
+
+Route::middleware(['auth', 'active', 'permission:roles.update'])->group(function () {
+    Route::get('/roles/{role}/edit', [RoleWebController::class, 'edit'])->name('roles.edit');
+    Route::put('/roles/{role}', [RoleWebController::class, 'update'])->name('roles.update');
 });
 
 Route::middleware(['auth', 'active', 'permission:permissions.view'])->group(function () {
