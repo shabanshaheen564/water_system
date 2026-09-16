@@ -1,61 +1,13 @@
 @extends('layouts.app')
-
+@section('title', __('Create User'))
 @section('content')
-    <div class="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
-        <div class="mb-6">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ __('Create User') }}</h2>
-            <p class="mt-1 text-gray-600 dark:text-gray-400">{{ __('Create a new system user and assign roles') }}</p>
-        </div>
-
-        <form method="POST" action="{{ route('users.store') }}" class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6 space-y-6">
-            @csrf
-
-            <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Name') }}</label>
-                <input id="name" name="name" value="{{ old('name') }}" required class="mt-1 block w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:border-blue-500 focus:ring-blue-500">
-                @error('name')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-            </div>
-
-            <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Email') }}</label>
-                <input id="email" type="email" name="email" value="{{ old('email') }}" required class="mt-1 block w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:border-blue-500 focus:ring-blue-500">
-                @error('email')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-            </div>
-
-            <div class="grid gap-6 sm:grid-cols-2">
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Password') }}</label>
-                    <input id="password" type="password" name="password" required class="mt-1 block w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:border-blue-500 focus:ring-blue-500">
-                    @error('password')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label for="password_confirmation" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Confirm Password') }}</label>
-                    <input id="password_confirmation" type="password" name="password_confirmation" required class="mt-1 block w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:border-blue-500 focus:ring-blue-500">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Roles') }}</label>
-                <div class="mt-2 grid gap-2 sm:grid-cols-2">
-                    @foreach($roles as $role)
-                        <label class="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-slate-700 p-3">
-                            <input type="checkbox" name="roles[]" value="{{ $role->name }}" @checked(in_array($role->name, old('roles', []), true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">{{ $role->name }}</span>
-                        </label>
-                    @endforeach
-                </div>
-                @error('roles')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-            </div>
-
-            <label class="flex items-center gap-2">
-                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                <span class="text-sm text-gray-700 dark:text-gray-300">{{ __('Active') }}</span>
-            </label>
-
-            <div class="flex items-center justify-end gap-3 pt-2">
-                <a href="{{ route('users.index') }}" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">{{ __('Cancel') }}</a>
-                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">{{ __('Create User') }}</button>
-            </div>
-        </form>
-    </div>
+<div class="mx-auto max-w-3xl p-4 sm:p-6 lg:p-8"><div class="mb-6"><h2 class="text-xl font-semibold text-ink">{{ __('Create User') }}</h2><p class="mt-1 text-sm text-ink-secondary">{{ __('Create a new system user and assign roles') }}</p></div>
+<form method="POST" action="{{ route('users.store') }}" class="card-institutional space-y-6 p-6">@csrf
+<div><label for="name" class="mb-1 block text-sm font-medium text-ink">{{ __('Name') }}</label><input id="name" name="name" value="{{ old('name') }}" required class="input-institutional w-full text-sm">@error('name')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror</div>
+<div><label for="email" class="mb-1 block text-sm font-medium text-ink">{{ __('Email') }}</label><input id="email" type="email" name="email" value="{{ old('email') }}" required class="input-institutional w-full text-sm" dir="ltr">@error('email')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror</div>
+<div class="grid gap-6 sm:grid-cols-2"><div><label for="password" class="mb-1 block text-sm font-medium text-ink">{{ __('Password') }}</label><input id="password" type="password" name="password" required class="input-institutional w-full text-sm" dir="ltr">@error('password')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror</div><div><label for="password_confirmation" class="mb-1 block text-sm font-medium text-ink">{{ __('Confirm Password') }}</label><input id="password_confirmation" type="password" name="password_confirmation" required class="input-institutional w-full text-sm" dir="ltr"></div></div>
+<div><label class="mb-2 block text-sm font-medium text-ink">{{ __('Roles') }}</label><div class="grid gap-2 sm:grid-cols-2">@foreach($roles as $role)<label class="flex items-center gap-2 border border-border p-3"><input type="checkbox" name="roles[]" value="{{ $role->name }}" @checked(in_array($role->name, old('roles', []), true)) class="h-4 w-4 rounded border-border-strong text-brand-600"><span class="text-sm text-ink">{{ __('roles.'.$role->name) !== 'roles.'.$role->name ? __('roles.'.$role->name) : $role->name }}</span></label>@endforeach</div>@error('roles')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror</div>
+<label class="flex items-center gap-2"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', true)) class="h-4 w-4 rounded border-border-strong text-brand-600"><span class="text-sm text-ink-secondary">{{ __('Active') }}</span></label>
+<div class="flex justify-end gap-3 border-t border-border pt-5"><a href="{{ route('users.index') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Cancel') }}</a><button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Create User') }}</button></div>
+</form></div>
 @endsection
