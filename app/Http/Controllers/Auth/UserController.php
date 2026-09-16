@@ -239,6 +239,19 @@ class UserController extends Controller
         ]);
     }
 
+    public function destroy(User $user): JsonResponse
+    {
+        if ($user->hasRole('System Owner')) {
+            return response()->json([
+                'message' => 'System Owner users cannot be deleted.',
+            ], 422);
+        }
+
+        $user->delete();
+
+        return response()->json(null, 204);
+    }
+
     private function canAssignRoles(array $roles): bool
     {
         $currentUser = request()->user();
