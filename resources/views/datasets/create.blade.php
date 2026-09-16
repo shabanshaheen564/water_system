@@ -8,7 +8,6 @@
             <h2 class="text-xl font-semibold leading-[1.5] text-ink">{{ __('Create Dataset') }}</h2>
             <p class="mt-1 text-sm text-ink-secondary">{{ __('Create a new dataset for managing spatial or tabular data') }}</p>
         </div>
-
         <div class="card-institutional overflow-hidden">
             <form method="POST" action="{{ route('datasets.store') }}" class="space-y-6 p-6">
                 @csrf
@@ -25,13 +24,11 @@
                         @error('display_name')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
                     </div>
                 </div>
-
                 <div>
                     <label for="description" class="mb-1 block text-sm font-medium text-ink">{{ __('Description') }}</label>
                     <textarea name="description" id="description" rows="3" class="input-institutional mt-1 block w-full px-3 py-2 text-sm outline-none focus:border-brand-600" placeholder="{{ __('Optional description of the dataset') }}">{{ old('description') }}</textarea>
                     @error('description')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
                 </div>
-
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <label for="dataset_type" class="mb-1 block text-sm font-medium text-ink">{{ __('Dataset Type') }}</label>
@@ -47,7 +44,6 @@
                         @error('source_name')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
                     </div>
                 </div>
-
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
                     <div>
                         <label for="source_format" class="mb-1 block text-sm font-medium text-ink">{{ __('Source Format') }}</label>
@@ -56,33 +52,24 @@
                     </div>
                     <div>
                         <label class="mb-1 block text-sm font-medium text-ink">{{ __('Is Active') }}</label>
-                        <div class="mt-2 flex items-center gap-2">
-                            <input type="hidden" name="is_active" value="0">
-                            <input type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }} class="h-4 w-4 rounded border-border-strong text-brand-600 focus:ring-brand-600">
-                            <label for="is_active" class="text-sm text-ink-secondary">{{ __('Active') }}</label>
-                        </div>
+                        <div class="mt-2 flex items-center gap-2"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }} class="h-4 w-4 rounded border-border-strong text-brand-600 focus:ring-brand-600"><label for="is_active" class="text-sm text-ink-secondary">{{ __('Active') }}</label></div>
                     </div>
                     <div>
                         <label class="mb-1 block text-sm font-medium text-ink">{{ __('Is Spatial') }}</label>
-                        <div class="mt-2 flex items-center gap-2">
-                            <input type="hidden" name="is_spatial" value="0">
-                            <input type="checkbox" name="is_spatial" id="is_spatial" value="1" {{ old('is_spatial') ? 'checked' : '' }} data-spatial-toggle class="h-4 w-4 rounded border-border-strong text-brand-600 focus:ring-brand-600">
-                            <label for="is_spatial" class="text-sm text-ink-secondary">{{ __('Spatial (Geometry)') }}</label>
-                        </div>
+                        <div class="mt-2 flex items-center gap-2"><input type="hidden" name="is_spatial" value="0"><input type="checkbox" name="is_spatial" id="is_spatial" value="1" {{ old('is_spatial') ? 'checked' : '' }} data-spatial-toggle class="h-4 w-4 rounded border-border-strong text-brand-600 focus:ring-brand-600"><label for="is_spatial" class="text-sm text-ink-secondary">{{ __('Spatial (Geometry)') }}</label></div>
                     </div>
                 </div>
-
                 <div id="spatial-fields" class="grid grid-cols-1 gap-6 md:grid-cols-2 {{ old('is_spatial') ? '' : 'hidden' }}">
                     <div>
                         <label for="geometry_type" class="mb-1 block text-sm font-medium text-ink">{{ __('Geometry Type') }}</label>
                         <select name="geometry_type" id="geometry_type" class="input-institutional mt-1 block w-full px-3 py-2 text-sm outline-none focus:border-brand-600">
                             <option value="">{{ __('Select Geometry Type') }}</option>
                             @foreach(['Point','MultiPoint','LineString','MultiLineString','Polygon','MultiPolygon'] as $geometryType)
-                                <option value="{{ $geometryType }}" {{ old('geometry_type') === $geometryType ? 'selected' : '' }}><span dir="ltr">{{ $geometryType }}</span></option>
+                                <option value="{{ $geometryType }}" {{ old('geometry_type') === $geometryType ? 'selected' : '' }}>{{ $geometryType }}</option>
                             @endforeach
                         </select>
                         @error('geometry_type')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
-a                        <p class="mt-1 text-xs text-ink-muted">{{ __('Required for spatial datasets') }}</p>
+                        <p class="mt-1 text-xs text-ink-muted">{{ __('Required for spatial datasets') }}</p>
                     </div>
                     <div>
                         <label for="srid" class="mb-1 block text-sm font-medium text-ink">{{ __('SRID') }}</label>
@@ -91,7 +78,6 @@ a                        <p class="mt-1 text-xs text-ink-muted">{{ __('Required 
                         <p class="mt-1 text-xs text-ink-muted">{{ __('Spatial Reference System Identifier (e.g. 4326 for WGS84)') }}</p>
                     </div>
                 </div>
-
                 <div class="flex justify-end gap-3 border-t border-border pt-6">
                     <a href="{{ route('datasets.index') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Cancel') }}</a>
                     <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Create Dataset') }}</button>
