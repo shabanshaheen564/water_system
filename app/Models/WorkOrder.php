@@ -30,6 +30,15 @@ class WorkOrder extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::created(function (WorkOrder $workOrder): void {
+            if ($workOrder->complaint_id) {
+                $workOrder->complaints()->syncWithoutDetaching([$workOrder->complaint_id]);
+            }
+        });
+    }
+
     public function complaint(): BelongsTo
     {
         return $this->belongsTo(Complaint::class);
