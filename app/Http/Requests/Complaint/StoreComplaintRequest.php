@@ -16,6 +16,7 @@ class StoreComplaintRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
+            'status' => ['sometimes', 'prohibited'],
             'priority' => ['sometimes', 'in:low,medium,high,urgent'],
             'assigned_to' => ['sometimes', 'nullable', 'exists:users,id'],
             'contact_name' => ['sometimes', 'nullable', 'string', 'max:255'],
