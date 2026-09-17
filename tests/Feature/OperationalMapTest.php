@@ -52,9 +52,10 @@ class OperationalMapTest extends TestCase
         ]);
 
         $workOrder = WorkOrder::create([
-            'work_order_number' => 'WO-920001', 'complaint_id' => $complaint->id, 'title' => 'إصلاح التسرب',
+            'work_order_number' => 'WO-920001', 'title' => 'إصلاح التسرب',
             'description' => 'مهمة تجريبية', 'status' => 'assigned', 'priority' => 'high', 'created_by' => $user->id,
         ]);
+        $workOrder->complaints()->attach($complaint->id);
 
         $response = $this->actingAs($user)->get('/map/data')->assertOk();
         $response->assertJsonPath('permissions.complaints', true)->assertJsonPath('permissions.tasks', false)->assertJsonPath('permissions.datasets', false);
@@ -90,10 +91,11 @@ class OperationalMapTest extends TestCase
             'status' => 'in_progress', 'priority' => 'urgent', 'reported_by' => $user->id,
             'latitude' => 31.50, 'longitude' => 34.48,
         ]);
-        WorkOrder::create([
-            'work_order_number' => 'WO-920003', 'complaint_id' => $complaint->id, 'title' => 'إصلاح الخط',
+        $workOrder = WorkOrder::create([
+            'work_order_number' => 'WO-920003', 'title' => 'إصلاح الخط',
             'description' => 'مهمة تجريبية', 'status' => 'in_progress', 'priority' => 'urgent', 'created_by' => $user->id,
         ]);
+        $workOrder->complaints()->attach($complaint->id);
 
         $this->actingAs($user)->get('/map/data')->assertOk()
             ->assertJsonPath('work_orders.0.latitude', 31.5)
@@ -111,6 +113,6 @@ class OperationalMapTest extends TestCase
 
         $this->actingAs($user)->get('/map/data')->assertOk()
             ->assertJsonPath('permissions.datasets', true)
-            ->assertJsonPath('datasets.0.name', 'أصول المياه التجريبية');
+            ->assertJsonPath('datasets.0.name', 'water_assets_test');
     }
 }
