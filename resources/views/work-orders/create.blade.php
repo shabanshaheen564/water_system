@@ -1,25 +1,11 @@
 @extends('layouts.app')
-
 @section('title', 'إنشاء مهمة')
-
 @section('content')
-<div class="mx-auto max-w-3xl p-4 sm:p-6 lg:p-8">
-    <div class="mb-6"><h2 class="text-xl font-semibold text-ink">إنشاء مهمة جديدة</h2><p class="mt-1 text-sm text-ink-secondary">إنشاء مهمة مباشرة وإسنادها لنفسك أو لمستخدم آخر.</p></div>
-
-    @if($errors->any())
-        <div class="mb-5 rounded-md border border-danger bg-danger-surface p-4 text-sm text-danger"><ul class="list-disc space-y-1 pe-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
-    @endif
-
-    <form method="POST" action="{{ route('work-orders.store') }}" class="card-institutional space-y-5 p-5">
-        @csrf
-        <div><label for="title" class="mb-1 block text-sm font-medium text-ink">عنوان المهمة</label><input id="title" name="title" value="{{ old('title') }}" class="input-institutional w-full text-sm" required maxlength="255"></div>
-        <div><label for="description" class="mb-1 block text-sm font-medium text-ink">وصف المهمة</label><textarea id="description" name="description" rows="5" class="input-institutional w-full text-sm" required>{{ old('description') }}</textarea></div>
-        <div class="grid gap-5 sm:grid-cols-2">
-            <div><label for="priority" class="mb-1 block text-sm font-medium text-ink">الأولوية</label><select id="priority" name="priority" class="input-institutional w-full text-sm" required><option value="low" @selected(old('priority') === 'low')>منخفضة</option><option value="medium" @selected(old('priority', 'medium') === 'medium')>متوسطة</option><option value="high" @selected(old('priority') === 'high')>عالية</option><option value="urgent" @selected(old('priority') === 'urgent')>عاجلة</option></select></div>
-            <div><label for="assigned_to" class="mb-1 block text-sm font-medium text-ink">المسند إليه</label><select id="assigned_to" name="assigned_to" class="input-institutional w-full text-sm"><option value="">بدون إسناد</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((string) old('assigned_to') === (string) $user->id)>{{ $user->name }}</option>@endforeach</select></div>
-        </div>
-        <div><label for="notes" class="mb-1 block text-sm font-medium text-ink">ملاحظات</label><textarea id="notes" name="notes" rows="4" class="input-institutional w-full text-sm">{{ old('notes') }}</textarea></div>
-        <div class="flex gap-2 border-t border-border pt-5"><button class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">إنشاء المهمة</button><a href="{{ route('work-orders.index') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">إلغاء</a></div>
-    </form>
-</div>
+<div class="mx-auto max-w-3xl p-4 sm:p-6 lg:p-8"><div class="mb-6"><h2 class="text-xl font-semibold text-ink">إنشاء مهمة جديدة</h2><p class="mt-1 text-sm text-ink-secondary">إنشاء مهمة مباشرة، وتظهر خيارات الإسناد وفق الصلاحيات الممنوحة لك.</p></div>
+@if($errors->any())<div class="mb-5 rounded-md border border-danger bg-danger-surface p-4 text-sm text-danger"><ul class="list-disc space-y-1 pe-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+<form method="POST" action="{{ route('work-orders.store') }}" class="card-institutional space-y-5 p-5">@csrf
+<div><label for="title" class="mb-1 block text-sm font-medium text-ink">عنوان المهمة</label><input id="title" name="title" value="{{ old('title') }}" class="input-institutional w-full text-sm" required maxlength="255"></div><div><label for="description" class="mb-1 block text-sm font-medium text-ink">وصف المهمة</label><textarea id="description" name="description" rows="5" class="input-institutional w-full text-sm" required>{{ old('description') }}</textarea></div>
+<div class="grid gap-5 sm:grid-cols-2"><div><label for="priority" class="mb-1 block text-sm font-medium text-ink">الأولوية</label><select id="priority" name="priority" class="input-institutional w-full text-sm" required><option value="low">منخفضة</option><option value="medium" @selected(old('priority','medium')==='medium')>متوسطة</option><option value="high">عالية</option><option value="urgent">عاجلة</option></select></div>@can('tasks.assign')<div><label for="assigned_to" class="mb-1 block text-sm font-medium text-ink">المسند إليه</label><select id="assigned_to" name="assigned_to" class="input-institutional w-full text-sm"><option value="">بدون إسناد</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((string)old('assigned_to')===(string)$user->id)>{{ $user->name }}</option>@endforeach</select></div>@endcan</div>
+@can('tasks.update')<div><label for="notes" class="mb-1 block text-sm font-medium text-ink">ملاحظات</label><textarea id="notes" name="notes" rows="4" class="input-institutional w-full text-sm">{{ old('notes') }}</textarea></div>@endcan
+<div class="flex gap-2 border-t border-border pt-5"><button class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white">إنشاء المهمة</button><a href="{{ route('work-orders.index') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink">إلغاء</a></div></form></div>
 @endsection
