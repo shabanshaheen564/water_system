@@ -16,23 +16,31 @@ class WorkOrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = WorkOrder::with([
-            'complaint:id,complaint_number,title',
             'complaints:id,complaint_number,title,status',
             'assignedTo:id,name,email',
             'createdBy:id,name,email',
         ]);
 
-        if ($request->has('status')) $query->where('status', $request->status);
-        if ($request->has('priority')) $query->where('priority', $request->priority);
-        if ($request->has('assigned_to')) $query->where('assigned_to', $request->assigned_to);
-        if ($request->has('complaint_id')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('complaint_id', $request->complaint_id)
-                    ->orWhereHas('complaints', fn ($complaints) => $complaints->whereKey($request->complaint_id));
+        if ($request->filled('status')) $query->where('status', $request->status);
+        if ($request->filled('priority')) $query->where('priority', $request->priority);
+        if ($request->filled('assigned_to')) $query->where('assigned_to', $request->assigned_to);
+        if ($request->filled('complaint_id')) {
+            $query->whereHas('complaints', fn ($complaints) => $complaints->whereKey($request->complaint_id));
+        }
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('work_order_number', 'ilike', "%{$search}%")
+                    ->orWhere('title', 'ilike', "%{$search}%")
+                    ->orWhere('description', 'ilike', "%{$search}%")
+                    ->orWhereHas('complaints', fn ($complaints) => $complaints
+                        ->where('complaint_number', 'ilike', "%{$search}%")
+                        ->orWhere('title', 'ilike', "%{$search}%"));
             });
         }
 
-        $workOrders = $query->orderBy('created_at', 'desc')->paginate();
+        $perPage = min(max($request->integer('per_page', 15), 1), 100);
+        $workOrders = $query->orderByDesc('created_at')->paginate($perPage);
         $data = $workOrders->getCollection()->map(fn ($workOrder) => $this->formatWorkOrder($workOrder));
 
         return response()->json([
@@ -59,10 +67,17 @@ class WorkOrderController extends Controller
     {
         $validated = $request->validated();
 
+        if (array_key_exists('assigned_to', $validated)) {
+            abort_unless($request->user()->can('tasks.assign'), 403);
+            if ($validated['assigned_to'] !== null) $this->validateUserActive($validated['assigned_to']);
+        }
+        if (array_key_exists('status', $validated) && $validated['status'] !== 'pending') {
+            abort_unless($request->user()->can('tasks.transition'), 403);
+        }
+
         return DB::transaction(function () use ($validated, $request) {
             $workOrder = WorkOrder::create([
                 'work_order_number' => $this->generateWorkOrderNumber(),
-                'complaint_id' => $validated['complaint_id'] ?? null,
                 'title' => $validated['title'],
                 'description' => $validated['description'],
                 'status' => $validated['status'] ?? 'pending',
@@ -72,18 +87,21 @@ class WorkOrderController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            if ($workOrder->assigned_to) $this->validateUserActive($workOrder->assigned_to);
-            if ($workOrder->complaint_id) $workOrder->complaints()->syncWithoutDetaching([$workOrder->complaint_id]);
-            if ($workOrder->status === 'in_progress' && ! $workOrder->started_at) $workOrder->update(['started_at' => now()]);
+            if (!empty($validated['complaint_id'])) {
+                $workOrder->complaints()->syncWithoutDetaching([$validated['complaint_id']]);
+            }
+            if ($workOrder->status === 'in_progress' && ! $workOrder->started_at) {
+                $workOrder->update(['started_at' => now()]);
+            }
 
-            $workOrder->load(['complaint:id,complaint_number,title', 'complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
+            $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
             return response()->json($this->formatWorkOrder($workOrder), 201);
         });
     }
 
     public function show(WorkOrder $workOrder): JsonResponse
     {
-        $workOrder->load(['complaint:id,complaint_number,title', 'complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
+        $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
         return response()->json($this->formatWorkOrder($workOrder));
     }
 
@@ -91,19 +109,70 @@ class WorkOrderController extends Controller
     {
         $validated = $request->validated();
         unset($validated['work_order_number'], $validated['created_by'], $validated['created_at'], $validated['updated_at'], $validated['started_at'], $validated['completed_at']);
+        abort_unless($validated !== [], 422);
+
+        if (array_key_exists('assigned_to', $validated)) {
+            abort_unless($request->user()->can('tasks.assign'), 403);
+            if ($validated['assigned_to'] !== null) $this->validateUserActive($validated['assigned_to']);
+        }
+        if (array_key_exists('status', $validated)) {
+            abort_unless($request->user()->can('tasks.transition'), 403);
+        }
+        foreach (['title', 'description', 'priority', 'notes'] as $field) {
+            if (array_key_exists($field, $validated)) abort_unless($request->user()->can('tasks.update'), 403);
+        }
+
         $oldStatus = $workOrder->status;
 
         return DB::transaction(function () use ($validated, $workOrder, $oldStatus, $request) {
-            if (isset($validated['assigned_to'])) $this->validateUserActive($validated['assigned_to']);
-            if (isset($validated['complaint_id'])) Complaint::findOrFail($validated['complaint_id']);
-
             $workOrder->update($validated);
-            if (isset($validated['complaint_id'])) $workOrder->complaints()->syncWithoutDetaching([$validated['complaint_id']]);
+
             if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
                 $this->handleStatusTransition($workOrder, $oldStatus, $validated['status'], $request->user()->id);
             }
 
-            $workOrder->load(['complaint:id,complaint_number,title', 'complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
+            $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
+            return response()->json($this->formatWorkOrder($workOrder));
+        });
+    }
+
+    public function destroy(WorkOrder $workOrder): JsonResponse
+    {
+        if ($workOrder->complaints()->exists()) {
+            return response()->json(['message' => 'Cannot delete a work order that has linked complaints.'], 422);
+        }
+
+        $workOrder->delete();
+        return response()->json(['message' => 'Work order deleted successfully.']);
+    }
+
+    public function addComplaint(Request $request, WorkOrder $workOrder): JsonResponse
+    {
+        abort_unless($request->user()->can('tasks.update') && $request->user()->can('complaints.update'), 403);
+
+        $validated = $request->validate([
+            'complaint_id' => ['required', 'exists:complaints,id'],
+        ]);
+
+        return DB::transaction(function () use ($validated, $workOrder, $request) {
+            $workOrder = WorkOrder::query()->lockForUpdate()->findOrFail($workOrder->id);
+            if (in_array($workOrder->status, ['completed', 'cancelled'], true)) {
+                return response()->json(['message' => 'Cannot add a complaint to a completed or cancelled work order.'], 422);
+            }
+
+            $complaint = Complaint::findOrFail($validated['complaint_id']);
+            if (!$workOrder->complaints()->whereKey($complaint->id)->exists()) {
+                $workOrder->complaints()->attach($complaint->id);
+            }
+
+            $complaint->update([
+                'status' => 'in_progress',
+                'assigned_to' => $workOrder->assigned_to,
+                'processed_by' => $request->user()->id,
+                'processed_at' => now(),
+            ]);
+
+            $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
             return response()->json($this->formatWorkOrder($workOrder));
         });
     }
@@ -139,12 +208,22 @@ class WorkOrderController extends Controller
         if ($newStatus === 'completed' && ! $workOrder->completed_at) {
             $workOrder->update(['completed_at' => now()]);
             $workOrder->loadMissing('complaints');
-            $workOrder->complaints()->update([
-                'status' => 'closed',
-                'resolved_at' => now(),
-                'processed_by' => $processedBy,
-                'processed_at' => now(),
-            ]);
+
+            foreach ($workOrder->complaints as $complaint) {
+                if ($complaint->status === 'cancelled') continue;
+                $hasIncompleteWorkOrders = $complaint->workOrders()
+                    ->where('status', '<>', 'completed')
+                    ->exists();
+
+                if (!$hasIncompleteWorkOrders) {
+                    $complaint->update([
+                        'status' => 'closed',
+                        'resolved_at' => $complaint->resolved_at ?? now(),
+                        'processed_by' => $processedBy,
+                        'processed_at' => now(),
+                    ]);
+                }
+            }
         }
     }
 
@@ -153,8 +232,12 @@ class WorkOrderController extends Controller
         return [
             'id' => $workOrder->id,
             'work_order_number' => $workOrder->work_order_number,
-            'complaint' => $workOrder->complaint ? ['id' => $workOrder->complaint->id, 'complaint_number' => $workOrder->complaint->complaint_number, 'title' => $workOrder->complaint->title] : null,
-            'complaints' => $workOrder->complaints->map(fn ($complaint) => ['id' => $complaint->id, 'complaint_number' => $complaint->complaint_number, 'title' => $complaint->title, 'status' => $complaint->status])->values()->all(),
+            'complaints' => $workOrder->complaints->map(fn ($complaint) => [
+                'id' => $complaint->id,
+                'complaint_number' => $complaint->complaint_number,
+                'title' => $complaint->title,
+                'status' => $complaint->status,
+            ])->values()->all(),
             'title' => $workOrder->title,
             'description' => $workOrder->description,
             'status' => $workOrder->status,
