@@ -15,7 +15,7 @@ use App\Http\Controllers\Auth\LoginController;
 
 Route::get('/', function () { return view('welcome'); })->name('home');
 Route::get('/login', [LoginController::class, 'create'])->name('login');
-Route::post('/login', [LoginController::class, 'webLogin']);
+Route::post('/login', [LoginController::class, 'webLogin'])->middleware('throttle:login');
 
 Route::middleware(['auth', 'active', 'permission:complaints.view'])->get('/complaints', [ComplaintWebController::class, 'index'])->name('complaints.index');
 Route::middleware(['auth', 'active', 'permission:complaints.create'])->group(function () { Route::get('/complaints/create', [ComplaintWebController::class, 'create'])->name('complaints.create'); Route::post('/complaints', [ComplaintWebController::class, 'store'])->name('complaints.store'); });
