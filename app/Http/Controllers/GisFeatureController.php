@@ -30,12 +30,8 @@ class GisFeatureController extends Controller
         }
         if ($request->has(['lat', 'lng', 'radius'])) {
             $lat = $request->float('lat'); $lng = $request->float('lng'); $radius = $request->float('radius');
-            if ($datasetSrid == 4326) {
-                $query->whereRaw('ST_DWithin(geometry::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)', [$lng, $lat, $radius]);
-            } else {
-                $pointSql = 'ST_Transform(ST_SetSRID(ST_MakePoint(?, ?), 4326), ?::integer)';
-                $query->whereRaw("ST_DWithin(geometry, {$pointSql}, ?)", [$lng, $lat, $datasetSrid, $radius]);
-            }
+            if ($datasetSrid == 4326) $query->whereRaw('ST_DWithin(geometry::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)', [$lng, $lat, $radius]);
+            else $query->whereRaw('ST_DWithin(geometry, ST_Transform(ST_SetSRID(ST_MakePoint(?, ?), 4326), ?::integer), ?)', [$lng, $lat, $datasetSrid, $radius]);
         }
         $features = $query->orderByDesc('created_at')->paginate(min(max($request->integer('per_page', 100), 1), 500));
         return response()->json(['type' => 'FeatureCollection', 'features' => $features->getCollection()->map(fn ($feature) => $feature->toGeoJsonFeature())->values(), 'links' => ['first' => $features->url(1), 'last' => $features->url($features->lastPage()), 'prev' => $features->previousPageUrl(), 'next' => $features->nextPageUrl()], 'meta' => ['current_page' => $features->currentPage(), 'from' => $features->firstItem(), 'last_page' => $features->lastPage(), 'path' => $features->path(), 'per_page' => $features->perPage(), 'to' => $features->lastItem(), 'total' => $features->total()]]);
@@ -45,13 +41,15 @@ class GisFeatureController extends Controller
     {
         if (!$dataset->isSpatial()) return response()->json(['message' => 'This dataset is not configured as spatial.'], 422);
         $validated = $request->validated();
+        $geometryType = $validated['geometry']['type'];
+        if ($dataset->geometry_type && $geometryType !== $dataset->geometry_type) return response()->json(['message' => "Geometry type must be {$dataset->geometry_type} for this dataset."], 422);
         $record = DatasetRecord::where('id', $validated['dataset_record_id'])->where('dataset_id', $dataset->id)->firstOrFail();
         if (GisFeature::where('dataset_record_id', $record->id)->exists()) return response()->json(['message' => 'A GIS feature already exists for this record.'], 422);
-        return DB::transaction(function () use ($validated, $dataset, $record) {
-            $geojson = json_encode(['type' => $validated['geometry']['type'], 'coordinates' => $validated['geometry']['coordinates']]);
+        return DB::transaction(function () use ($validated, $dataset, $record, $geometryType) {
+            $geojson = json_encode(['type' => $geometryType, 'coordinates' => $validated['geometry']['coordinates']]);
             $srid = $dataset->srid ?? 4326;
             $geometry = DB::selectOne('SELECT ST_SetSRID(ST_GeomFromGeoJSON(?), ?) as geometry', [$geojson, $srid])->geometry;
-            $feature = GisFeature::create(['dataset_record_id' => $record->id, 'dataset_id' => $dataset->id, 'geometry' => $geometry, 'geometry_type' => $validated['geometry']['type'], 'srid' => $srid]);
+            $feature = GisFeature::create(['dataset_record_id' => $record->id, 'dataset_id' => $dataset->id, 'geometry' => $geometry, 'geometry_type' => $geometryType, 'srid' => $srid]);
             $feature->load('datasetRecord:id,values,identifier_value');
             return response()->json($feature->toGeoJsonFeature(), 201);
         });
