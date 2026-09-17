@@ -10,7 +10,6 @@ class WorkOrder extends Model
 {
     protected $fillable = [
         'work_order_number',
-        'complaint_id',
         'title',
         'description',
         'status',
@@ -34,23 +33,10 @@ class WorkOrder extends Model
         ];
     }
 
-    protected static function booted(): void
-    {
-        static::created(function (WorkOrder $workOrder): void {
-            if ($workOrder->complaint_id) {
-                $workOrder->complaints()->syncWithoutDetaching([$workOrder->complaint_id]);
-            }
-        });
-    }
-
-    public function complaint(): BelongsTo
-    {
-        return $this->belongsTo(Complaint::class);
-    }
-
     public function complaints(): BelongsToMany
     {
-        return $this->belongsToMany(Complaint::class, 'complaint_work_order')->withTimestamps();
+        return $this->belongsToMany(Complaint::class, 'complaint_work_order')
+            ->withTimestamps();
     }
 
     public function assignedTo(): BelongsTo
