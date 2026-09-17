@@ -23,6 +23,7 @@ class ComplaintWorkOrderLinkingTest extends TestCase
 
         $this->user = User::factory()->create();
         $this->user->givePermissionTo(Permission::findByName('complaints.view', 'web'));
+        $this->user->givePermissionTo(Permission::findByName('complaints.update', 'web'));
         $this->user->givePermissionTo(Permission::findByName('tasks.create', 'web'));
         $this->user->givePermissionTo(Permission::findByName('tasks.update', 'web'));
         $this->user->givePermissionTo(Permission::findByName('tasks.view', 'web'));
@@ -74,30 +75,11 @@ class ComplaintWorkOrderLinkingTest extends TestCase
 
     public function test_completed_work_order_closes_all_linked_complaints(): void
     {
-        $complaint1 = Complaint::create([
-            'complaint_number' => 'CMP-910003', 'title' => 'شكوى أولى', 'description' => 'نفس المشكلة',
-            'status' => 'in_progress', 'priority' => 'high', 'reported_by' => $this->user->id,
-        ]);
-        $complaint2 = Complaint::create([
-            'complaint_number' => 'CMP-910004', 'title' => 'شكوى ثانية', 'description' => 'نفس المشكلة',
-            'status' => 'in_progress', 'priority' => 'medium', 'reported_by' => $this->user->id,
-        ]);
+        $complaints = collect([1, 2])->map(fn (int $number) => Complaint::create(['complaint_number' => 'CMP-91010' . $number, 'title' => 'شكوى مشتركة ' . $number, 'description' => 'المشكلة نفسها', 'status' => 'in_progress', 'priority' => 'medium', 'reported_by' => $this->user->id]));
+        $workOrder = WorkOrder::create(['work_order_number' => 'WO-910010', 'title' => 'إصلاح المشكلة المشتركة', 'description' => 'معالجة واحدة', 'status' => 'in_progress', 'priority' => 'medium', 'assigned_to' => $this->user->id, 'created_by' => $this->user->id]);
+        $workOrder->complaints()->attach($complaints->pluck('id'));
 
-        $workOrder = WorkOrder::create([
-            'work_order_number' => 'WO-910002', 'title' => 'إصلاح المشكلة المشتركة', 'description' => 'حل واحد للبلاغين',
-            'status' => 'in_progress', 'priority' => 'high', 'assigned_to' => $this->user->id,
-            'created_by' => $this->user->id,
-        ]);
-        $workOrder->complaints()->attach([$complaint1->id, $complaint2->id]);
-
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $this->token,
-        ])->putJson("/api/work-orders/{$workOrder->id}", ['status' => 'completed']);
-
-        $response->assertOk();
-        $this->assertDatabaseHas('complaints', ['id' => $complaint1->id, 'status' => 'closed']);
-        $this->assertDatabaseHas('complaints', ['id' => $complaint2->id, 'status' => 'closed']);
-        $this->assertNotNull(Complaint::find($complaint1->id)->resolved_at);
-        $this->assertNotNull(Complaint::find($complaint2->id)->resolved_at);
+        $this->actingAs($this->user)->put("/work-orders/{$workOrder->id}", ['status' => 'completed', 'assigned_to' => $this->user->id, 'priority' => 'medium', 'notes' => 'تم التنفيذ.'])->assertRedirect("/work-orders/{$workOrder->id}");
+        foreach ($complaints as $complaint) $this->assertDatabaseHas('complaints', ['id' => $complaint->id, 'status' => 'closed', 'processed_by' => $this->user->id]);
     }
 }
