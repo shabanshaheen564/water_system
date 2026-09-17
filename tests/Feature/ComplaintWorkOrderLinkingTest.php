@@ -26,6 +26,7 @@ class ComplaintWorkOrderLinkingTest extends TestCase
         $this->user->givePermissionTo(Permission::findByName('complaints.update', 'web'));
         $this->user->givePermissionTo(Permission::findByName('tasks.create', 'web'));
         $this->user->givePermissionTo(Permission::findByName('tasks.update', 'web'));
+        $this->user->givePermissionTo(Permission::findByName('tasks.transition', 'web'));
         $this->user->givePermissionTo(Permission::findByName('tasks.view', 'web'));
         $this->token = $this->user->createToken('test')->plainTextToken;
     }
