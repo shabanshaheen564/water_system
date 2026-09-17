@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class WorkOrder extends Model
 {
+    protected array $pendingComplaintIds = [];
+
     protected $fillable = [
         'work_order_number',
         'title',
@@ -31,6 +33,35 @@ class WorkOrder extends Model
             'latitude' => 'decimal:8',
             'longitude' => 'decimal:8',
         ];
+    }
+
+    /**
+     * Accept legacy complaint_id input without restoring complaint_id as a
+     * database column. The complaint_work_order pivot remains the only
+     * persisted relationship source of truth.
+     */
+    public function fill(array $attributes)
+    {
+        if (array_key_exists('complaint_id', $attributes)) {
+            $complaintId = $attributes['complaint_id'];
+            unset($attributes['complaint_id']);
+
+            if ($complaintId !== null && $complaintId !== '') {
+                $this->pendingComplaintIds[] = (int) $complaintId;
+            }
+        }
+
+        return parent::fill($attributes);
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (WorkOrder $workOrder): void {
+            if ($workOrder->pendingComplaintIds !== []) {
+                $workOrder->complaints()->syncWithoutDetaching($workOrder->pendingComplaintIds);
+                $workOrder->pendingComplaintIds = [];
+            }
+        });
     }
 
     public function complaints(): BelongsToMany
