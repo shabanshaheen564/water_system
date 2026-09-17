@@ -23,6 +23,11 @@ class UpdateWorkOrderRequest extends FormRequest
             'notes' => ['sometimes', 'nullable', 'string'],
             'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
+            // These fields are accepted so legacy clients receive the existing no-op behavior.
+            'work_order_number' => ['sometimes', 'nullable', 'string'],
+            'created_by' => ['sometimes', 'nullable', 'integer'],
+            'started_at' => ['sometimes', 'nullable', 'date'],
+            'completed_at' => ['sometimes', 'nullable', 'date'],
         ];
     }
 }
