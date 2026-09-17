@@ -25,8 +25,9 @@ Route::middleware(['auth', 'active', 'permission:tasks.update'])->group(function
 Route::middleware(['auth', 'active', 'permission:complaints.delete'])->delete('/complaints/{complaint}', [ComplaintWebController::class, 'destroy'])->name('complaints.destroy');
 Route::middleware(['auth', 'active', 'permission:complaints.view'])->get('/complaints/{complaint}', [ComplaintWebController::class, 'show'])->name('complaints.show');
 
-Route::middleware(['auth', 'active', 'permission:tasks.view'])->group(function () { Route::get('/work-orders', [WorkOrderWebController::class, 'index'])->name('work-orders.index'); Route::get('/work-orders/{workOrder}', [WorkOrderWebController::class, 'show'])->name('work-orders.show'); });
+Route::middleware(['auth', 'active', 'permission:tasks.view'])->group(function () { Route::get('/work-orders', [WorkOrderWebController::class, 'index'])->name('work-orders.index'); });
 Route::middleware(['auth', 'active', 'permission:tasks.create'])->group(function () { Route::get('/work-orders/create', [WorkOrderWebController::class, 'create'])->name('work-orders.create'); Route::post('/work-orders', [WorkOrderWebController::class, 'store'])->name('work-orders.store'); });
+Route::middleware(['auth', 'active', 'permission:tasks.view'])->get('/work-orders/{workOrder}', [WorkOrderWebController::class, 'show'])->name('work-orders.show');
 Route::middleware(['auth', 'active', 'permission:tasks.update'])->put('/work-orders/{workOrder}', [WorkOrderWebController::class, 'update'])->name('work-orders.update');
 
 Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(function () { Route::get('/gis', [DashboardController::class, 'index'])->name('gis.index'); Route::get('/map', [GisController::class, 'index'])->name('map.index'); Route::get('/datasets', [DatasetWebController::class, 'index'])->name('datasets.index'); });
