@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Complaint;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreComplaintRequest extends FormRequest
 {
@@ -17,9 +16,7 @@ class StoreComplaintRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
-            'status' => ['sometimes', Rule::in(['open', 'in_progress', 'resolved', 'closed', 'cancelled'])],
-            'priority' => ['sometimes', Rule::in(['low', 'medium', 'high', 'urgent'])],
-            'reported_by' => ['sometimes', 'nullable', 'exists:users,id'],
+            'priority' => ['sometimes', 'in:low,medium,high,urgent'],
             'assigned_to' => ['sometimes', 'nullable', 'exists:users,id'],
             'contact_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'contact_phone' => ['sometimes', 'nullable', 'string', 'max:50'],
