@@ -37,9 +37,7 @@ class ComplaintWebController extends Controller
         if (($validated['assigned_to'] ?? null) !== null) { abort_unless($request->user()->can('complaints.update'), 403); $this->ensureActiveUser($validated['assigned_to']); }
         DB::transaction(function () use ($validated, $request) {
             $nextNumber = DB::selectOne("SELECT nextval('complaints_number_seq') AS next_number")->next_number;
-            Complaint::create([
-                'complaint_number' => 'CMP-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT), 'title' => $validated['title'], 'description' => $validated['description'], 'status' => 'open', 'priority' => $validated['priority'] ?? 'medium', 'reported_by' => $request->user()->id, 'assigned_to' => $validated['assigned_to'] ?? null, 'contact_name' => $validated['contact_name'] ?? null, 'contact_phone' => $validated['contact_phone'] ?? null, 'address' => $validated['address'] ?? null, 'latitude' => $validated['latitude'] ?? null, 'longitude' => $validated['longitude'] ?? null,
-            ]);
+            Complaint::create(['complaint_number' => 'CMP-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT), 'title' => $validated['title'], 'description' => $validated['description'], 'status' => 'open', 'priority' => $validated['priority'] ?? 'medium', 'reported_by' => $request->user()->id, 'assigned_to' => $validated['assigned_to'] ?? null, 'contact_name' => $validated['contact_name'] ?? null, 'contact_phone' => $validated['contact_phone'] ?? null, 'address' => $validated['address'] ?? null, 'latitude' => $validated['latitude'] ?? null, 'longitude' => $validated['longitude'] ?? null]);
         });
         return redirect()->route('complaints.index')->with('success', 'تم تسجيل الشكوى بنجاح.');
     }
@@ -61,7 +59,6 @@ class ComplaintWebController extends Controller
     {
         $validated = $request->validated();
         abort_unless($validated !== [], 422);
-
         if (array_key_exists('status', $validated)) {
             abort_unless($request->user()->can('complaints.transition'), 403);
             $oldStatus = $complaint->status;
@@ -70,18 +67,11 @@ class ComplaintWebController extends Controller
                 if (!in_array($validated['status'], $validTransitions[$oldStatus] ?? [], true)) return back()->withErrors(['status' => 'انتقال حالة الشكوى المطلوب غير مسموح به.'])->withInput();
             }
         }
-
         $updateFields = ['title', 'description', 'processing_notes', 'solution', 'priority', 'assigned_to', 'contact_name', 'contact_phone', 'address', 'latitude', 'longitude'];
         foreach ($updateFields as $field) if (array_key_exists($field, $validated)) abort_unless($request->user()->can('complaints.update'), 403);
         if (array_key_exists('assigned_to', $validated) && $validated['assigned_to'] !== null) $this->ensureActiveUser($validated['assigned_to']);
-
-        if (array_key_exists('processing_notes', $validated) || array_key_exists('solution', $validated)) {
-            $validated['processed_by'] = $request->user()->id;
-            $validated['processed_at'] = now();
-        }
-        if (($validated['status'] ?? null) === 'resolved' && !$complaint->resolved_at) {
-            $validated['resolved_at'] = now(); $validated['processed_by'] ??= $request->user()->id; $validated['processed_at'] ??= now();
-        }
+        if (array_key_exists('processing_notes', $validated) || array_key_exists('solution', $validated)) { $validated['processed_by'] = $request->user()->id; $validated['processed_at'] = now(); }
+        if (($validated['status'] ?? null) === 'resolved' && !$complaint->resolved_at) { $validated['resolved_at'] = now(); $validated['processed_by'] ??= $request->user()->id; $validated['processed_at'] ??= now(); }
         $complaint->update($validated);
         return redirect()->route('complaints.show', $complaint)->with('success', 'تم تحديث الشكوى بنجاح.');
     }
@@ -101,8 +91,8 @@ class ComplaintWebController extends Controller
         $this->ensureActiveUser((int) $validated['assigned_to']);
         DB::transaction(function () use ($validated, $complaint, $request) {
             $nextNumber = DB::selectOne("SELECT nextval('work_orders_number_seq') AS next_number")->next_number;
-            $workOrder = WorkOrder::create(['work_order_number' => 'WO-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT), 'complaint_id' => $complaint->id, 'title' => $validated['title'], 'description' => $validated['description'], 'status' => 'assigned', 'priority' => $validated['priority'], 'assigned_to' => $validated['assigned_to'], 'created_by' => $request->user()->id, 'notes' => $validated['notes'] ?? null]);
-            $workOrder->complaints()->syncWithoutDetaching([$complaint->id]);
+            $workOrder = WorkOrder::create(['work_order_number' => 'WO-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT), 'title' => $validated['title'], 'description' => $validated['description'], 'status' => 'assigned', 'priority' => $validated['priority'], 'assigned_to' => $validated['assigned_to'], 'created_by' => $request->user()->id, 'notes' => $validated['notes'] ?? null]);
+            $workOrder->complaints()->attach($complaint->id);
             $complaint->update(['status' => 'in_progress', 'assigned_to' => $validated['assigned_to'], 'processed_by' => $request->user()->id, 'processed_at' => now()]);
         });
         return redirect()->route('complaints.show', $complaint)->with('success', 'تم تحويل الشكوى إلى مهمة وإسنادها بنجاح.');
