@@ -113,6 +113,6 @@ class OperationalMapTest extends TestCase
 
         $this->actingAs($user)->get('/map/data')->assertOk()
             ->assertJsonPath('permissions.datasets', true)
-            ->assertJsonPath('datasets.0.name', 'water_assets_test');
+            ->assertJsonPath('datasets.0.name', 'أصول المياه التجريبية');
     }
 }
