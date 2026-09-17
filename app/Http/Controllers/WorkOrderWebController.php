@@ -55,8 +55,8 @@ class WorkOrderWebController extends Controller
         ]);
 
         if (!empty($validated['assigned_to'])) {
-            $user = User::findOrFail($validated['assigned_to']);
-            abort_if(!$user->is_active, 422, 'لا يمكن إسناد المهمة إلى مستخدم غير نشط.');
+            abort_unless($request->user()->can('tasks.assign'), 403);
+            $this->ensureActiveUser($validated['assigned_to']);
         }
 
         $workOrder = DB::transaction(function () use ($validated, $request) {
@@ -89,32 +89,48 @@ class WorkOrderWebController extends Controller
     public function update(Request $request, WorkOrder $workOrder): RedirectResponse
     {
         $validated = $request->validate([
-            'status' => ['required', 'in:pending,assigned,in_progress,completed,cancelled'],
-            'assigned_to' => ['nullable', 'exists:users,id'],
-            'priority' => ['required', 'in:low,medium,high,urgent'],
-            'notes' => ['nullable', 'string'],
+            'status' => ['sometimes', 'required', 'in:pending,assigned,in_progress,completed,cancelled'],
+            'assigned_to' => ['sometimes', 'nullable', 'exists:users,id'],
+            'priority' => ['sometimes', 'required', 'in:low,medium,high,urgent'],
+            'notes' => ['sometimes', 'nullable', 'string'],
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
+            'description' => ['sometimes', 'required', 'string'],
         ]);
 
-        if (!empty($validated['assigned_to'])) {
-            $user = User::findOrFail($validated['assigned_to']);
-            abort_if(!$user->is_active, 422, 'لا يمكن إسناد المهمة إلى مستخدم غير نشط.');
+        if ($validated === []) {
+            abort(422, 'لا توجد تعديلات مسموحة.');
+        }
+
+        if (array_key_exists('status', $validated)) {
+            abort_unless($request->user()->can('tasks.transition'), 403);
+        }
+        if (array_key_exists('assigned_to', $validated)) {
+            abort_unless($request->user()->can('tasks.assign'), 403);
+            if (!empty($validated['assigned_to'])) $this->ensureActiveUser($validated['assigned_to']);
+        }
+        foreach (['title', 'description', 'priority', 'notes'] as $field) {
+            if (array_key_exists($field, $validated)) abort_unless($request->user()->can('tasks.update'), 403);
         }
 
         $oldStatus = $workOrder->status;
-        $newStatus = $validated['status'];
+        $newStatus = $validated['status'] ?? $oldStatus;
         $validTransitions = [
-            'pending' => ['assigned', 'cancelled'], 'assigned' => ['in_progress', 'cancelled', 'pending'],
-            'in_progress' => ['completed', 'cancelled', 'assigned'], 'completed' => ['in_progress'], 'cancelled' => ['pending'],
+            'pending' => ['assigned', 'cancelled'],
+            'assigned' => ['in_progress', 'cancelled', 'pending'],
+            'in_progress' => ['completed', 'cancelled', 'assigned'],
+            'completed' => ['in_progress'],
+            'cancelled' => ['pending'],
         ];
-        if ($oldStatus !== $newStatus && isset($validTransitions[$oldStatus]) && !in_array($newStatus, $validTransitions[$oldStatus], true)) {
+        if ($oldStatus !== $newStatus && !in_array($newStatus, $validTransitions[$oldStatus] ?? [], true)) {
             return back()->withErrors(['status' => 'انتقال حالة المهمة المطلوب غير مسموح به.'])->withInput();
         }
 
         DB::transaction(function () use ($workOrder, $validated, $oldStatus, $newStatus) {
-            $workOrder->update([
-                'status' => $newStatus, 'priority' => $validated['priority'],
-                'assigned_to' => $validated['assigned_to'] ?? null, 'notes' => $validated['notes'] ?? null,
-            ]);
+            $changes = [];
+            foreach (['title', 'description', 'priority', 'notes', 'assigned_to', 'status'] as $field) {
+                if (array_key_exists($field, $validated)) $changes[$field] = $validated[$field];
+            }
+            $workOrder->update($changes);
             if ($newStatus === 'in_progress' && !$workOrder->started_at) $workOrder->update(['started_at' => now()]);
             if ($newStatus === 'completed' && !$workOrder->completed_at) $workOrder->update(['completed_at' => now()]);
             if ($oldStatus !== 'completed' && $newStatus === 'completed') {
@@ -126,5 +142,17 @@ class WorkOrderWebController extends Controller
         });
 
         return redirect()->route('work-orders.show', $workOrder)->with('success', 'تم تحديث المهمة بنجاح.');
+    }
+
+    public function destroy(WorkOrder $workOrder): RedirectResponse
+    {
+        $workOrder->delete();
+        return redirect()->route('work-orders.index')->with('success', 'تم حذف المهمة بنجاح.');
+    }
+
+    private function ensureActiveUser(int $userId): void
+    {
+        $user = User::find($userId);
+        abort_if(!$user || !$user->is_active, 422, 'لا يمكن إسناد المهمة إلى مستخدم غير نشط.');
     }
 }
