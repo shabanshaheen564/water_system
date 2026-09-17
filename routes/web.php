@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GisController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ComplaintWebController;
+use App\Http\Controllers\WorkOrderWebController;
 use App\Http\Controllers\DatasetWebController;
 use App\Http\Controllers\DatasetFieldWebController;
 use App\Http\Controllers\DatasetRecordWebController;
@@ -41,8 +42,14 @@ Route::middleware(['auth', 'active', 'permission:tasks.update'])->group(function
 });
 
 Route::middleware(['auth', 'active', 'permission:complaints.delete'])->delete('/complaints/{complaint}', [ComplaintWebController::class, 'destroy'])->name('complaints.destroy');
-
 Route::middleware(['auth', 'active', 'permission:complaints.view'])->get('/complaints/{complaint}', [ComplaintWebController::class, 'show'])->name('complaints.show');
+
+Route::middleware(['auth', 'active', 'permission:tasks.view'])->group(function () {
+    Route::get('/work-orders', [WorkOrderWebController::class, 'index'])->name('work-orders.index');
+    Route::get('/work-orders/{workOrder}', [WorkOrderWebController::class, 'show'])->name('work-orders.show');
+});
+
+Route::middleware(['auth', 'active', 'permission:tasks.update'])->put('/work-orders/{workOrder}', [WorkOrderWebController::class, 'update'])->name('work-orders.update');
 
 Route::middleware(['auth', 'active', 'permission:datasets.view'])->group(function () {
     Route::get('/gis', [DashboardController::class, 'index'])->name('gis.index');
