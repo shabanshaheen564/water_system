@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -38,13 +37,13 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:roles.u
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:permissions.view'])->group(function () { Route::get('/permissions', [PermissionController::class, 'index']); Route::get('/permissions/{permission}', [PermissionController::class, 'show']); });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->group(function () { Route::get('/complaints', [ComplaintController::class, 'index']); Route::get('/complaints/{complaint}', [ComplaintController::class, 'show']); });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.create'])->post('/complaints', [ComplaintController::class, 'store']);
-Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update'])->put('/complaints/{complaint}', [ComplaintController::class, 'update']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update|complaints.transition'])->put('/complaints/{complaint}', [ComplaintController::class, 'update']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.delete'])->delete('/complaints/{complaint}', [ComplaintController::class, 'destroy']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.convert_to_task'])->post('/complaints/{complaint}/convert-to-work-order', [ComplaintController::class, 'convertToWorkOrder']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update'])->post('/complaints/{complaint}/add-to-work-order', [ComplaintController::class, 'addToExistingWorkOrder']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.view'])->group(function () { Route::get('/work-orders', [WorkOrderController::class, 'index']); Route::get('/work-orders/{workOrder}', [WorkOrderController::class, 'show']); });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.create'])->post('/work-orders', [WorkOrderController::class, 'store']);
-Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->put('/work-orders/{workOrder}', [WorkOrderController::class, 'update']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update|tasks.assign|tasks.transition'])->put('/work-orders/{workOrder}', [WorkOrderController::class, 'update']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->post('/work-orders/{workOrder}/complaints', [WorkOrderController::class, 'addComplaint']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.delete'])->delete('/work-orders/{workOrder}', [WorkOrderController::class, 'destroy']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.view'])->group(function () { Route::get('/datasets', [DatasetController::class, 'index']); Route::get('/datasets/{dataset}', [DatasetController::class, 'show']); });
