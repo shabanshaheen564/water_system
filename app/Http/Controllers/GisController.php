@@ -15,7 +15,7 @@ class GisController extends Controller
         $spatialDatasets = Dataset::query()
             ->where('is_spatial', true)
             ->where('is_active', true)
-            ->withCount('gisFeatures')
+            ->withCount(['gisFeatures as features_count'])
             ->orderBy('display_name')
             ->get();
 
@@ -95,7 +95,7 @@ class GisController extends Controller
             $payload['datasets'] = Dataset::query()
                 ->where('is_spatial', true)
                 ->where('is_active', true)
-                ->withCount('gisFeatures')
+                ->withCount(['gisFeatures as features_count'])
                 ->orderBy('display_name')
                 ->get(['id', 'display_name', 'geometry_type', 'srid', 'is_spatial'])
                 ->map(fn (Dataset $dataset) => [
@@ -103,7 +103,7 @@ class GisController extends Controller
                     'name' => $dataset->display_name,
                     'geometry_type' => $dataset->geometry_type,
                     'srid' => $dataset->srid,
-                    'features_count' => $dataset->gis_features_count,
+                    'features_count' => $dataset->features_count,
                 ])->values();
         }
 
