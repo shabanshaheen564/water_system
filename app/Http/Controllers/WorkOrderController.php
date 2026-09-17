@@ -38,11 +38,7 @@ class WorkOrderController extends Controller
     public function store(StoreWorkOrderRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        if (array_key_exists('assigned_to', $validated)) {
-            abort_unless($request->user()->can('tasks.assign'), 403);
-            if ($validated['assigned_to'] !== null) $this->validateUserActive($validated['assigned_to']);
-        }
-        if (array_key_exists('status', $validated) && $validated['status'] !== 'pending') abort_unless($request->user()->can('tasks.transition'), 403);
+        if (array_key_exists('assigned_to', $validated) && $validated['assigned_to'] !== null) $this->validateUserActive($validated['assigned_to']);
         return DB::transaction(function () use ($validated, $request) {
             $workOrder = WorkOrder::create(['work_order_number' => $this->generateWorkOrderNumber(), 'title' => $validated['title'], 'description' => $validated['description'], 'status' => $validated['status'] ?? 'pending', 'priority' => $validated['priority'] ?? 'medium', 'assigned_to' => $validated['assigned_to'] ?? null, 'created_by' => $request->user()->id, 'notes' => $validated['notes'] ?? null]);
             if (!empty($validated['complaint_id'])) $workOrder->complaints()->syncWithoutDetaching([$validated['complaint_id']]);
@@ -62,14 +58,13 @@ class WorkOrderController extends Controller
     {
         $validated = $request->validated();
         abort_unless($validated !== [], 422);
+        unset($validated['work_order_number'], $validated['created_by'], $validated['started_at'], $validated['completed_at']);
         if (array_key_exists('assigned_to', $validated)) {
             abort_unless($request->user()->can('tasks.assign'), 403);
             if ($validated['assigned_to'] !== null) $this->validateUserActive($validated['assigned_to']);
         }
         if (array_key_exists('status', $validated)) abort_unless($request->user()->can('tasks.transition'), 403);
-        foreach (['title', 'description', 'priority', 'notes', 'latitude', 'longitude'] as $field) {
-            if (array_key_exists($field, $validated)) abort_unless($request->user()->can('tasks.update'), 403);
-        }
+        foreach (['title', 'description', 'priority', 'notes', 'latitude', 'longitude'] as $field) if (array_key_exists($field, $validated)) abort_unless($request->user()->can('tasks.update'), 403);
         $oldStatus = $workOrder->status;
         return DB::transaction(function () use ($validated, $workOrder, $oldStatus, $request) {
             $workOrder->update($validated);
