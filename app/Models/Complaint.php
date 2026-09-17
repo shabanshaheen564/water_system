@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Complaint extends Model
 {
@@ -53,8 +53,9 @@ class Complaint extends Model
         return $this->belongsTo(User::class, 'processed_by');
     }
 
-    public function workOrders(): HasMany
+    public function workOrders(): BelongsToMany
     {
-        return $this->hasMany(WorkOrder::class);
+        return $this->belongsToMany(WorkOrder::class, 'complaint_work_order')
+            ->withTimestamps();
     }
 }
