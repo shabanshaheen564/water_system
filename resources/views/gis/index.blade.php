@@ -94,7 +94,9 @@
         </aside>
 
         <section data-enter class="card-institutional map-shell relative overflow-hidden">
-            <div id="map" data-operational-map="true" data-map-data-url="{{ route('map.data') }}" data-map-url="{{ url('/map') }}" data-msg-load-failed="تعذر تحميل بيانات الخريطة."></div>
+            <div id="map" data-operational-map="true" data-map-data-url="{{ route('map.data') }}" data-map-url="{{ url('/map') }}" data-msg-load-failed="تعذر تحميل بيانات الخريطة.">
+                <span class="sr-only">صورة جوية / ستالايت</span>
+            </div>
             <div class="map-legend absolute bottom-4 right-4 z-[500] rounded-lg border border-border p-3 shadow-sm">
                 <p class="mb-2 text-xs font-semibold text-ink">مفتاح الخريطة</p>
                 <div class="space-y-2 text-xs text-ink-secondary">
