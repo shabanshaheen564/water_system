@@ -30,6 +30,11 @@ Route::middleware(['auth', 'active', 'permission:complaints.update'])->group(fun
     Route::put('/complaints/{complaint}', [ComplaintWebController::class, 'update'])->name('complaints.update');
 });
 
+Route::middleware(['auth', 'active', 'permission:tasks.create'])->group(function () {
+    Route::get('/complaints/{complaint}/convert-to-work-order', [ComplaintWebController::class, 'convertToWorkOrder'])->name('complaints.convert-to-work-order');
+    Route::post('/complaints/{complaint}/work-order', [ComplaintWebController::class, 'storeWorkOrder'])->name('complaints.work-order.store');
+});
+
 Route::middleware(['auth', 'active', 'permission:complaints.delete'])->delete('/complaints/{complaint}', [ComplaintWebController::class, 'destroy'])->name('complaints.destroy');
 
 Route::middleware(['auth', 'active', 'permission:complaints.view'])->get('/complaints/{complaint}', [ComplaintWebController::class, 'show'])->name('complaints.show');
