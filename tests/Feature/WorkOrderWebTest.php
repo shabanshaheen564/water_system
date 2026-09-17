@@ -22,6 +22,8 @@ class WorkOrderWebTest extends TestCase
         $this->user->givePermissionTo(Permission::findByName('tasks.view', 'web'));
         $this->user->givePermissionTo(Permission::findByName('tasks.create', 'web'));
         $this->user->givePermissionTo(Permission::findByName('tasks.update', 'web'));
+        $this->user->givePermissionTo(Permission::findByName('tasks.assign', 'web'));
+        $this->user->givePermissionTo(Permission::findByName('tasks.transition', 'web'));
         $this->user->givePermissionTo(Permission::findByName('complaints.view', 'web'));
     }
 
