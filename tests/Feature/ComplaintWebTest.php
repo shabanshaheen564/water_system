@@ -32,6 +32,21 @@ class ComplaintWebTest extends TestCase
     public function test_user_with_view_permission_can_list_complaints(): void { $this->actingAs($this->user)->get('/complaints')->assertOk()->assertSee('الشكاوى'); }
     public function test_user_with_create_permission_can_open_creation_form(): void { $this->actingAs($this->user)->get('/complaints/create')->assertOk()->assertSee('تسجيل شكوى جديدة'); }
 
+    public function test_complaint_assignment_list_includes_active_field_worker(): void
+    {
+        $fieldWorker = User::factory()->create(['name' => 'عامل ميداني للاختبار', 'is_active' => true]);
+        $fieldWorker->assignRole('Field Worker');
+        $complaint = Complaint::create([
+            'complaint_number' => 'CMP-900009', 'title' => 'شكوى اختبار الإسناد', 'description' => 'وصف',
+            'status' => 'open', 'priority' => 'medium', 'reported_by' => $this->user->id,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/complaints/{$complaint->id}/edit")
+            ->assertOk()
+            ->assertSee('عامل ميداني للاختبار');
+    }
+
     public function test_user_can_create_complaint_from_web_form(): void
     {
         $this->actingAs($this->user)->post('/complaints', [
