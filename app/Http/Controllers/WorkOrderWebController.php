@@ -6,8 +6,8 @@ use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class WorkOrderWebController extends Controller
 {
@@ -66,7 +66,9 @@ class WorkOrderWebController extends Controller
             'complaints' => fn ($query) => $query->with('assignedTo:id,name')->orderByDesc('created_at'),
         ]);
 
-        return view('work-orders.show', compact('workOrder'));
+        $users = User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+
+        return view('work-orders.show', compact('workOrder', 'users'));
     }
 
     public function update(Request $request, WorkOrder $workOrder): RedirectResponse
@@ -94,7 +96,7 @@ class WorkOrderWebController extends Controller
         ];
 
         if ($oldStatus !== $newStatus && isset($validTransitions[$oldStatus]) && !in_array($newStatus, $validTransitions[$oldStatus], true)) {
-            return back()->withErrors(['status' => "لا يمكن تغيير حالة المهمة من {$oldStatus} إلى {$newStatus}."])->withInput();
+            return back()->withErrors(['status' => 'انتقال حالة المهمة المطلوب غير مسموح به.'])->withInput();
         }
 
         DB::transaction(function () use ($workOrder, $validated, $oldStatus, $newStatus) {
