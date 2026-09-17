@@ -47,12 +47,18 @@ class ComplaintWorkOrderWebTest extends TestCase
             ])
             ->assertRedirect("/complaints/{$complaint->id}");
 
+        $workOrder = WorkOrder::where('title', 'معالجة كسر خط المياه')->firstOrFail();
+        $this->assertTrue($workOrder->complaints()->whereKey($complaint->id)->exists());
         $this->assertDatabaseHas('work_orders', [
-            'complaint_id' => $complaint->id,
+            'id' => $workOrder->id,
             'title' => 'معالجة كسر خط المياه',
             'status' => 'assigned',
             'assigned_to' => $this->user->id,
             'created_by' => $this->user->id,
+        ]);
+        $this->assertDatabaseHas('complaint_work_order', [
+            'complaint_id' => $complaint->id,
+            'work_order_id' => $workOrder->id,
         ]);
         $this->assertDatabaseHas('complaints', [
             'id' => $complaint->id,
@@ -61,30 +67,33 @@ class ComplaintWorkOrderWebTest extends TestCase
         ]);
     }
 
-    public function test_complaint_cannot_be_converted_to_more_than_one_work_order(): void
+    public function test_complaint_can_be_linked_to_multiple_work_orders(): void
     {
         $complaint = Complaint::create([
             'complaint_number' => 'CMP-900014', 'title' => 'ضعف ضغط المياه', 'description' => 'ضغط منخفض',
             'status' => 'open', 'priority' => 'medium', 'reported_by' => $this->user->id,
         ]);
 
-        WorkOrder::create([
-            'work_order_number' => 'WO-900014', 'complaint_id' => $complaint->id,
+        $existing = WorkOrder::create([
+            'work_order_number' => 'WO-900014',
             'title' => 'مهمة موجودة', 'description' => 'مهمة مرتبطة مسبقاً', 'status' => 'assigned',
             'priority' => 'medium', 'assigned_to' => $this->user->id, 'created_by' => $this->user->id,
         ]);
+        $existing->complaints()->attach($complaint->id);
+
+        $this->assertTrue($complaint->workOrders()->whereKey($existing->id)->exists());
 
         $this->actingAs($this->user)
             ->get("/complaints/{$complaint->id}/convert-to-work-order")
-            ->assertStatus(422);
+            ->assertOk();
 
         $this->actingAs($this->user)
             ->post("/complaints/{$complaint->id}/work-order", [
-                'title' => 'مهمة ثانية', 'description' => 'يجب رفضها', 'priority' => 'medium', 'assigned_to' => $this->user->id,
+                'title' => 'مهمة ثانية', 'description' => 'مهمة إضافية', 'priority' => 'medium', 'assigned_to' => $this->user->id,
             ])
-            ->assertSessionHasErrors('work_order');
+            ->assertRedirect("/complaints/{$complaint->id}");
 
-        $this->assertSame(1, $complaint->workOrders()->count());
+        $this->assertSame(2, $complaint->workOrders()->count());
     }
 
     public function test_inactive_user_cannot_receive_complaint_work_order(): void
