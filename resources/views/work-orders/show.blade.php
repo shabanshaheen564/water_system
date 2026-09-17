@@ -12,10 +12,7 @@
 
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-            <div class="mb-2 flex items-center gap-3">
-                <code class="ltr-value text-sm font-semibold text-brand-600">{{ $workOrder->work_order_number }}</code>
-                <span class="inline-flex rounded-md border border-border bg-surface-1 px-2 py-1 text-xs font-medium text-ink-secondary">{{ $statusLabels[$workOrder->status] ?? $workOrder->status }}</span>
-            </div>
+            <div class="mb-2 flex items-center gap-3"><code class="ltr-value text-sm font-semibold text-brand-600">{{ $workOrder->work_order_number }}</code><span class="inline-flex rounded-md border border-border bg-surface-1 px-2 py-1 text-xs font-medium text-ink-secondary">{{ $statusLabels[$workOrder->status] ?? $workOrder->status }}</span></div>
             <h2 class="text-xl font-semibold text-ink">{{ $workOrder->title }}</h2>
             <p class="mt-1 text-sm text-ink-secondary">تفاصيل المهمة والشكاوى المرتبطة بها.</p>
         </div>
@@ -23,9 +20,7 @@
     </div>
 
     @if($errors->any())
-        <div class="mb-5 rounded-md border border-danger bg-danger-surface p-4 text-sm text-danger">
-            <ul class="list-disc space-y-1 pe-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
-        </div>
+        <div class="mb-5 rounded-md border border-danger bg-danger-surface p-4 text-sm text-danger"><ul class="list-disc space-y-1 pe-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
     @endif
 
     <div class="grid gap-5 lg:grid-cols-3">
@@ -47,33 +42,11 @@
         <section class="card-institutional p-5">
             <h3 class="mb-4 text-base font-semibold text-ink">تحديث المهمة</h3>
             <form method="POST" action="{{ route('work-orders.update', $workOrder) }}" class="space-y-4">
-                @csrf
-                @method('PUT')
-                <div>
-                    <label for="status" class="mb-1 block text-sm font-medium text-ink">الحالة</label>
-                    <select id="status" name="status" class="input-institutional w-full text-sm" required>
-                        @foreach($statusLabels as $value => $label)<option value="{{ $value }}" @selected($workOrder->status === $value)>{{ $label }}</option>@endforeach
-                    </select>
-                </div>
-                <div>
-                    <label for="assigned_to" class="mb-1 block text-sm font-medium text-ink">المسند إليه</label>
-                    <select id="assigned_to" name="assigned_to" class="input-institutional w-full text-sm">
-                        <option value="">غير مسندة</option>
-                        @foreach(\App\Models\User::query()->where('is_active', true)->orderBy('name')->get(['id','name']) as $user)
-                            <option value="{{ $user->id }}" @selected($workOrder->assigned_to === $user->id)>{{ $user->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label for="priority" class="mb-1 block text-sm font-medium text-ink">الأولوية</label>
-                    <select id="priority" name="priority" class="input-institutional w-full text-sm" required>
-                        @foreach($priorityLabels as $value => $label)<option value="{{ $value }}" @selected($workOrder->priority === $value)>{{ $label }}</option>@endforeach
-                    </select>
-                </div>
-                <div>
-                    <label for="notes" class="mb-1 block text-sm font-medium text-ink">ملاحظات</label>
-                    <textarea id="notes" name="notes" rows="4" class="input-institutional w-full text-sm">{{ old('notes', $workOrder->notes) }}</textarea>
-                </div>
+                @csrf @method('PUT')
+                <div><label for="status" class="mb-1 block text-sm font-medium text-ink">الحالة</label><select id="status" name="status" class="input-institutional w-full text-sm" required>@foreach($statusLabels as $value => $label)<option value="{{ $value }}" @selected($workOrder->status === $value)>{{ $label }}</option>@endforeach</select></div>
+                <div><label for="assigned_to" class="mb-1 block text-sm font-medium text-ink">المسند إليه</label><select id="assigned_to" name="assigned_to" class="input-institutional w-full text-sm"><option value="">غير مسندة</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected($workOrder->assigned_to === $user->id)>{{ $user->name }}</option>@endforeach</select></div>
+                <div><label for="priority" class="mb-1 block text-sm font-medium text-ink">الأولوية</label><select id="priority" name="priority" class="input-institutional w-full text-sm" required>@foreach($priorityLabels as $value => $label)<option value="{{ $value }}" @selected($workOrder->priority === $value)>{{ $label }}</option>@endforeach</select></div>
+                <div><label for="notes" class="mb-1 block text-sm font-medium text-ink">ملاحظات</label><textarea id="notes" name="notes" rows="4" class="input-institutional w-full text-sm">{{ old('notes', $workOrder->notes) }}</textarea></div>
                 <button class="w-full rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">حفظ التعديلات</button>
             </form>
         </section>
@@ -81,29 +54,14 @@
     </div>
 
     <section class="card-institutional mt-5 overflow-hidden">
-        <div class="border-b border-border px-5 py-4">
-            <h3 class="text-base font-semibold text-ink">الشكاوى المرتبطة</h3>
-            <p class="mt-1 text-sm text-ink-secondary">{{ $workOrder->complaints->count() }} شكوى مرتبطة بهذه المهمة. عند إكمال المهمة يتم إغلاق الشكاوى المرتبطة تلقائيًا.</p>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="table-institutional">
-                <thead><tr><th>رقم الشكوى</th><th>العنوان</th><th>المسند إليه</th><th>الحالة</th><th>الأولوية</th><th>الإجراء</th></tr></thead>
-                <tbody>
-                @forelse($workOrder->complaints as $complaint)
-                    <tr class="hover:bg-surface-1">
-                        <td><code class="ltr-value text-sm font-medium text-ink">{{ $complaint->complaint_number }}</code></td>
-                        <td class="text-sm text-ink">{{ $complaint->title }}</td>
-                        <td class="text-sm text-ink-secondary">{{ $complaint->assignedTo->name ?? 'غير مسندة' }}</td>
-                        <td class="text-sm text-ink-secondary">{{ ['open'=>'جديدة','in_progress'=>'قيد المعالجة','resolved'=>'تم الحل','closed'=>'مغلقة','cancelled'=>'ملغاة'][$complaint->status] ?? $complaint->status }}</td>
-                        <td class="text-sm text-ink-secondary">{{ ['low'=>'منخفضة','medium'=>'متوسطة','high'=>'عالية','urgent'=>'عاجلة'][$complaint->priority] ?? $complaint->priority }}</td>
-                        <td><a href="{{ route('complaints.show', $complaint) }}" class="text-sm font-medium text-brand-600 hover:text-brand-700">عرض الشكوى</a></td>
-                    </tr>
-                @empty
-                    <tr><td colspan="6" class="py-10 text-center text-sm text-ink-muted">لا توجد شكاوى مرتبطة بهذه المهمة.</td></tr>
-                @endforelse
-                </tbody>
-            </table>
-        </div>
+        <div class="border-b border-border px-5 py-4"><h3 class="text-base font-semibold text-ink">الشكاوى المرتبطة</h3><p class="mt-1 text-sm text-ink-secondary">{{ $workOrder->complaints->count() }} شكوى مرتبطة بهذه المهمة. عند إكمال المهمة يتم إغلاق الشكاوى المرتبطة تلقائيًا.</p></div>
+        <div class="overflow-x-auto"><table class="table-institutional"><thead><tr><th>رقم الشكوى</th><th>العنوان</th><th>المسند إليه</th><th>الحالة</th><th>الأولوية</th><th>الإجراء</th></tr></thead><tbody>
+        @forelse($workOrder->complaints as $complaint)
+            <tr class="hover:bg-surface-1"><td><code class="ltr-value text-sm font-medium text-ink">{{ $complaint->complaint_number }}</code></td><td class="text-sm text-ink">{{ $complaint->title }}</td><td class="text-sm text-ink-secondary">{{ $complaint->assignedTo->name ?? 'غير مسندة' }}</td><td class="text-sm text-ink-secondary">{{ ['open'=>'جديدة','in_progress'=>'قيد المعالجة','resolved'=>'تم الحل','closed'=>'مغلقة','cancelled'=>'ملغاة'][$complaint->status] ?? $complaint->status }}</td><td class="text-sm text-ink-secondary">{{ ['low'=>'منخفضة','medium'=>'متوسطة','high'=>'عالية','urgent'=>'عاجلة'][$complaint->priority] ?? $complaint->priority }}</td><td><a href="{{ route('complaints.show', $complaint) }}" class="text-sm font-medium text-brand-600 hover:text-brand-700">عرض الشكوى</a></td></tr>
+        @empty
+            <tr><td colspan="6" class="py-10 text-center text-sm text-ink-muted">لا توجد شكاوى مرتبطة بهذه المهمة.</td></tr>
+        @endforelse
+        </tbody></table></div>
     </section>
 </div>
 @endsection
