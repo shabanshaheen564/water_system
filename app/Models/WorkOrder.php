@@ -20,6 +20,8 @@ class WorkOrder extends Model
         'started_at',
         'completed_at',
         'notes',
+        'latitude',
+        'longitude',
     ];
 
     protected function casts(): array
@@ -27,6 +29,8 @@ class WorkOrder extends Model
         return [
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'latitude' => 'decimal:8',
+            'longitude' => 'decimal:8',
         ];
     }
 
@@ -46,8 +50,7 @@ class WorkOrder extends Model
 
     public function complaints(): BelongsToMany
     {
-        return $this->belongsToMany(Complaint::class, 'complaint_work_order')
-            ->withTimestamps();
+        return $this->belongsToMany(Complaint::class, 'complaint_work_order')->withTimestamps();
     }
 
     public function assignedTo(): BelongsTo
