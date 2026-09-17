@@ -92,6 +92,7 @@ class ComplaintWebController extends Controller
             'processedBy:id,name,email',
             'workOrders.assignedTo:id,name,email',
             'workOrders.createdBy:id,name,email',
+            'workOrders.complaints:id,complaint_number,title,status',
         ]);
 
         return view('complaints.show', compact('complaint'));
@@ -159,7 +160,7 @@ class ComplaintWebController extends Controller
     public function storeWorkOrder(Request $request, Complaint $complaint): RedirectResponse
     {
         if ($complaint->workOrders()->exists()) {
-            return back()->withErrors(['work_order' => 'هذه الشكوى مرتبطة بمهمة بالفعل.']);
+            return back()->withErrors(['work_order' => 'هذه الشكوى مرتبطة بمهمة بالفعل. استخدم خيار إضافة الشكوى إلى مهمة موجودة.']);
         }
 
         $validated = $request->validate([
@@ -175,7 +176,7 @@ class ComplaintWebController extends Controller
         DB::transaction(function () use ($validated, $complaint, $request) {
             $nextNumber = DB::selectOne("SELECT nextval('work_orders_number_seq') AS next_number")->next_number;
 
-            WorkOrder::create([
+            $workOrder = WorkOrder::create([
                 'work_order_number' => 'WO-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT),
                 'complaint_id' => $complaint->id,
                 'title' => $validated['title'],
@@ -187,19 +188,59 @@ class ComplaintWebController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            if ($complaint->status === 'open') {
-                $complaint->update([
-                    'status' => 'in_progress',
-                    'assigned_to' => $validated['assigned_to'],
-                    'processed_by' => $request->user()->id,
-                    'processed_at' => now(),
-                ]);
-            } elseif ($complaint->assigned_to === null) {
-                $complaint->update(['assigned_to' => $validated['assigned_to']]);
-            }
+            $workOrder->complaints()->syncWithoutDetaching([$complaint->id]);
+
+            $complaint->update([
+                'status' => 'in_progress',
+                'assigned_to' => $validated['assigned_to'],
+                'processed_by' => $request->user()->id,
+                'processed_at' => now(),
+            ]);
         });
 
         return redirect()->route('complaints.show', $complaint)->with('success', 'تم تحويل الشكوى إلى مهمة وإسنادها بنجاح.');
+    }
+
+    public function addToExistingWorkOrder(Complaint $complaint): View
+    {
+        $workOrders = WorkOrder::query()
+            ->with(['assignedTo:id,name'])
+            ->whereIn('status', ['pending', 'assigned', 'in_progress'])
+            ->whereDoesntHave('complaints', fn ($query) => $query->where('complaints.id', $complaint->id))
+            ->orderByDesc('created_at')
+            ->get(['id', 'work_order_number', 'title', 'status', 'priority', 'assigned_to', 'created_at']);
+
+        return view('complaints.add-to-work-order', compact('complaint', 'workOrders'));
+    }
+
+    public function storeExistingWorkOrder(Request $request, Complaint $complaint): RedirectResponse
+    {
+        $validated = $request->validate([
+            'work_order_id' => ['required', 'exists:work_orders,id'],
+        ]);
+
+        DB::transaction(function () use ($validated, $complaint, $request) {
+            $workOrder = WorkOrder::query()->lockForUpdate()->findOrFail($validated['work_order_id']);
+
+            if (in_array($workOrder->status, ['completed', 'cancelled'], true)) {
+                abort(422, 'لا يمكن إضافة شكوى إلى مهمة مكتملة أو ملغاة.');
+            }
+
+            if ($workOrder->complaints()->whereKey($complaint->id)->exists()) {
+                return;
+            }
+
+            $workOrder->complaints()->attach($complaint->id);
+
+            $complaint->update([
+                'status' => 'in_progress',
+                'assigned_to' => $workOrder->assigned_to,
+                'processed_by' => $request->user()->id,
+                'processed_at' => now(),
+            ]);
+        });
+
+        return redirect()->route('complaints.show', $complaint)->with('success', 'تمت إضافة الشكوى إلى المهمة الموجودة بنجاح.');
     }
 
     public function destroy(Complaint $complaint): RedirectResponse
