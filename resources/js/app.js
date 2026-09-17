@@ -16,8 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initMapPage();
 });
 
-// Give the first few cards/panels on a page a short staggered entrance
-// so the layout settles instead of snapping into place.
 function initEntrance() {
     const targets = document.querySelectorAll('[data-enter]');
     targets.forEach((el, index) => {
@@ -36,12 +34,10 @@ function initSidebar() {
         sidebar.classList.add('translate-x-full');
         overlay?.classList.add('opacity-0');
         toggle?.setAttribute('aria-expanded', 'false');
-        // Wait for the fade before removing it from the layout.
         window.setTimeout(() => overlay?.classList.add('hidden'), 220);
     };
     const openSidebar = () => {
         overlay?.classList.remove('hidden');
-        // Next frame, so the browser paints opacity-0 before the transition starts.
         window.requestAnimationFrame(() => overlay?.classList.remove('opacity-0'));
         sidebar.classList.remove('translate-x-full');
         toggle?.setAttribute('aria-expanded', 'true');
@@ -70,15 +66,9 @@ function initUserMenu() {
         chevron?.classList.add('rotate-180');
         toggle.setAttribute('aria-expanded', 'true');
     };
-    toggle.addEventListener('click', () => {
-        menu.classList.contains('hidden') ? openMenu() : closeMenu();
-    });
-    document.addEventListener('click', (event) => {
-        if (!container.contains(event.target)) closeMenu();
-    });
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeMenu();
-    });
+    toggle.addEventListener('click', () => menu.classList.contains('hidden') ? openMenu() : closeMenu());
+    document.addEventListener('click', (event) => { if (!container.contains(event.target)) closeMenu(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeMenu(); });
 }
 
 function initLoginPage() {
@@ -115,45 +105,153 @@ function initSpatialDatasetForm() {
 function initMapPage() {
     const mapElement = document.getElementById('map');
     if (!mapElement) return;
-    const strings = {
-        loadFailed: mapElement.dataset.msgLoadFailed || '',
-        featureDetails: mapElement.dataset.msgFeatureDetails || '',
-    };
-    const map = L.map(mapElement, { center: [31.5, 34.5], zoom: 8, zoomControl: true, attributionControl: true });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
-    const layers = {};
-    const toggles = document.querySelectorAll('.layer-toggle');
-    toggles.forEach(toggle => { if (toggle.checked) loadLayer(toggle.dataset.datasetId, toggle.id); toggle.addEventListener('change', () => toggle.checked ? loadLayer(toggle.dataset.datasetId, toggle.id) : removeLayer(toggle.dataset.datasetId)); });
+    if (mapElement.dataset.operationalMap !== 'true') return;
 
-    function loadLayer(datasetId, toggleId) {
-        if (layers[datasetId]) return;
-        const toggle = document.getElementById(toggleId);
-        const item = toggle?.closest('.layer-item');
-        toggle?.setAttribute('disabled', 'disabled');
-        item?.classList.add('layer-loading');
+    const map = L.map(mapElement, { center: [31.5, 34.5], zoom: 10, zoomControl: true, attributionControl: true });
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri'
+    });
+    osm.addTo(map);
+    L.control.layers({ 'خريطة الشوارع': osm, 'صورة جوية / ستالايت': satellite }, {}, { position: 'topright', collapsed: false }).addTo(map);
+    L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+
+    const state = { complaints: [], tasks: [], datasets: [], complaintLayer: L.layerGroup().addTo(map), taskLayer: L.layerGroup().addTo(map), datasetLayers: {}, filtered: { complaints: [], tasks: [] } };
+    const strings = { loadFailed: mapElement.dataset.msgLoadFailed || 'تعذر تحميل بيانات الخريطة.' };
+    const dataUrl = mapElement.dataset.mapDataUrl;
+    const labels = {
+        complaintStatus: { open: 'مفتوحة', in_progress: 'قيد المعالجة', resolved: 'تم الحل', closed: 'مغلقة', cancelled: 'ملغاة' },
+        taskStatus: { pending: 'معلقة', assigned: 'مسندة', in_progress: 'قيد التنفيذ', completed: 'مكتملة', cancelled: 'ملغاة' },
+        priority: { urgent: 'عاجلة', high: 'عالية', medium: 'متوسطة', low: 'منخفضة' }
+    };
+
+    const escapeHtml = (value) => { const div = document.createElement('div'); div.textContent = value ?? ''; return div.innerHTML; };
+    const markerIconFor = (type) => L.divIcon({ className: '', html: `<div class="map-marker ${type}">${type === 'complaint' ? '!' : '✓'}</div>`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -16] });
+
+    function popupHtml(item, type) {
+        const isComplaint = type === 'complaint';
+        const statusLabel = isComplaint ? labels.complaintStatus[item.status] : labels.taskStatus[item.status];
+        const priorityLabel = labels.priority[item.priority] || item.priority || '—';
+        const related = isComplaint
+            ? (item.work_orders || []).map(work => `<div class="row"><span class="key">المهمة</span><span class="value">${escapeHtml(work.number)} · ${escapeHtml(labels.taskStatus[work.status] || work.status)}</span></div>`).join('')
+            : `<div class="row"><span class="key">الشكاوى المرتبطة</span><span class="value">${escapeHtml(item.complaints_count)}</span></div>`;
+        return `<div class="map-popup"><h4>${escapeHtml(isComplaint ? item.number : item.number)} — ${escapeHtml(item.title)}</h4><div class="row"><span class="key">الحالة</span><span class="value">${escapeHtml(statusLabel || item.status)}</span></div><div class="row"><span class="key">الأولوية</span><span class="value">${escapeHtml(priorityLabel)}</span></div><div class="row"><span class="key">المسؤول</span><span class="value">${escapeHtml(item.assigned_to || 'غير مسند')}</span></div>${isComplaint && item.contact_name ? `<div class="row"><span class="key">المواطن</span><span class="value">${escapeHtml(item.contact_name)}</span></div>` : ''}${isComplaint && item.address ? `<div class="row"><span class="key">العنوان</span><span class="value">${escapeHtml(item.address)}</span></div>` : ''}${related}<div style="margin-top:10px"><a href="${escapeHtml(item.url)}" class="text-brand-600 font-medium">عرض التفاصيل ←</a></div></div>`;
+    }
+
+    function renderOperationalLayers() {
+        state.complaintLayer.clearLayers();
+        state.taskLayer.clearLayers();
+        state.filtered.complaints.forEach(item => {
+            const marker = L.marker([item.latitude, item.longitude], { icon: markerIconFor('complaint'), title: item.number });
+            marker.bindPopup(popupHtml(item, 'complaint'), { maxWidth: 360 });
+            state.complaintLayer.addLayer(marker);
+        });
+        state.filtered.tasks.forEach(item => {
+            const marker = L.marker([item.latitude, item.longitude], { icon: markerIconFor('task'), title: item.number });
+            marker.bindPopup(popupHtml(item, 'task'), { maxWidth: 360 });
+            state.taskLayer.addLayer(marker);
+        });
+        updateStats();
+    }
+
+    function updateStats() {
+        document.getElementById('stat-complaints')?.replaceChildren(document.createTextNode(String(state.filtered.complaints.length)));
+        document.getElementById('stat-tasks')?.replaceChildren(document.createTextNode(String(state.filtered.tasks.length)));
+        const high = [...state.filtered.complaints, ...state.filtered.tasks].filter(item => ['high', 'urgent'].includes(item.priority)).length;
+        document.getElementById('stat-high')?.replaceChildren(document.createTextNode(String(high)));
+        document.getElementById('stat-datasets')?.replaceChildren(document.createTextNode(String(state.datasets.length)));
+    }
+
+    function applyFilters() {
+        const search = (document.getElementById('map-search')?.value || '').trim().toLowerCase();
+        const status = document.getElementById('map-status')?.value || '';
+        const priority = document.getElementById('map-priority')?.value || '';
+        const matches = (item) => {
+            const text = [item.number, item.title, item.description, item.contact_name, item.address, item.assigned_to].filter(Boolean).join(' ').toLowerCase();
+            return (!search || text.includes(search)) && (!status || item.status === status) && (!priority || item.priority === priority);
+        };
+        state.filtered.complaints = state.complaints.filter(matches);
+        state.filtered.tasks = state.tasks.filter(matches);
+        renderOperationalLayers();
+    }
+
+    function populateStatusFilter() {
+        const select = document.getElementById('map-status');
+        if (!select) return;
+        const values = new Set([...state.complaints.map(item => item.status), ...state.tasks.map(item => item.status)]);
+        [...values].forEach(value => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = labels.complaintStatus[value] || labels.taskStatus[value] || value;
+            select.appendChild(option);
+        });
+    }
+
+    function loadDataset(datasetId, checkbox) {
+        if (state.datasetLayers[datasetId]) return;
+        checkbox.disabled = true;
         fetch(`/api/datasets/${datasetId}/features`)
             .then(response => { if (!response.ok) throw new Error(strings.loadFailed); return response.json(); })
             .then(data => {
-                const geojsonLayer = L.geoJSON(data.features, { onEachFeature, pointToLayer, style: feature => styleFor(feature.geometry?.type) });
-                layers[datasetId] = geojsonLayer;
-                geojsonLayer.addTo(map);
-                toggle?.removeAttribute('disabled');
-                item?.classList.remove('layer-loading', 'layer-error');
-                if (geojsonLayer.getLayers().length && Object.keys(layers).length === 1) map.fitBounds(geojsonLayer.getBounds(), { padding: [40, 40] });
+                const layer = L.geoJSON(data.features || [], {
+                    pointToLayer: (_, latlng) => L.circleMarker(latlng, { radius: 6, color: '#475467', weight: 1.5, fillColor: '#667085', fillOpacity: .7 }),
+                    style: () => ({ color: '#475467', weight: 2, fillColor: '#98A2B3', fillOpacity: .18 }),
+                    onEachFeature: (feature, featureLayer) => {
+                        const rows = Object.entries(feature.properties || {}).filter(([, value]) => value !== null && value !== '').map(([key, value]) => `<div class="row"><span class="key">${escapeHtml(key)}</span><span class="value">${escapeHtml(typeof value === 'object' ? JSON.stringify(value) : String(value))}</span></div>`).join('');
+                        featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${rows}</div>`, { maxWidth: 380 });
+                    }
+                }).addTo(map);
+                state.datasetLayers[datasetId] = layer;
+                checkbox.disabled = false;
+                if (layer.getLayers().length) map.fitBounds(layer.getBounds(), { padding: [35, 35], maxZoom: 16 });
             })
-            .catch(error => { toggle?.removeAttribute('disabled'); if (toggle) toggle.checked = false; item?.classList.remove('layer-loading'); item?.classList.add('layer-error'); item?.setAttribute('data-error', error.message); });
+            .catch(() => { checkbox.checked = false; checkbox.disabled = false; });
     }
-    function removeLayer(datasetId) { if (layers[datasetId]) { map.removeLayer(layers[datasetId]); delete layers[datasetId]; } }
-    function pointToLayer(feature, latlng) { return L.circleMarker(latlng, { radius: 6, color: '#8B1A1A', weight: 1.5, fillColor: '#8B1A1A', fillOpacity: 0.65 }); }
-    function styleFor(type) { const base = { color: '#8B1A1A', weight: 2, fillColor: '#8B1A1A', fillOpacity: 0.15 }; if (type?.includes('Line')) return { ...base, fillOpacity: 0 }; return base; }
-    function onEachFeature(feature, layer) {
-        if (!feature.properties) return;
-        let html = `<div class="feature-popup"><strong>${escapeHtml(strings.featureDetails)}</strong>`;
-        Object.entries(feature.properties).forEach(([key, value]) => { if (value !== null && value !== undefined) html += `<div class="property-row"><span class="property-key">${escapeHtml(key)}</span><span class="property-value">${escapeHtml(typeof value === 'object' ? JSON.stringify(value) : String(value))}</span></div>`; });
-        html += '</div>'; layer.bindPopup(html, { maxWidth: 320 });
+
+    function removeDataset(datasetId) {
+        const layer = state.datasetLayers[datasetId];
+        if (layer) { map.removeLayer(layer); delete state.datasetLayers[datasetId]; }
     }
-    function escapeHtml(value) { const div = document.createElement('div'); div.textContent = value; return div.innerHTML; }
-    document.getElementById('zoom-to-layers')?.addEventListener('click', () => { const active = Object.values(layers); if (active.length) map.fitBounds(L.featureGroup(active).getBounds(), { padding: [40, 40] }); });
-    document.getElementById('reset-view')?.addEventListener('click', () => map.setView([31.5, 34.5], 8));
-    setTimeout(() => map.invalidateSize(), 100);
+
+    function fitVisible() {
+        const layers = [];
+        if (document.getElementById('toggle-complaints')?.checked && state.complaintLayer.getLayers().length) layers.push(state.complaintLayer);
+        if (document.getElementById('toggle-tasks')?.checked && state.taskLayer.getLayers().length) layers.push(state.taskLayer);
+        Object.values(state.datasetLayers).forEach(layer => { if (map.hasLayer(layer) && layer.getLayers().length) layers.push(layer); });
+        if (layers.length) map.fitBounds(L.featureGroup(layers).getBounds(), { padding: [45, 45], maxZoom: 16 });
+    }
+
+    document.getElementById('toggle-complaints')?.addEventListener('change', (event) => event.target.checked ? map.addLayer(state.complaintLayer) : map.removeLayer(state.complaintLayer));
+    document.getElementById('toggle-tasks')?.addEventListener('change', (event) => event.target.checked ? map.addLayer(state.taskLayer) : map.removeLayer(state.taskLayer));
+    document.querySelectorAll('.dataset-toggle').forEach(checkbox => checkbox.addEventListener('change', (event) => event.target.checked ? loadDataset(event.target.dataset.datasetId, event.target) : removeDataset(event.target.dataset.datasetId)));
+    document.getElementById('toggle-map-filter')?.addEventListener('click', () => document.getElementById('map-filter')?.classList.toggle('open'));
+    document.getElementById('map-search')?.addEventListener('input', applyFilters);
+    document.getElementById('map-status')?.addEventListener('change', applyFilters);
+    document.getElementById('map-priority')?.addEventListener('change', applyFilters);
+    document.getElementById('clear-map-filter')?.addEventListener('click', () => { document.getElementById('map-search').value = ''; document.getElementById('map-status').value = ''; document.getElementById('map-priority').value = ''; applyFilters(); });
+    document.getElementById('zoom-to-visible')?.addEventListener('click', fitVisible);
+    document.getElementById('reset-map')?.addEventListener('click', () => map.setView([31.5, 34.5], 10));
+
+    fetch(dataUrl)
+        .then(response => { if (!response.ok) throw new Error(strings.loadFailed); return response.json(); })
+        .then(data => {
+            state.complaints = data.complaints || [];
+            state.tasks = data.work_orders || [];
+            state.datasets = data.datasets || [];
+            state.filtered.complaints = [...state.complaints];
+            state.filtered.tasks = [...state.tasks];
+            populateStatusFilter();
+            renderOperationalLayers();
+            fitVisible();
+        })
+        .catch(() => {
+            document.getElementById('stat-complaints')?.replaceChildren(document.createTextNode('—'));
+            document.getElementById('stat-tasks')?.replaceChildren(document.createTextNode('—'));
+        });
+
+    window.setTimeout(() => map.invalidateSize(), 150);
 }
