@@ -21,6 +21,7 @@ class ComplaintWorkOrderWebTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
         $this->user = User::factory()->create();
         $this->user->givePermissionTo(Permission::findByName('complaints.view', 'web'));
+        $this->user->givePermissionTo(Permission::findByName('complaints.convert_to_task', 'web'));
         $this->user->givePermissionTo(Permission::findByName('tasks.create', 'web'));
     }
 
