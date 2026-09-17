@@ -23,6 +23,7 @@ class ComplaintWebTest extends TestCase
             Permission::findByName('complaints.view', 'web'),
             Permission::findByName('complaints.create', 'web'),
             Permission::findByName('complaints.update', 'web'),
+            Permission::findByName('complaints.transition', 'web'),
             Permission::findByName('complaints.delete', 'web'),
         ]);
     }
