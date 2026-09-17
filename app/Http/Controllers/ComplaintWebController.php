@@ -157,7 +157,7 @@ class ComplaintWebController extends Controller
 
     private function assignableUsers()
     {
-        return User::permission('complaints.update')
+        return User::query()
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
