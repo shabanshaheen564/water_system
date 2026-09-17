@@ -1,10 +1,93 @@
 @extends('layouts.app')
+
 @section('title', 'المستخدمون')
+
 @section('content')
-<div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8"><div class="mb-6 flex items-center justify-between gap-4"><div><h2 class="text-xl font-semibold leading-[1.5] text-ink">المستخدمون</h2><p class="mt-1 text-sm text-ink-secondary">عرض وإدارة حسابات المستخدمين في النظام.</p></div>@can('users.create')<a href="{{ route('users.create') }}" class="btn-motion shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white">إضافة مستخدم</a>@endcan</div>
-@if($errors->has('delete'))<div class="mb-5 rounded-md border border-danger bg-danger-surface p-4 text-sm text-danger">{{ $errors->first('delete') }}</div>@endif
-<div data-enter class="card-institutional overflow-hidden"><div class="overflow-x-auto"><table class="table-institutional"><thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>الحالة</th><th>الدور</th><th>آخر دخول</th><th>الإجراءات</th></tr></thead><tbody>
-@forelse($users as $user)<tr class="hover:bg-surface-1"><td>{{ $user->name }}</td><td class="ltr-value text-sm text-ink-secondary">{{ $user->email }}</td><td><span class="inline-flex rounded-md border px-2 py-1 text-xs font-medium {{ $user->is_active ? 'border-success bg-success-surface text-success' : 'border-border bg-surface-1 text-ink-secondary' }}">{{ $user->is_active ? 'نشط' : 'غير نشط' }}</span></td><td>@if($user->roles->count())<div class="flex flex-wrap gap-1">@foreach($user->roles as $role)<span class="inline-flex rounded-md border border-border bg-surface-1 px-2 py-1 text-xs font-medium text-ink-secondary">{{ __('messages.roles.'.$role->name) }}</span>@endforeach</div>@else<span class="text-ink-muted">—</span>@endif</td><td class="ltr-value text-sm text-ink-secondary">{{ $user->last_login_at ? $user->last_login_at->format('Y-m-d H:i') : '—' }}</td><td><div class="flex items-center gap-3 text-sm font-medium"><a href="{{ route('users.show',$user) }}" class="text-brand-600">عرض</a>@can('users.update')@if(!$user->hasRole('System Owner') || auth()->user()->hasRole('System Owner'))<a href="{{ route('users.edit',$user) }}" class="text-ink-secondary">تعديل</a>@endif@endcan @can('users.delete')@if(!$user->hasRole('System Owner') && $user->id!==auth()->id())<form method="POST" action="{{ route('users.destroy',$user) }}" class="inline" onsubmit="return confirm('هل تريد حذف هذا المستخدم؟');">@csrf @method('DELETE')<button type="submit" class="text-danger">حذف</button></form>@endif@endcan</div></td></tr>
-@empty<tr><td colspan="6" class="py-12 text-center text-sm text-ink-muted">لا يوجد مستخدمون مسجلون.</td></tr>@endforelse
-</tbody></table></div>{{ $users->links() }}</div></div>
+<div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+    <div class="mb-6 flex items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-semibold leading-[1.5] text-ink">المستخدمون</h2>
+            <p class="mt-1 text-sm text-ink-secondary">عرض وإدارة حسابات المستخدمين في النظام.</p>
+        </div>
+        @can('users.create')
+            <a href="{{ route('users.create') }}" class="btn-motion shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white">إضافة مستخدم</a>
+        @endcan
+    </div>
+
+    @if($errors->has('delete'))
+        <div class="mb-5 rounded-md border border-danger bg-danger-surface p-4 text-sm text-danger">{{ $errors->first('delete') }}</div>
+    @endif
+
+    <div data-enter class="card-institutional overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="table-institutional">
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>الحالة</th>
+                        <th>الدور</th>
+                        <th>آخر دخول</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($users as $user)
+                        <tr class="hover:bg-surface-1">
+                            <td>{{ $user->name }}</td>
+                            <td class="ltr-value text-sm text-ink-secondary">{{ $user->email }}</td>
+                            <td>
+                                <span class="inline-flex rounded-md border px-2 py-1 text-xs font-medium {{ $user->is_active ? 'border-success bg-success-surface text-success' : 'border-border bg-surface-1 text-ink-secondary' }}">
+                                    {{ $user->is_active ? 'نشط' : 'غير نشط' }}
+                                </span>
+                            </td>
+                            <td>
+                                @if($user->roles->count())
+                                    <div class="flex flex-wrap gap-1">
+                                        @foreach($user->roles as $role)
+                                            <span class="inline-flex rounded-md border border-border bg-surface-1 px-2 py-1 text-xs font-medium text-ink-secondary">
+                                                {{ __('messages.roles.' . $role->name) }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <span class="text-ink-muted">—</span>
+                                @endif
+                            </td>
+                            <td class="ltr-value text-sm text-ink-secondary">
+                                {{ $user->last_login_at ? $user->last_login_at->format('Y-m-d H:i') : '—' }}
+                            </td>
+                            <td>
+                                <div class="flex items-center gap-3 text-sm font-medium">
+                                    <a href="{{ route('users.show', $user) }}" class="text-brand-600">عرض</a>
+
+                                    @can('users.update')
+                                        @if(!$user->hasRole('System Owner') || auth()->user()->hasRole('System Owner'))
+                                            <a href="{{ route('users.edit', $user) }}" class="text-ink-secondary">تعديل</a>
+                                        @endif
+                                    @endcan
+
+                                    @can('users.delete')
+                                        @if(!$user->hasRole('System Owner') && $user->id !== auth()->id())
+                                            <form method="POST" action="{{ route('users.destroy', $user) }}" class="inline" onsubmit="return confirm('هل تريد حذف هذا المستخدم؟');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-danger">حذف</button>
+                                            </form>
+                                        @endif
+                                    @endcan
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="py-12 text-center text-sm text-ink-muted">لا يوجد مستخدمون مسجلون.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        {{ $users->links() }}
+    </div>
+</div>
 @endsection
