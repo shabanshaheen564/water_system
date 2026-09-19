@@ -138,8 +138,9 @@ class WorkOrderWebController extends Controller
                 if ($complaint?->status === 'closed') $archive->archiveClosedComplaint($complaint);
             }
         }
-        return redirect()->route('work-orders.show', $workOrder)->with('success', $new === 'completed' ? 'تم إكمال المهمة وأرشفتها مع بيانات زمن التنفيذ والاستجابة.' : 'تم تحديث المهمة بنجاح.');
-        }
+
+        $redirectUrl = route('work-orders.show', ['workOrder' => $workOrder->id]);
+        return redirect()->to($redirectUrl)->with('success', $new === 'completed' ? 'تم إكمال المهمة وأرشفتها مع بيانات زمن التنفيذ والاستجابة.' : 'تم تحديث المهمة بنجاح.');
     }
 
     public function destroy(WorkOrder $workOrder): RedirectResponse
