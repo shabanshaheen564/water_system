@@ -781,6 +781,29 @@ GisFeature::create([
             ->assertStatus(201);
     }
 
+    public function test_web_map_can_load_dataset_fields_as_json(): void
+    {
+        $dataset = $this->createSpatialDataset();
+
+        DatasetField::create([
+            'dataset_id' => $dataset->id,
+            'name' => 'name',
+            'display_name' => 'Name',
+            'data_type' => 'string',
+            'is_required' => true,
+            'is_unique' => false,
+            'is_identifier' => true,
+            'sort_order' => 1,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson("/datasets/{$dataset->id}/fields/data");
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.name', 'name')
+            ->assertJsonPath('data.0.display_name', 'Name');
+    }
+
     public function test_web_editable_dataset_creates_dynamic_record_and_feature_together(): void
     {
         $dataset = $this->createSpatialDataset();
