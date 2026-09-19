@@ -96,7 +96,7 @@ class ArchiveService
     private function complaintPayload(Complaint $complaint): array
     {
         $created = $complaint->created_at;
-        $firstResponse = $complaint->first_response_at;
+        $firstResponse = $complaint->first_response_at ?? $complaint->processed_at;
         $resolved = $complaint->resolved_at;
 
         return [
