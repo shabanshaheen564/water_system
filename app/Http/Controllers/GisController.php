@@ -45,8 +45,8 @@ class GisController extends Controller
         }
 
         if ($user->can('datasets.view')) {
-            $payload['datasets'] = Dataset::query()->where('is_spatial', true)->where('is_active', true)->select(['id', 'display_name', 'geometry_type', 'srid', 'is_spatial', 'map_order', 'default_visible', 'map_opacity', 'display_color'])->withCount(['gisFeatures as features_count'])->orderBy('map_order')->orderBy('display_name')->get()->map(fn (Dataset $dataset) => [
-                'id' => $dataset->id, 'name' => $dataset->display_name, 'geometry_type' => $dataset->geometry_type, 'srid' => $dataset->srid, 'features_count' => $dataset->features_count, 'map_order' => $dataset->map_order, 'default_visible' => $dataset->default_visible, 'map_opacity' => (float) $dataset->map_opacity, 'display_color' => $dataset->display_color,
+            $payload['datasets'] = Dataset::query()->where('is_spatial', true)->where('is_active', true)->select(['id', 'display_name', 'geometry_type', 'srid', 'is_spatial', 'management_mode', 'map_order', 'default_visible', 'map_opacity', 'display_color'])->withCount(['gisFeatures as features_count'])->orderBy('map_order')->orderBy('display_name')->get()->map(fn (Dataset $dataset) => [
+                'id' => $dataset->id, 'name' => $dataset->display_name, 'geometry_type' => $dataset->geometry_type, 'srid' => $dataset->srid, 'management_mode' => $dataset->management_mode, 'features_count' => $dataset->features_count, 'map_order' => $dataset->map_order, 'default_visible' => $dataset->default_visible, 'map_opacity' => (float) $dataset->map_opacity, 'display_color' => $dataset->display_color,
             ])->values();
         }
 
