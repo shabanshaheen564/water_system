@@ -65,6 +65,10 @@ class DatasetController extends Controller
                 'is_spatial' => $validated['is_spatial'] ?? false,
                 'geometry_type' => $validated['geometry_type'] ?? null,
                 'srid' => $validated['srid'] ?? null,
+                'map_order' => $validated['map_order'] ?? 0,
+                'default_visible' => $validated['default_visible'] ?? true,
+                'map_opacity' => $validated['map_opacity'] ?? 1,
+                'display_color' => $validated['display_color'] ?? '#475467',
                 'created_by' => $request->user()->id,
             ]);
 
@@ -112,6 +116,10 @@ class DatasetController extends Controller
             'is_spatial' => $dataset->is_spatial,
             'geometry_type' => $dataset->geometry_type,
             'srid' => $dataset->srid,
+            'map_order' => $dataset->map_order,
+            'default_visible' => $dataset->default_visible,
+            'map_opacity' => $dataset->map_opacity,
+            'display_color' => $dataset->display_color,
             'created_by' => $dataset->createdBy ? [
                 'id' => $dataset->createdBy->id,
                 'name' => $dataset->createdBy->name,
