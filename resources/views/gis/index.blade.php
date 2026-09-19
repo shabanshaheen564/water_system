@@ -32,7 +32,7 @@
     <div class="map-panel absolute start-4 top-4 z-[1000] w-[330px] max-w-[calc(100vw-32px)] rounded-xl border border-border p-4">
         <div class="flex items-center justify-between gap-3">
             <div>
-                <h2 class="text-base font-semibold text-ink">الخريطة التفاعلية</h2>
+                <h2 class="text-base font-semibold text-ink">الخريطة التشغيلية</h2>
                 <p class="mt-0.5 text-xs text-ink-secondary">الشكاوى والمهام والطبقات الجغرافية</p>
             </div>
             <button id="toggle-map-filter" type="button" class="rounded-md border border-border-strong bg-white px-3 py-1.5 text-xs font-medium text-ink">الفلاتر</button>
