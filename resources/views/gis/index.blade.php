@@ -123,7 +123,12 @@
                     @forelse($spatialDatasets as $dataset)
                         <label class="flex cursor-pointer items-center justify-between gap-2 rounded-md border border-border bg-white p-2.5">
                             <span class="min-w-0 truncate text-xs font-medium text-ink">{{ $dataset->display_name }}</span>
-                            <input type="checkbox" class="dataset-toggle h-4 w-4 rounded border-border-strong text-brand-600" data-dataset-id="{{ $dataset->id }}">
+                            <input type="checkbox" class="dataset-toggle h-4 w-4 rounded border-border-strong text-brand-600"
+       data-dataset-id="{{ $dataset->id }}"
+       data-geometry-type="{{ $dataset->geometry_type }}"
+       data-opacity="{{ $dataset->map_opacity }}"
+       data-color="{{ $dataset->display_color }}"
+       {{ $dataset->default_visible ? 'checked' : '' }}>
                         </label>
                     @empty
                         <p class="text-xs text-ink-muted">لا توجد طبقات مكانية مفعلة.</p>
