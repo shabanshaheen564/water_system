@@ -9,53 +9,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Complaint extends Model
 {
     protected $fillable = [
-        'complaint_number',
-        'title',
-        'description',
-        'processing_notes',
-        'solution',
-        'status',
-        'priority',
-        'reported_by',
-        'assigned_to',
-        'processed_by',
-        'contact_name',
-        'contact_phone',
-        'address',
-        'latitude',
-        'longitude',
-        'resolved_at',
-        'processed_at',
+        'complaint_number','title','description','processing_notes','solution','status','priority',
+        'reported_by','assigned_to','processed_by','contact_name','contact_phone','address',
+        'latitude','longitude','resolved_at','processed_at','first_response_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'latitude' => 'decimal:8',
-            'longitude' => 'decimal:8',
-            'resolved_at' => 'datetime',
-            'processed_at' => 'datetime',
+            'latitude' => 'decimal:8','longitude' => 'decimal:8',
+            'resolved_at' => 'datetime','processed_at' => 'datetime','first_response_at' => 'datetime',
         ];
     }
 
-    public function reportedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'reported_by');
-    }
-
-    public function assignedTo(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'assigned_to');
-    }
-
-    public function processedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'processed_by');
-    }
+    public function reportedBy(): BelongsTo { return $this->belongsTo(User::class, 'reported_by'); }
+    public function assignedTo(): BelongsTo { return $this->belongsTo(User::class, 'assigned_to'); }
+    public function processedBy(): BelongsTo { return $this->belongsTo(User::class, 'processed_by'); }
 
     public function workOrders(): BelongsToMany
     {
-        return $this->belongsToMany(WorkOrder::class, 'complaint_work_order')
-            ->withTimestamps();
+        return $this->belongsToMany(WorkOrder::class, 'complaint_work_order')->withTimestamps();
     }
 }
