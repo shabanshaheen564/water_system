@@ -92,11 +92,12 @@ class ComplaintWebController extends Controller
     public function storeWorkOrder(Request $request, Complaint $complaint): RedirectResponse
     {
         abort_unless($request->user()->can('complaints.convert_to_task'), 403);
+        abort_if($complaint->workOrders()->exists(), 422, 'هذه الشكوى مرتبطة بمهمة بالفعل. استخدم خيار إضافة الشكوى إلى مهمة موجودة.');
         $validated = $request->validate(['title' => ['required', 'string', 'max:255'], 'description' => ['required', 'string'], 'priority' => ['required', 'in:low,medium,high,urgent'], 'assigned_to' => ['required', 'exists:users,id'], 'notes' => ['nullable', 'string']]);
         $this->ensureActiveUser((int) $validated['assigned_to']);
         DB::transaction(function () use ($validated, $complaint, $request) {
             $nextNumber = DB::selectOne("SELECT nextval('work_orders_number_seq') AS next_number")->next_number;
-            $workOrder = WorkOrder::create(['work_order_number' => 'WO-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT), 'title' => $validated['title'], 'description' => $validated['description'], 'status' => 'assigned', 'priority' => $validated['priority'], 'assigned_to' => $validated['assigned_to'], 'created_by' => $request->user()->id, 'notes' => $validated['notes'] ?? null]);
+            $workOrder = WorkOrder::create(['work_order_number' => 'WO-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT), 'title' => $validated['title'], 'description' => $validated['description'], 'status' => 'assigned', 'priority' => $validated['priority'], 'assigned_to' => $validated['assigned_to'], 'created_by' => $request->user()->id, 'notes' => $validated['notes'] ?? null, 'latitude' => $complaint->latitude, 'longitude' => $complaint->longitude]);
             $workOrder->complaints()->attach($complaint->id);
             $complaint->update(['status' => 'in_progress', 'assigned_to' => $validated['assigned_to'], 'processed_by' => $request->user()->id, 'processed_at' => now()]);
         });
