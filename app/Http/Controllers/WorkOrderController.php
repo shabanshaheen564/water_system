@@ -189,10 +189,11 @@ class WorkOrderController extends Controller
 
     private function handleStatusTransition(WorkOrder $workOrder, string $oldStatus, string $newStatus, int $processedBy): void
     {
-        $validTransitions = ['pending' => ['assigned', 'cancelled'], 'assigned' => ['in_progress', 'cancelled', 'pending'], 'in_progress' => ['completed', 'cancelled', 'assigned'], 'completed' => ['in_progress'], 'cancelled' => ['pending']];
+        $validTransitions = ['pending' => ['assigned', 'cancelled'], 'assigned' => ['in_progress', 'completed', 'cancelled', 'pending'], 'in_progress' => ['completed', 'cancelled', 'assigned'], 'completed' => ['in_progress'], 'cancelled' => ['pending']];
         if (isset($validTransitions[$oldStatus]) && ! in_array($newStatus, $validTransitions[$oldStatus], true)) abort(422, "Invalid status transition from {$oldStatus} to {$newStatus}.");
         if ($newStatus === 'in_progress' && ! $workOrder->started_at) $workOrder->update(['started_at' => now()]);
         if ($newStatus === 'completed' && ! $workOrder->completed_at) {
+            if (! $workOrder->started_at) $workOrder->update(['started_at' => now()]);
             $workOrder->update(['completed_at' => now()]);
             $workOrder->loadMissing('complaints');
             foreach ($workOrder->complaints as $complaint) {
