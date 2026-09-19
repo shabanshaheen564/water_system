@@ -38,6 +38,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:roles.u
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:permissions.view'])->group(function () { Route::get('/permissions', [PermissionController::class, 'index']); Route::get('/permissions/{permission}', [PermissionController::class, 'show']); });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->group(function () { Route::get('/complaints', [ComplaintController::class, 'index']); Route::get('/complaints/{complaint}', [ComplaintController::class, 'show']); });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->get('/complaints/filters', [ReportController::class, 'filters']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.view'])->get('/work-orders/filters', [ReportController::class, 'filters']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.create'])->post('/complaints', [ComplaintController::class, 'store']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update|complaints.transition'])->put('/complaints/{complaint}', [ComplaintController::class, 'update']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.delete'])->delete('/complaints/{complaint}', [ComplaintController::class, 'destroy']);
