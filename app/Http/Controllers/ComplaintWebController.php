@@ -92,7 +92,6 @@ class ComplaintWebController extends Controller
     public function storeWorkOrder(Request $request, Complaint $complaint): RedirectResponse
     {
         abort_unless($request->user()->can('complaints.convert_to_task'), 403);
-        abort_if($complaint->workOrders()->exists(), 422, 'هذه الشكوى مرتبطة بمهمة بالفعل. استخدم خيار إضافة الشكوى إلى مهمة موجودة.');
         $validated = $request->validate(['title' => ['required', 'string', 'max:255'], 'description' => ['required', 'string'], 'priority' => ['required', 'in:low,medium,high,urgent'], 'assigned_to' => ['required', 'exists:users,id'], 'notes' => ['nullable', 'string']]);
         $this->ensureActiveUser((int) $validated['assigned_to']);
         DB::transaction(function () use ($validated, $complaint, $request) {
