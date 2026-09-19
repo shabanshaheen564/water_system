@@ -55,6 +55,19 @@ class GisFeatureController extends Controller
         }
 
         return DB::transaction(function () use ($validated, $dataset, $record, $geometryType, $creatingRecord, $request) {
+            $geojson = json_encode(['type' => $geometryType, 'coordinates' => $validated['geometry']['coordinates']]);
+            $srid = $dataset->srid ?? 4326;
+            $geometryResult = DB::selectOne(
+                'SELECT ST_SetSRID(ST_GeomFromGeoJSON(?), ?::integer) as geometry, ST_IsValid(ST_SetSRID(ST_GeomFromGeoJSON(?), ?::integer)) as is_valid',
+                [$geojson, $srid, $geojson, $srid]
+            );
+
+            if (!$geometryResult->is_valid) {
+                return response()->json(['message' => 'The supplied geometry is not valid.'], 422);
+            }
+
+            $geometry = $geometryResult->geometry;
+
             if ($creatingRecord) {
                 $values = $this->applyDefaults($dataset, $validated['values'] ?? []);
                 $this->validateChildReferences($dataset, $values);
@@ -68,18 +81,6 @@ class GisFeatureController extends Controller
                 ]);
             }
 
-            $geojson = json_encode(['type' => $geometryType, 'coordinates' => $validated['geometry']['coordinates']]);
-            $srid = $dataset->srid ?? 4326;
-            $geometry = $geometryResult = DB::selectOne(
-                'SELECT ST_SetSRID(ST_GeomFromGeoJSON(?), ?::integer) as geometry, ST_IsValid(ST_SetSRID(ST_GeomFromGeoJSON(?), ?::integer)) as is_valid',
-                [$geojson, $srid, $geojson, $srid]
-            );
-
-            if (!$geometryResult->is_valid) {
-                return response()->json(['message' => 'The supplied geometry is not valid.'], 422);
-            }
-
-            $geometry = $geometryResult->geometry;
             $feature = GisFeature::create(['dataset_record_id' => $record->id, 'dataset_id' => $dataset->id, 'geometry' => $geometry, 'geometry_type' => $geometryType, 'srid' => $srid]);
             $feature->load('datasetRecord:id,values,identifier_value');
             return response()->json($feature->toGeoJsonFeature(), 201);
