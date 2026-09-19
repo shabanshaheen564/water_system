@@ -12,12 +12,15 @@ use App\Http\Controllers\UserWebController;
 use App\Http\Controllers\RoleWebController;
 use App\Http\Controllers\PermissionWebController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\ComplaintImportWebController;
+use App\Http\Controllers\ReportController;
 
 Route::get('/', function () { return view('welcome'); })->name('home');
 Route::get('/login', [LoginController::class, 'create'])->name('login');
 Route::post('/login', [LoginController::class, 'webLogin'])->middleware('throttle:login');
 
 Route::middleware(['auth', 'active', 'permission:complaints.view'])->get('/complaints', [ComplaintWebController::class, 'index'])->name('complaints.index');
+Route::middleware(['auth', 'active', 'permission:complaints.import'])->group(function () { Route::get('/complaints/import', [ComplaintImportWebController::class, 'create'])->name('complaints.import'); Route::post('/complaints/import', [ComplaintImportWebController::class, 'store'])->name('complaints.import.store'); });
 Route::middleware(['auth', 'active', 'permission:complaints.create'])->group(function () { Route::get('/complaints/create', [ComplaintWebController::class, 'create'])->name('complaints.create'); Route::post('/complaints', [ComplaintWebController::class, 'store'])->name('complaints.store'); });
 Route::middleware(['auth', 'active', 'permission:complaints.update|complaints.transition'])->group(function () { Route::get('/complaints/{complaint}/edit', [ComplaintWebController::class, 'edit'])->name('complaints.edit'); Route::put('/complaints/{complaint}', [ComplaintWebController::class, 'update'])->name('complaints.update'); });
 Route::middleware(['auth', 'active', 'permission:complaints.convert_to_task'])->group(function () { Route::get('/complaints/{complaint}/convert-to-work-order', [ComplaintWebController::class, 'convertToWorkOrder'])->name('complaints.convert-to-work-order'); Route::post('/complaints/{complaint}/work-order', [ComplaintWebController::class, 'storeWorkOrder'])->name('complaints.work-order.store'); });
@@ -52,3 +55,10 @@ Route::middleware(['auth', 'active', 'permission:datasets.create'])->group(funct
 Route::middleware(['auth', 'active', 'permission:datasets.update'])->group(function () { Route::get('/datasets/{dataset}/edit', [DatasetWebController::class, 'edit'])->name('datasets.edit'); Route::put('/datasets/{dataset}', [DatasetWebController::class, 'update'])->name('datasets.update'); Route::get('/datasets/{dataset}/fields/{field}/edit', [DatasetFieldWebController::class, 'edit'])->name('datasets.fields.edit'); Route::put('/datasets/{dataset}/fields/{field}', [DatasetFieldWebController::class, 'update'])->name('datasets.fields.update'); Route::get('/datasets/{dataset}/records/{record}/edit', [DatasetRecordWebController::class, 'edit'])->name('datasets.records.edit'); Route::put('/datasets/{dataset}/records/{record}', [DatasetRecordWebController::class, 'update'])->name('datasets.records.update'); });
 Route::middleware(['auth', 'active', 'permission:datasets.delete'])->group(function () { Route::delete('/datasets/{dataset}/fields/{field}', [DatasetFieldWebController::class, 'destroy'])->name('datasets.fields.destroy'); Route::delete('/datasets/{dataset}/records/{record}', [DatasetRecordWebController::class, 'destroy'])->name('datasets.records.destroy'); });
 Route::middleware(['auth', 'active'])->post('/logout', [LoginController::class, 'webLogout'])->name('logout');
+
+Route::middleware(['auth', 'active', 'permission:reports.export'])->group(function () {
+    Route::get('/reports/complaints/export', [ReportController::class, 'exportComplaints'])->name('reports.complaints.export');
+    Route::get('/reports/work-orders/export', [ReportController::class, 'exportWorkOrders'])->name('reports.work-orders.export');
+});
+Route::middleware(['auth', 'active', 'permission:reports.export'])->get('/reports/complaints/{complaint}/pdf', [ReportController::class, 'complaintPdf'])->name('reports.complaints.pdf');
+Route::middleware(['auth', 'active', 'permission:reports.export'])->get('/reports/work-orders/{workOrder}/pdf', [ReportController::class, 'workOrderPdf'])->name('reports.work-orders.pdf');
