@@ -16,7 +16,7 @@ class ComplaintImportWebController extends Controller
         return view('complaints.import');
     }
 
-    public function preview(Request $request, ComplaintImportService $service): View|RedirectResponse
+    public function preview(Request $request, ComplaintImportService $service): RedirectResponse
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv,txt', 'max:10240'],
@@ -36,7 +36,27 @@ class ComplaintImportWebController extends Controller
             return back()->withErrors(['file' => $e->getMessage()]);
         }
 
-        session()->put('complaint_import.' . $token, $path);
+        session()->put('complaint_import.' . $token, [
+            'path' => $path,
+            'preview' => $preview,
+        ]);
+
+        return redirect()->route('complaints.import.mapping', ['token' => $token]);
+    }
+
+    public function mapping(string $token): View|RedirectResponse
+    {
+        if (! Str::isUuid($token)) {
+            return redirect()->route('complaints.import')->withErrors(['file' => 'رابط الاستيراد غير صالح. اختر الملف مرة أخرى.']);
+        }
+
+        $import = session('complaint_import.' . $token);
+        $path = is_array($import) ? ($import['path'] ?? null) : $import;
+        $preview = is_array($import) ? ($import['preview'] ?? null) : null;
+
+        if (! $path || ! Storage::disk('local')->exists($path) || ! is_array($preview)) {
+            return redirect()->route('complaints.import')->withErrors(['file' => 'انتهت صلاحية ملف الاستيراد. اختر الملف مرة أخرى.']);
+        }
 
         return view('complaints.import-mapping', [
             'token' => $token,
