@@ -134,8 +134,8 @@ class OperationalReportService
     public function archivedComplaintQuery(Request $request): Builder
     {
         $query = ArchivedComplaint::query();
-        if ($request->filled('date_from')) $query->whereDate('archived_at', '>=', $request->input('date_from'));
-        if ($request->filled('date_to')) $query->whereDate('archived_at', '<=', $request->input('date_to'));
+        if ($request->filled('date_from')) $query->whereDate('original_created_at', '>=', $request->input('date_from'));
+        if ($request->filled('date_to')) $query->whereDate('original_created_at', '<=', $request->input('date_to'));
         if ($request->filled('complaint_priority')) $query->where('priority', $request->input('complaint_priority'));
         if ($request->filled('complaint_assigned_to')) $query->where('assigned_to', $request->input('complaint_assigned_to'));
         return $query;
