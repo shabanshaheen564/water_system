@@ -20,8 +20,10 @@ use App\Http\Controllers\DatasetRelationshipController;
 use App\Http\Controllers\DatasetImportController;
 use App\Http\Controllers\GisFeatureController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\MobileBootstrapController;
 
 Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
+Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->get('/mobile/bootstrap', [MobileBootstrapController::class, 'show']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function () {
     Route::post('/logout', [LogoutController::class, 'logout']);
     Route::get('/user', [CurrentUserController::class, 'show']);
