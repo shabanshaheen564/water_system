@@ -29,16 +29,16 @@
         <span class="sr-only">الخريطة التفاعلية</span>
     </div>
 
-    <div class="map-panel absolute end-4 top-4 z-[1000] md:top-24 w-[330px] max-w-[calc(100vw-32px)] rounded-xl border border-border p-4">
+    <div class="map-panel absolute end-4 top-28 z-[1000] w-[330px] max-w-[calc(100vw-32px)] rounded-xl border border-border p-4">
         <div class="flex items-center justify-between gap-3">
             <div>
                 <h2 class="text-base font-semibold text-ink">الخريطة التشغيلية</h2>
                 <p class="mt-0.5 text-xs text-ink-secondary">الشكاوى والمهام والطبقات الجغرافية</p>
             </div>
-            <button id="toggle-map-filter" type="button" class="rounded-md border border-border-strong bg-white px-3 py-1.5 text-xs font-medium text-ink">الفلاتر</button>
+            <button id="toggle-map-panel" type="button" aria-expanded="true" aria-controls="map-panel-body" class="rounded-md border border-border-strong bg-white px-3 py-1.5 text-xs font-medium text-ink" title="إخفاء/إظهار القائمة">⌃</button>
         </div>
 
-        <div id="map-filter" class="map-filter mt-3 border-y border-border py-3">
+        <div id="map-panel-body">\n        <div id="map-filter" class="map-filter mt-3 border-y border-border py-3">
             <label class="mb-2 block text-xs font-medium text-ink-secondary">بحث</label>
             <input id="map-search" type="search" placeholder="رقم الشكوى، المهمة، العنوان..." class="w-full rounded-md border border-border-strong bg-white px-3 py-2 text-sm outline-none focus:border-brand-600">
             <div class="mt-3 grid grid-cols-2 gap-2">
@@ -100,4 +100,4 @@
         </div>
     </div>
 </div>
-@endsection
+\n<script>\ndocument.addEventListener('DOMContentLoaded', function () {\n    const toggle = document.getElementById('toggle-map-panel');\n    const body = document.getElementById('map-panel-body');\n    if (!toggle || !body) return;\n    toggle.addEventListener('click', function () {\n        const collapsed = body.classList.toggle('hidden');\n        toggle.setAttribute('aria-expanded', String(!collapsed));\n        toggle.textContent = collapsed ? '⌄' : '⌃';\n    });\n});\n</script>\n@endsection
