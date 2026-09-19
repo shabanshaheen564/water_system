@@ -57,6 +57,7 @@ class ArchiveService
             $complaint = Complaint::query()->lockForUpdate()->with('workOrders')->find($complaint->id);
             if (!$complaint || $complaint->status !== 'closed') return null;
 
+            $originalWorkOrderIds = $complaint->workOrders->pluck('id')->all();
             foreach ($complaint->workOrders as $workOrder) {
                 if ($workOrder->status === 'completed') $this->archiveCompletedWorkOrder($workOrder);
             }
@@ -69,8 +70,7 @@ class ArchiveService
                 $this->complaintPayload($complaint)
             );
 
-            $workOrderIds = $complaint->workOrders->pluck('id');
-            $archivedWorkOrders = ArchivedWorkOrder::whereIn('original_id', $workOrderIds)->get();
+            $archivedWorkOrders = ArchivedWorkOrder::whereIn('original_id', $originalWorkOrderIds)->get();
 
             DB::table('complaint_work_order')->where('complaint_id', $complaint->id)->delete();
             $complaint->delete();
