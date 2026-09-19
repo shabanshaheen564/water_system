@@ -22,6 +22,10 @@
         #map,.map-shell { height:calc(100vh - 64px); min-height:600px; }
         .map-panel { max-width:calc(100vw - 32px); }
     }
+
+    .map-panel { border-radius: 0 14px 14px 0; }
+    .leaflet-bottom.leaflet-right { right: 16px; bottom: 16px; }
+    .leaflet-control-zoom { margin: 0 !important; }
 </style>
 
 <div class="map-shell">
