@@ -27,17 +27,23 @@
     /* Keep Leaflet's native controls above the map content.
        The right panel is 330px wide, so only the zoom control is shifted
        left; the attribution remains centered independently. */
-    .map-shell .leaflet-control-container .leaflet-bottom.leaflet-right {
-        right: 16px !important;
-        left: auto !important;
+    .map-shell .leaflet-control-container .leaflet-bottom.leaflet-left {
+        left: 0 !important;
+        right: auto !important;
         bottom: 16px !important;
+        width: 100% !important;
         z-index: 1001 !important;
+        pointer-events: none !important;
     }
-    .map-shell .leaflet-control-zoom {
-        margin: 0 0 72px 0 !important;
-        transform: translateX(-330px) !important;
+    .map-shell .leaflet-bottom.leaflet-left .leaflet-control-zoom {
+        position: absolute !important;
+        right: 346px !important;
+        bottom: 72px !important;
+        margin: 0 !important;
+        transform: none !important;
         z-index: 1001 !important;
         direction: ltr !important;
+        pointer-events: auto !important;
     }
     .map-shell .leaflet-control-zoom a {
         direction: ltr !important;
@@ -54,9 +60,9 @@
         z-index: 1001 !important;
     }
     @media (max-width:1023px) {
-        .map-shell .leaflet-control-zoom {
-            margin: 0 0 72px 0 !important;
-            transform: none !important;
+        .map-shell .leaflet-bottom.leaflet-left .leaflet-control-zoom {
+            right: 16px !important;
+            bottom: 72px !important;
         }
     }
 </style>
