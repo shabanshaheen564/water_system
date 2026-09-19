@@ -8,6 +8,7 @@ use App\Models\ArchivedComplaint;
 use App\Models\ArchivedWorkOrder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use App\Support\DurationFormatter;
 
 class OperationalReportService
 {
@@ -120,11 +121,16 @@ class OperationalReportService
                     'average_resolution_time_minutes' => $this->roundedAverage($archivedComplaints, 'resolution_time_minutes'),
                     'fastest_response_minutes' => (clone $archivedComplaints)->whereNotNull('response_time_minutes')->min('response_time_minutes'),
                     'slowest_response_minutes' => (clone $archivedComplaints)->whereNotNull('response_time_minutes')->max('response_time_minutes'),
+                    'average_response_time_formatted' => DurationFormatter::format($this->roundedAverage($archivedComplaints, 'response_time_minutes')),
+                    'average_resolution_time_formatted' => DurationFormatter::format($this->roundedAverage($archivedComplaints, 'resolution_time_minutes')),
                 ],
                 'archived_work_orders' => [
                     'average_response_time_minutes' => $this->roundedAverage($archivedWorkOrders, 'response_time_minutes'),
                     'average_execution_time_minutes' => $this->roundedAverage($archivedWorkOrders, 'execution_time_minutes'),
                     'average_total_time_minutes' => $this->roundedAverage($archivedWorkOrders, 'total_time_minutes'),
+                    'average_response_time_formatted' => DurationFormatter::format($this->roundedAverage($archivedWorkOrders, 'response_time_minutes')),
+                    'average_execution_time_formatted' => DurationFormatter::format($this->roundedAverage($archivedWorkOrders, 'execution_time_minutes')),
+                    'average_total_time_formatted' => DurationFormatter::format($this->roundedAverage($archivedWorkOrders, 'total_time_minutes')),
                 ],
             ],
         ];
