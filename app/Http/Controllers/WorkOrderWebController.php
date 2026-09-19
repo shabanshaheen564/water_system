@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Complaint;
 use App\Models\WorkOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -59,6 +60,41 @@ class WorkOrderWebController extends Controller
     {
         $workOrder->load(['assignedTo:id,name,email', 'createdBy:id,name,email', 'complaints' => fn ($q) => $q->with('assignedTo:id,name')->orderByDesc('created_at')]);
         return view('work-orders.show', ['workOrder' => $workOrder, 'users' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name'])]);
+    }
+
+    public function convertToComplaint(Request $request, WorkOrder $workOrder): RedirectResponse
+    {
+        abort_unless($request->user()->can('tasks.update') && $request->user()->can('complaints.create'), 403);
+        $validated = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'contact_name' => ['nullable', 'string', 'max:255'],
+            'contact_phone' => ['nullable', 'string', 'max:50'],
+            'address' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        DB::transaction(function () use ($validated, $workOrder, $request) {
+            $next = DB::selectOne("SELECT nextval('complaints_number_seq') AS next_number")->next_number;
+            $complaint = Complaint::create([
+                'complaint_number' => 'CMP-' . str_pad($next, 6, '0', STR_PAD_LEFT),
+                'title' => $validated['title'] ?? $workOrder->title,
+                'description' => $validated['description'] ?? $workOrder->description,
+                'status' => 'open',
+                'priority' => $workOrder->priority,
+                'reported_by' => $request->user()->id,
+                'assigned_to' => $workOrder->assigned_to,
+                'contact_name' => $validated['contact_name'] ?? null,
+                'contact_phone' => $validated['contact_phone'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'latitude' => $workOrder->latitude,
+                'longitude' => $workOrder->longitude,
+            ]);
+            $workOrder->complaints()->attach($complaint->id);
+            if ($workOrder->status === 'completed') $complaint->update(['status' => 'closed', 'resolved_at' => now(), 'processed_by' => $request->user()->id, 'processed_at' => now()]);
+            elseif (!in_array($workOrder->status, ['cancelled', 'pending'], true)) $complaint->update(['status' => 'in_progress', 'processed_by' => $request->user()->id, 'processed_at' => now()]);
+        });
+
+        return redirect()->route('work-orders.show', $workOrder)->with('success', 'تم تحويل المهمة إلى شكوى وربطها بها بنجاح.');
     }
 
     public function update(Request $request, WorkOrder $workOrder): RedirectResponse
