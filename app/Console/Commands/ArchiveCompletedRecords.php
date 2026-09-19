@@ -19,8 +19,14 @@ class ArchiveCompletedRecords extends Command
         $completedTasks = WorkOrder::query()->where('status', 'completed')->get();
         $closedComplaints = Complaint::query()->where('status', 'closed')->get();
 
-        $eligibleTasks = $completedTasks->filter(fn ($task) => $archive->archiveCompletedWorkOrderEligibility($task));
-        $eligibleComplaints = $closedComplaints->filter(fn ($complaint) => $archive->archiveClosedComplaintEligibility($complaint));
+        $eligibleTasks = $completedTasks->filter(function ($task) {
+            $task->loadMissing('complaints');
+            return !$task->complaints->contains(fn ($complaint) => $complaint->status !== 'closed');
+        });
+        $eligibleComplaints = $closedComplaints->filter(function ($complaint) {
+            $complaint->loadMissing('workOrders');
+            return !$complaint->workOrders->contains(fn ($workOrder) => $workOrder->status !== 'completed');
+        });
 
         $this->info("Eligible completed tasks: {$eligibleTasks->count()}");
         $this->info("Eligible closed complaints: {$eligibleComplaints->count()}");
