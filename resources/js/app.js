@@ -425,23 +425,49 @@ function initMapPage() {
 
     function loadDataset(datasetId, checkbox) {
         if (state.datasetLayers[datasetId]) return;
+
         checkbox.disabled = true;
+        const color = /^#[0-9A-Fa-f]{6}$/.test(checkbox.dataset.color || '') ? checkbox.dataset.color : '#475467';
+        const opacity = Math.min(1, Math.max(0, Number(checkbox.dataset.opacity || 1)));
+
         fetch(`/api/datasets/${datasetId}/features`)
             .then(response => { if (!response.ok) throw new Error(strings.loadFailed); return response.json(); })
             .then(data => {
                 const layer = L.geoJSON(data.features || [], {
-                    pointToLayer: (_, latlng) => L.circleMarker(latlng, { radius: 6, color: '#475467', weight: 1.5, fillColor: '#667085', fillOpacity: .7 }),
-                    style: () => ({ color: '#475467', weight: 2, fillColor: '#98A2B3', fillOpacity: .18 }),
+                    pointToLayer: (_, latlng) => L.circleMarker(latlng, {
+                        radius: 6,
+                        color,
+                        weight: 1.5,
+                        fillColor: color,
+                        fillOpacity: opacity
+                    }),
+                    style: () => ({
+                        color,
+                        weight: 2,
+                        opacity,
+                        fillColor: color,
+                        fillOpacity: opacity * 0.25
+                    }),
                     onEachFeature: (feature, featureLayer) => {
-                        const rows = Object.entries(feature.properties || {}).filter(([, value]) => value !== null && value !== '').map(([key, value]) => `<div class="row"><span class="key">${escapeHtml(key)}</span><span class="value">${escapeHtml(typeof value === 'object' ? JSON.stringify(value) : String(value))}</span></div>`).join('');
+                        const rows = Object.entries(feature.properties || {})
+                            .filter(([, value]) => value !== null && value !== '')
+                            .map(([key, value]) => `<div class="row"><span class="key">${escapeHtml(key)}</span><span class="value">${escapeHtml(typeof value === 'object' ? JSON.stringify(value) : String(value))}</span></div>`)
+                            .join('');
                         featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${rows}</div>`, { maxWidth: 380 });
                     }
                 }).addTo(map);
+
                 state.datasetLayers[datasetId] = layer;
                 checkbox.disabled = false;
-                if (layer.getLayers().length) map.fitBounds(layer.getBounds(), { padding: [35, 35], maxZoom: 16 });
+
+                if (layer.getLayers().length) {
+                    map.fitBounds(layer.getBounds(), { padding: [35, 35], maxZoom: 16 });
+                }
             })
-            .catch(() => { checkbox.checked = false; checkbox.disabled = false; });
+            .catch(() => {
+                checkbox.checked = false;
+                checkbox.disabled = false;
+            });
     }
 
     function removeDataset(datasetId) {
