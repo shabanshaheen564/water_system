@@ -319,6 +319,37 @@ function initMapPage() {
         });
     }
 
+    let placeSearchMarker = null;
+
+    async function searchMapPlace() {
+        const input = document.getElementById('map-place-search');
+        const status = document.getElementById('map-place-search-status');
+        const query = input?.value.trim();
+        if (!query) return;
+        status.textContent = 'جاري البحث...';
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=ar&countrycodes=ps&q=${encodeURIComponent(query)}`, {
+                headers: { Accept: 'application/json' }
+            });
+            if (!response.ok) throw new Error();
+            const results = await response.json();
+            if (!results.length) {
+                status.textContent = 'لم يتم العثور على المكان.';
+                return;
+            }
+            const result = results[0];
+            const lat = Number(result.lat);
+            const lng = Number(result.lon);
+            if (placeSearchMarker) map.removeLayer(placeSearchMarker);
+            placeSearchMarker = L.marker([lat, lng]).addTo(map);
+            placeSearchMarker.bindPopup(`<div dir="rtl"><strong>${escapeHtml(result.display_name || query)}</strong><div class="mt-1 text-xs">Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}</div></div>`).openPopup();
+            map.setView([lat, lng], Math.max(map.getZoom(), 16));
+            status.textContent = result.display_name || 'تم العثور على المكان.';
+        } catch {
+            status.textContent = 'تعذر تنفيذ البحث حالياً.';
+        }
+    }
+
     function loadDataset(datasetId, checkbox) {
         if (state.datasetLayers[datasetId]) return;
         checkbox.disabled = true;
@@ -358,6 +389,8 @@ function initMapPage() {
     document.querySelectorAll('.dataset-toggle').forEach(checkbox => checkbox.addEventListener('change', (event) => event.target.checked ? loadDataset(event.target.dataset.datasetId, event.target) : removeDataset(event.target.dataset.datasetId)));
     document.getElementById('toggle-map-filter')?.addEventListener('click', () => document.getElementById('map-filter')?.classList.toggle('open'));
     document.getElementById('map-search')?.addEventListener('input', applyFilters);
+    document.getElementById('map-place-search-button')?.addEventListener('click', searchMapPlace);
+    document.getElementById('map-place-search')?.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); searchMapPlace(); } });
     document.getElementById('map-status')?.addEventListener('change', applyFilters);
     document.getElementById('map-priority')?.addEventListener('change', applyFilters);
     document.getElementById('clear-map-filter')?.addEventListener('click', () => { document.getElementById('map-search').value = ''; document.getElementById('map-status').value = ''; document.getElementById('map-priority').value = ''; applyFilters(); });
