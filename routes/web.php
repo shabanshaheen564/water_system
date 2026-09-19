@@ -14,6 +14,7 @@ use App\Http\Controllers\PermissionWebController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ComplaintImportWebController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ArchiveController;
 
 Route::get('/', function () { return view('welcome'); })->name('home');
 Route::get('/login', [LoginController::class, 'create'])->name('login');
@@ -61,3 +62,4 @@ Route::middleware(['auth', 'active', 'permission:reports.export|complaints.expor
 Route::middleware(['auth', 'active', 'permission:reports.export|complaints.export'])->get('/reports/complaints/{complaint}/pdf', [ReportController::class, 'complaintPdf'])->name('reports.complaints.pdf');
 Route::middleware(['auth', 'active', 'permission:reports.export|tasks.export'])->get('/reports/work-orders/export', [ReportController::class, 'exportWorkOrders'])->name('reports.work-orders.export');
 Route::middleware(['auth', 'active', 'permission:reports.export|tasks.export'])->get('/reports/work-orders/{workOrder}/pdf', [ReportController::class, 'workOrderPdf'])->name('reports.work-orders.pdf');
+Route::middleware(['auth', 'active', 'permission:complaints.view|tasks.view'])->get('/archive', [ArchiveController::class, 'index'])->name('archive.index');
