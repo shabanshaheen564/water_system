@@ -85,6 +85,59 @@ class WorkOrderController extends Controller
         return response()->json(['message' => 'Work order deleted successfully.']);
     }
 
+    public function convertToComplaint(Request $request, WorkOrder $workOrder): JsonResponse
+    {
+        abort_unless($request->user()->can('tasks.update') && $request->user()->can('complaints.create'), 403);
+
+        $validated = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'contact_name' => ['nullable', 'string', 'max:255'],
+            'contact_phone' => ['nullable', 'string', 'max:50'],
+            'address' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        return DB::transaction(function () use ($validated, $workOrder, $request) {
+            $complaint = Complaint::create([
+                'complaint_number' => $this->generateComplaintNumber(),
+                'title' => $validated['title'] ?? $workOrder->title,
+                'description' => $validated['description'] ?? $workOrder->description,
+                'status' => 'open',
+                'priority' => $workOrder->priority,
+                'reported_by' => $request->user()->id,
+                'assigned_to' => $workOrder->assigned_to,
+                'contact_name' => $validated['contact_name'] ?? null,
+                'contact_phone' => $validated['contact_phone'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'latitude' => $workOrder->latitude,
+                'longitude' => $workOrder->longitude,
+            ]);
+
+            $workOrder->complaints()->attach($complaint->id);
+
+            if ($workOrder->status === 'completed') {
+                $complaint->update(['status' => 'closed', 'resolved_at' => now(), 'processed_by' => $request->user()->id, 'processed_at' => now()]);
+            } elseif (! in_array($workOrder->status, ['cancelled', 'pending'], true)) {
+                $complaint->update(['status' => 'in_progress', 'processed_by' => $request->user()->id, 'processed_at' => now()]);
+            }
+
+            $complaint->load(['reportedBy:id,name,email','assignedTo:id,name,email','workOrders']);
+            return response()->json([
+                'message' => 'Work order converted to complaint successfully.',
+                'complaint' => [
+                    'id' => $complaint->id,
+                    'complaint_number' => $complaint->complaint_number,
+                    'title' => $complaint->title,
+                    'status' => $complaint->status,
+                    'priority' => $complaint->priority,
+                    'latitude' => $complaint->latitude ? (string) $complaint->latitude : null,
+                    'longitude' => $complaint->longitude ? (string) $complaint->longitude : null,
+                    'work_orders' => $complaint->workOrders->map(fn ($wo) => ['id' => $wo->id, 'work_order_number' => $wo->work_order_number, 'status' => $wo->status])->values(),
+                ],
+            ], 201);
+        });
+    }
+
     public function addComplaint(Request $request, WorkOrder $workOrder): JsonResponse
     {
         abort_unless($request->user()->can('tasks.update') && $request->user()->can('complaints.update'), 403);
@@ -98,6 +151,12 @@ class WorkOrderController extends Controller
             $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
             return response()->json($this->formatWorkOrder($workOrder));
         });
+    }
+
+    private function generateComplaintNumber(): string
+    {
+        $nextNumber = DB::selectOne("SELECT nextval('complaints_number_seq') as next_number")->next_number;
+        return 'CMP-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
     }
 
     private function generateWorkOrderNumber(): string
