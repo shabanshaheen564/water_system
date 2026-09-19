@@ -25,7 +25,7 @@
 
     .map-panel { border-radius: 0 14px 14px 0; }
     .map-shell .leaflet-control-container .leaflet-bottom.leaflet-right {
-        right: 346px !important;
+        right: 16px !important;
         left: auto !important;
         bottom: 16px !important;
         z-index: 1001 !important;
@@ -33,6 +33,11 @@
     .map-shell .leaflet-control-zoom {
         margin: 0 !important;
         z-index: 1001 !important;
+        direction: ltr !important;
+    }
+    .map-shell .leaflet-control-zoom a {
+        direction: ltr !important;
+        text-align: center !important;
     }
     @media (max-width: 1023px) {
         .map-shell .leaflet-control-container .leaflet-bottom.leaflet-right {
