@@ -42,7 +42,10 @@ class WorkOrderController extends Controller
     public function store(StoreWorkOrderRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        if (array_key_exists('assigned_to', $validated) && $validated['assigned_to'] !== null) $this->validateUserActive($validated['assigned_to']);
+        if (array_key_exists('assigned_to', $validated) && $validated['assigned_to'] !== null) {
+            abort_unless($request->user()->can('tasks.assign'), 403);
+            $this->validateUserActive($validated['assigned_to']);
+        }
         return DB::transaction(function () use ($validated, $request) {
             $workOrder = WorkOrder::create(['work_order_number' => $this->generateWorkOrderNumber(), 'title' => $validated['title'], 'description' => $validated['description'], 'status' => $validated['status'] ?? 'pending', 'priority' => $validated['priority'] ?? 'medium', 'assigned_to' => $validated['assigned_to'] ?? null, 'created_by' => $request->user()->id, 'notes' => $validated['notes'] ?? null]);
             if (!empty($validated['complaint_id'])) $workOrder->complaints()->syncWithoutDetaching([$validated['complaint_id']]);
