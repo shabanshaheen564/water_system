@@ -79,7 +79,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports
     Route::get('/reports/summary', [ReportController::class, 'summary']);
     Route::get('/reports/filters', [ReportController::class, 'filters']);
 });
-Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports.export'])->group(function () {
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports.export|complaints.export|tasks.export'])->group(function () {
     Route::get('/reports/complaints/export', [ReportController::class, 'exportComplaints']);
     Route::get('/reports/work-orders/export', [ReportController::class, 'exportWorkOrders']);
     Route::get('/reports/complaints/{complaint}/pdf', [ReportController::class, 'complaintPdf']);
