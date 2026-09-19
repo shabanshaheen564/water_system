@@ -120,7 +120,7 @@ class ComplaintWebController extends Controller
             if (in_array($workOrder->status, ['completed', 'cancelled'], true)) abort(422, 'لا يمكن إضافة شكوى إلى مهمة مكتملة أو ملغاة.');
             if ($workOrder->complaints()->whereKey($complaint->id)->exists()) return;
             $workOrder->complaints()->attach($complaint->id);
-            $complaint->update(['status' => 'in_progress', 'assigned_to' => $workOrder->assigned_to, 'processed_by' => $request->user()->id, 'processed_at' => now()]);
+            $complaint->update(['status' => 'in_progress', 'assigned_to' => $workOrder->assigned_to, 'processed_by' => $request->user()->id, 'processed_at' => now(), 'first_response_at' => $complaint->first_response_at ?? now()]);
         });
         return redirect()->route('complaints.show', $complaint)->with('success', 'تمت إضافة الشكوى إلى المهمة الموجودة بنجاح.');
     }
