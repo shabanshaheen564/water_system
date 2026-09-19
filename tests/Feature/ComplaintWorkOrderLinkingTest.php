@@ -66,7 +66,7 @@ class ComplaintWorkOrderLinkingTest extends TestCase
         $completed->complaints()->attach($complaint->id);
         $remaining->complaints()->attach($complaint->id);
 
-        $this->actingAs($this->user)->put("/work-orders/{$completed->id}", ['status' => 'completed'])->assertRedirect('/work-orders');
+        $this->actingAs($this->user)->put("/work-orders/{$completed->id}", ['status' => 'completed'])->assertRedirect("/work-orders/{$completed->id}");
         $this->assertDatabaseHas('complaints', ['id' => $complaint->id, 'status' => 'in_progress']);
     }
 
@@ -76,7 +76,7 @@ class ComplaintWorkOrderLinkingTest extends TestCase
         $workOrder = WorkOrder::create(['work_order_number' => 'WO-910030', 'title' => 'المهمة المرتبطة', 'description' => 'تنفيذ', 'status' => 'in_progress', 'priority' => 'medium', 'assigned_to' => $this->user->id, 'created_by' => $this->user->id]);
         $workOrder->complaints()->attach($complaint->id);
 
-        $this->actingAs($this->user)->put("/work-orders/{$workOrder->id}", ['status' => 'completed'])->assertRedirect('/work-orders');
+        $this->actingAs($this->user)->put("/work-orders/{$workOrder->id}", ['status' => 'completed'])->assertRedirect("/work-orders/{$workOrder->id}");
         $this->assertDatabaseHas('complaints', ['id' => $complaint->id, 'status' => 'cancelled']);
         $this->assertDatabaseHas('work_orders', ['id' => $workOrder->id, 'status' => 'completed']);
     }
