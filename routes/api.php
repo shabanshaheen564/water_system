@@ -20,6 +20,7 @@ use App\Http\Controllers\DatasetRelationshipController;
 use App\Http\Controllers\DatasetImportController;
 use App\Http\Controllers\GisFeatureController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\MobileBootstrapController;
 
 Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
@@ -89,3 +90,11 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports
     Route::get('/reports/work-orders/{workOrder}/pdf', [ReportController::class, 'workOrderPdf']);
 });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:gis.view|complaints.view|tasks.view'])->get('/map/operational', [\App\Http\Controllers\GisController::class, 'operationalData']);
+
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->group(function () {
+    Route::get('/archive/complaints', [ArchiveController::class, 'complaints']);
+});
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.view'])->group(function () {
+    Route::get('/archive/work-orders', [ArchiveController::class, 'workOrders']);
+});
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports.view'])->get('/archive/summary', [ArchiveController::class, 'summary']);
