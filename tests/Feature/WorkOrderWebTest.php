@@ -63,9 +63,13 @@ class WorkOrderWebTest extends TestCase
         $workOrder = WorkOrder::create(['work_order_number' => 'WO-910002', 'title' => 'إصلاح المشكلة المشتركة', 'description' => 'معالجة واحدة', 'status' => 'in_progress', 'priority' => 'medium', 'assigned_to' => $this->user->id, 'created_by' => $this->user->id]);
         $workOrder->complaints()->attach($complaints->pluck('id'));
 
-        $this->actingAs($this->user)->put("/work-orders/{$workOrder->id}", ['status' => 'completed', 'assigned_to' => $this->user->id, 'priority' => 'medium', 'notes' => 'تم التنفيذ.'])->assertRedirect("/work-orders/{$workOrder->id}");
-        foreach ($complaints as $complaint) $this->assertDatabaseHas('complaints', ['id' => $complaint->id, 'status' => 'closed', 'processed_by' => $this->user->id]);
-        $this->assertDatabaseHas('work_orders', ['id' => $workOrder->id, 'status' => 'completed']);
+        $this->actingAs($this->user)->put("/work-orders/{$workOrder->id}", ['status' => 'completed', 'assigned_to' => $this->user->id, 'priority' => 'medium', 'notes' => 'تم التنفيذ.'])->assertRedirect('/work-orders');
+        foreach ($complaints as $complaint) {
+            $this->assertDatabaseMissing('complaints', ['id' => $complaint->id]);
+            $this->assertDatabaseHas('archived_complaints', ['complaint_number' => $complaint->complaint_number, 'status' => 'closed']);
+        }
+        $this->assertDatabaseMissing('work_orders', ['id' => $workOrder->id]);
+        $this->assertDatabaseHas('archived_work_orders', ['work_order_number' => $workOrder->work_order_number, 'status' => 'completed']);
     }
 
     public function test_inactive_user_cannot_be_assigned_from_work_order_page(): void
