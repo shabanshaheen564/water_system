@@ -25,24 +25,19 @@
 
     .map-panel { border-radius: 0 14px 14px 0; }
     .map-shell .leaflet-control-container .leaflet-bottom.leaflet-right {
-        right: 16px !important;
+        right: 346px !important;
         left: auto !important;
         bottom: 16px !important;
         z-index: 1001 !important;
     }
     .map-shell .leaflet-control-zoom {
-        display: block !important;
-        visibility: visible !important;
-        position: relative !important;
         margin: 0 !important;
-        z-index: 1002 !important;
+        z-index: 1001 !important;
     }
-    .map-shell .leaflet-control-zoom a {
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
-        width: 30px;
-        height: 30px;
+    @media (max-width: 1023px) {
+        .map-shell .leaflet-control-container .leaflet-bottom.leaflet-right {
+            right: 16px !important;
+        }
     }
 </style>
 
