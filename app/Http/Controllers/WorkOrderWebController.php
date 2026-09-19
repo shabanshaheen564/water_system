@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Complaint;
 use App\Models\WorkOrder;
+use App\Services\ArchiveService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -99,7 +100,7 @@ class WorkOrderWebController extends Controller
         return redirect()->route('work-orders.show', $workOrder)->with('success', 'تم تحويل المهمة إلى شكوى وربطها بها بنجاح.');
     }
 
-    public function update(Request $request, WorkOrder $workOrder): RedirectResponse
+    public function update(Request $request, WorkOrder $workOrder, ArchiveService $archive): RedirectResponse
     {
         $validated = $request->validate(['status' => ['sometimes', 'required', 'in:pending,assigned,in_progress,completed,cancelled'], 'assigned_to' => ['sometimes', 'nullable', 'exists:users,id'], 'priority' => ['sometimes', 'required', 'in:low,medium,high,urgent'], 'notes' => ['sometimes', 'nullable', 'string'], 'title' => ['sometimes', 'required', 'string', 'max:255'], 'description' => ['sometimes', 'required', 'string'], 'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'], 'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180']]);
         abort_unless($validated !== [], 422);
@@ -123,11 +124,21 @@ class WorkOrderWebController extends Controller
                 foreach ($workOrder->complaints as $complaint) {
                     if ($complaint->status === 'cancelled') continue;
                     $hasIncompleteWorkOrders = $complaint->workOrders()->where('status', '<>', 'completed')->exists();
-                    if (!$hasIncompleteWorkOrders) $complaint->update(['status' => 'closed', 'resolved_at' => $complaint->resolved_at ?? now(), 'processed_by' => auth()->id(), 'processed_at' => now()]);
+                    if (!$hasIncompleteWorkOrders) $complaint->update(['status' => 'closed', 'resolved_at' => $complaint->resolved_at ?? now(), 'processed_by' => auth()->id(), 'processed_at' => now(), 'first_response_at' => $complaint->first_response_at ?? now()]);
                 }
             }
         });
 
+        if ($new === 'completed') {
+            $workOrder->load('complaints');
+            $complaintIds = $workOrder->complaints->pluck('id')->all();
+            $archive->archiveCompletedWorkOrder($workOrder);
+            foreach ($complaintIds as $complaintId) {
+                $complaint = Complaint::find($complaintId);
+                if ($complaint?->status === 'closed') $archive->archiveClosedComplaint($complaint);
+            }
+            return redirect()->route('work-orders.index')->with('success', 'تم إكمال المهمة وأرشفتها مع بيانات زمن التنفيذ والاستجابة.');
+        }
         return redirect()->route('work-orders.show', $workOrder)->with('success', 'تم تحديث المهمة بنجاح.');
     }
 
