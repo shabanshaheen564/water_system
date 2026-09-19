@@ -34,7 +34,8 @@
         z-index: 1001 !important;
     }
     .map-shell .leaflet-control-zoom {
-        margin: 0 330px 72px 0 !important;
+        margin: 0 0 72px 0 !important;
+        transform: translateX(-330px) !important;
         z-index: 1001 !important;
         direction: ltr !important;
     }
@@ -43,18 +44,19 @@
         text-align: center !important;
     }
     .map-shell .leaflet-control-attribution {
-        position: absolute !important;
+        position: fixed !important;
         left: 50% !important;
         right: auto !important;
         bottom: 0 !important;
         margin: 0 !important;
         transform: translateX(-50%) !important;
         white-space: nowrap;
+        z-index: 1001 !important;
     }
     @media (max-width:1023px) {
         .map-shell .leaflet-control-zoom {
-            margin-right: 0 !important;
-            margin-bottom: 72px !important;
+            margin: 0 0 72px 0 !important;
+            transform: none !important;
         }
     }
 </style>
