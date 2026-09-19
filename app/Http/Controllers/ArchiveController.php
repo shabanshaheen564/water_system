@@ -40,7 +40,7 @@ class ArchiveController extends Controller
     public function complaints(Request $request): JsonResponse
     {
         $query = ArchivedComplaint::with(['reportedBy:id,name,email', 'assignedTo:id,name,email', 'processedBy:id,name,email', 'workOrders']);
-        $this->applyFilters($query, $request);
+        $this->applyFilters($query, $request, 'complaint');
         $items = $query->latest('archived_at')->paginate(min(max($request->integer('per_page', 20), 1), 100));
         return response()->json($items);
     }
@@ -48,7 +48,7 @@ class ArchiveController extends Controller
     public function workOrders(Request $request): JsonResponse
     {
         $query = ArchivedWorkOrder::with(['assignedTo:id,name,email', 'createdBy:id,name,email', 'complaints']);
-        $this->applyFilters($query, $request);
+        $this->applyFilters($query, $request, 'work_order');
         $items = $query->latest('archived_at')->paginate(min(max($request->integer('per_page', 20), 1), 100));
         return response()->json($items);
     }
@@ -57,8 +57,8 @@ class ArchiveController extends Controller
     {
         $complaints = ArchivedComplaint::query();
         $workOrders = ArchivedWorkOrder::query();
-        $this->applyFilters($complaints, $request);
-        $this->applyFilters($workOrders, $request);
+        $this->applyFilters($complaints, $request, 'complaint');
+        $this->applyFilters($workOrders, $request, 'work_order');
 
         return response()->json([
             'complaints' => [
@@ -77,7 +77,7 @@ class ArchiveController extends Controller
         ]);
     }
 
-    private function applyFilters($query, Request $request): void
+    private function applyFilters($query, Request $request, string $type): void
     {
         if ($request->filled('date_from')) $query->whereDate('archived_at', '>=', $request->input('date_from'));
         if ($request->filled('date_to')) $query->whereDate('archived_at', '<=', $request->input('date_to'));
@@ -85,12 +85,11 @@ class ArchiveController extends Controller
         if ($request->filled('assigned_to')) $query->where('assigned_to', $request->input('assigned_to'));
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search, $type) {
                 $q->where('title', 'ilike', "%{$search}%")
-                    ->orWhere('description', 'ilike', "%{$search}%")
-                    ->orWhere('contact_name', 'ilike', "%{$search}%")
-                    ->orWhere('complaint_number', 'ilike', "%{$search}%")
-                    ->orWhere('work_order_number', 'ilike', "%{$search}%");
+                    ->orWhere('description', 'ilike', "%{$search}%");
+                if ($type === 'complaint') $q->orWhere('contact_name', 'ilike', "%{$search}%")->orWhere('complaint_number', 'ilike', "%{$search}%");
+                else $q->orWhere('work_order_number', 'ilike', "%{$search}%");
             });
         }
     }
