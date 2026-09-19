@@ -7,6 +7,47 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
 
+const DEIR_AL_BALAH_CENTER = [31.417, 34.368];
+const CENTRAL_GAZA_VIEWBOX = '34.28,31.36,34.58,31.56';
+
+function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value ?? '';
+    return div.innerHTML;
+}
+
+async function searchCentralGaza(query) {
+    const encoded = encodeURIComponent(query);
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=50&addressdetails=1&accept-language=ar&countrycodes=ps&viewbox=${CENTRAL_GAZA_VIEWBOX}&bounded=1&q=${encoded}`;
+    const photonUrl = `https://photon.komoot.io/api/?q=${encoded}&limit=50&lang=ar&bbox=34.28,31.36,34.58,31.56`;
+
+    try {
+        const response = await fetch(nominatimUrl, { headers: { 'Accept': 'application/json' } });
+        if (response.ok) {
+            const results = await response.json();
+            if (Array.isArray(results) && results.length) return results;
+        }
+    } catch {}
+
+    const fallback = await fetch(photonUrl, { headers: { 'Accept': 'application/json' } });
+    if (!fallback.ok) throw new Error('search_failed');
+    const data = await fallback.json();
+    return (data.features || []).map(feature => ({
+        name: feature.properties?.name || feature.properties?.street || feature.properties?.city || 'نتيجة',
+        display_name: [
+            feature.properties?.name,
+            feature.properties?.street,
+            feature.properties?.district,
+            feature.properties?.city,
+            feature.properties?.state
+        ].filter(Boolean).filter((value, index, values) => values.indexOf(value) === index).join('، '),
+        lat: feature.geometry?.coordinates?.[1],
+        lon: feature.geometry?.coordinates?.[0],
+    })).filter(result => Number.isFinite(Number(result.lat)) && Number.isFinite(Number(result.lon)));
+}
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
     initEntrance();
     initSidebar();
@@ -128,7 +169,7 @@ function initLocationPickers() {
                 <button type="button" data-location-search-button class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white">بحث</button>
                 <span data-location-status class="flex items-center text-xs text-ink-secondary"></span>
             </div>
-            <div class="min-h-0 flex-1"><div data-location-map class="h-full min-h-0"></div><div data-location-results class="absolute bottom-20 end-4 z-[2100] max-h-64 w-[min(420px,calc(100%-2rem))] overflow-y-auto rounded-md border border-border bg-white shadow-lg"></div></div>
+            <div class="relative min-h-0 flex-1"><div data-location-map class="h-full min-h-0"></div><div data-location-results class="absolute bottom-4 end-4 z-[2100] max-h-80 w-[min(460px,calc(100%-2rem))] overflow-y-auto rounded-md border border-border bg-white shadow-lg"></div></div>
             <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
                 <div data-location-coordinates class="text-xs text-ink-secondary">لم يتم تحديد موقع بعد.</div>
                 <button type="button" data-location-confirm disabled class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50">اعتماد الموقع</button>
@@ -174,11 +215,9 @@ function initLocationPickers() {
         const resultsList = modal.querySelector('[data-location-results]');
         resultsList.innerHTML = '';
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&addressdetails=1&accept-language=ar&countrycodes=ps&q=${encodeURIComponent(query)}`);
-            if (!response.ok) throw new Error();
-            const results = await response.json();
-            if (!results.length) { status.textContent = 'لم يتم العثور على نتائج.'; return; }
-            status.textContent = `تم العثور على ${results.length} نتائج — اختر الموقع المطلوب.`;
+            const results = await searchCentralGaza(query);
+            if (!results.length) { status.textContent = 'لم يتم العثور على نتائج داخل محافظة الوسطى.'; return; }
+            status.textContent = `تم العثور على ${results.length} نتيجة داخل محافظة الوسطى — اختر الموقع المطلوب.`;
             renderSearchResults(results, resultsList, result => {
                 setMarker(result.lat, result.lon, 17);
                 status.textContent = result.display_name || 'تم اختيار الموقع.';
@@ -193,14 +232,14 @@ function initLocationPickers() {
         activeButton = button;
         const latField = document.getElementById(button.dataset.latitudeField);
         const lngField = document.getElementById(button.dataset.longitudeField);
-        const initialLat = Number(latField?.value);
-        const initialLng = Number(lngField?.value);
+        const initialLat = latField?.value?.trim() !== '' ? Number(latField.value) : NaN;
+        const initialLng = lngField?.value?.trim() !== '' ? Number(lngField.value) : NaN;
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         document.body.classList.add('overflow-hidden');
 
         if (!modalMap) {
-            modalMap = L.map(mapHost, { zoomControl: true, attributionControl: true }).setView([31.5, 34.5], 10);
+            modalMap = L.map(mapHost, { zoomControl: true, attributionControl: true }).setView(DEIR_AL_BALAH_CENTER, 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -272,7 +311,6 @@ function initMapPage() {
         priority: { urgent: 'عاجلة', high: 'عالية', medium: 'متوسطة', low: 'منخفضة' }
     };
 
-    const escapeHtml = (value) => { const div = document.createElement('div'); div.textContent = value ?? ''; return div.innerHTML; };
     const markerIconFor = (type) => L.divIcon({ className: '', html: `<div class="map-marker ${type}">${type === 'complaint' ? '!' : '✓'}</div>`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -16] });
 
     function popupHtml(item, type) {
@@ -342,33 +380,41 @@ function initMapPage() {
         const resultsList = document.getElementById('map-place-search-results');
         const query = input?.value.trim();
         if (!query) return;
-        status.textContent = 'جاري البحث...';
+
+        status.textContent = 'جاري البحث داخل محافظة الوسطى...';
         resultsList.innerHTML = '';
+
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&addressdetails=1&accept-language=ar&countrycodes=ps&q=${encodeURIComponent(query)}`);
-            if (!response.ok) throw new Error();
-            const results = await response.json();
-            if (!results.length) { status.textContent = 'لم يتم العثور على نتائج.'; return; }
-            status.textContent = `تم العثور على ${results.length} نتائج — اختر الموقع المطلوب.`;
+            const results = await searchCentralGaza(query);
+            if (!results.length) {
+                status.textContent = 'لم يتم العثور على نتائج داخل محافظة الوسطى.';
+                return;
+            }
+
+            status.textContent = `تم العثور على ${results.length} نتيجة داخل محافظة الوسطى — اختر الموقع المطلوب.`;
+
             results.forEach(result => {
                 const item = document.createElement('button');
                 item.type = 'button';
                 item.className = 'block w-full border-b border-border px-3 py-2 text-start text-xs hover:bg-surface-1 last:border-b-0';
                 item.innerHTML = '<strong class="block text-ink">' + escapeHtml(result.name || result.display_name || 'نتيجة') + '</strong><span class="mt-0.5 block text-ink-secondary">' + escapeHtml(result.display_name || '') + '</span>';
+
                 item.addEventListener('click', () => {
                     const lat = Number(result.lat);
                     const lng = Number(result.lon);
+                    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
                     if (placeSearchMarker) map.removeLayer(placeSearchMarker);
                     placeSearchMarker = L.marker([lat, lng]).addTo(map);
-                    placeSearchMarker.bindPopup('<div dir="rtl"><strong>' + escapeHtml(result.display_name || query) + '</strong><div class="mt-1 text-xs">Lat: ' + lat.toFixed(6) + '<br>Lng: ' + lng.toFixed(6) + '</div></div>').openPopup();
+                    placeSearchMarker.bindPopup('<div dir="rtl"><strong>' + escapeHtml(result.display_name || query) + '</strong><div class="mt-1 text-xs">خط العرض: ' + lat.toFixed(6) + '<br>خط الطول: ' + lng.toFixed(6) + '</div></div>').openPopup();
                     map.setView([lat, lng], 17);
-                    resultsList.innerHTML = '';
                     status.textContent = result.display_name || 'تم اختيار الموقع.';
                 });
+
                 resultsList.appendChild(item);
             });
         } catch {
-            status.textContent = 'تعذر تنفيذ البحث حالياً.';
+            status.textContent = 'تعذر تنفيذ البحث حالياً. حاول مرة أخرى.';
         }
     }
 
@@ -417,7 +463,7 @@ function initMapPage() {
     document.getElementById('map-priority')?.addEventListener('change', applyFilters);
     document.getElementById('clear-map-filter')?.addEventListener('click', () => { document.getElementById('map-search').value = ''; document.getElementById('map-status').value = ''; document.getElementById('map-priority').value = ''; applyFilters(); });
     document.getElementById('zoom-to-visible')?.addEventListener('click', fitVisible);
-    document.getElementById('reset-map')?.addEventListener('click', () => map.setView([31.5, 34.5], 10));
+    document.getElementById('reset-map')?.addEventListener('click', () => map.setView(DEIR_AL_BALAH_CENTER, 13));
 
     fetch(dataUrl)
         .then(response => { if (!response.ok) throw new Error(strings.loadFailed); return response.json(); })
