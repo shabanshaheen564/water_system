@@ -16,7 +16,7 @@ class DurationFormatterTest extends TestCase
     public function test_formats_hours_and_minutes_after_sixty_minutes(): void
     {
         $this->assertSame('1 ساعة و1 دقيقة', DurationFormatter::format(61));
-        $this->assertSame('5 ساعات و30 دقيقة', DurationFormatter::format(330));
+        $this->assertSame('5 ساعة و30 دقيقة', DurationFormatter::format(330));
     }
 
     public function test_formats_days_hours_and_minutes_after_twenty_four_hours(): void
