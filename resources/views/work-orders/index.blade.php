@@ -6,6 +6,7 @@
 <div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div><h2 class="text-xl font-semibold text-ink">المهام</h2><p class="mt-1 text-sm text-ink-secondary">متابعة مهام العمل وإسنادها وربطها بالشكاوى ذات المشكلة نفسها.</p></div>
+        @can('reports.export')<a href="{{ route('reports.work-orders.export', request()->query()) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">تصدير Excel</a>@endcan
         @can('tasks.create')<a href="{{ route('work-orders.create') }}" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">إنشاء مهمة</a>@endcan
     </div>
 
