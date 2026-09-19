@@ -7,6 +7,7 @@ use App\Models\ArchivedWorkOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Support\DurationFormatter;
 
 class ArchiveController extends Controller
 {
@@ -35,6 +36,10 @@ class ArchiveController extends Controller
             'avg_resolution_minutes' => (clone $statsComplaints)->whereNotNull('resolution_time_minutes')->avg('resolution_time_minutes'),
             'avg_task_execution_minutes' => (clone $statsWorkOrders)->whereNotNull('execution_time_minutes')->avg('execution_time_minutes'),
         ];
+
+        $stats['avg_response_formatted'] = DurationFormatter::format($stats['avg_response_minutes'] !== null ? (int) round($stats['avg_response_minutes']) : null);
+        $stats['avg_resolution_formatted'] = DurationFormatter::format($stats['avg_resolution_minutes'] !== null ? (int) round($stats['avg_resolution_minutes']) : null);
+        $stats['avg_task_execution_formatted'] = DurationFormatter::format($stats['avg_task_execution_minutes'] !== null ? (int) round($stats['avg_task_execution_minutes']) : null);
 
         return view('archive.index', compact('complaints', 'workOrders', 'stats', 'show', 'dateFrom', 'dateTo'));
     }
@@ -69,12 +74,17 @@ class ArchiveController extends Controller
                 'avg_resolution_time_minutes' => $this->roundedAvg($complaints, 'resolution_time_minutes'),
                 'fastest_response_minutes' => (clone $complaints)->whereNotNull('response_time_minutes')->min('response_time_minutes'),
                 'slowest_response_minutes' => (clone $complaints)->whereNotNull('response_time_minutes')->max('response_time_minutes'),
+                'avg_response_time_formatted' => DurationFormatter::format($this->roundedAvg($complaints, 'response_time_minutes')),
+                'avg_resolution_time_formatted' => DurationFormatter::format($this->roundedAvg($complaints, 'resolution_time_minutes')),
             ],
             'work_orders' => [
                 'total' => (clone $workOrders)->count(),
                 'avg_response_time_minutes' => $this->roundedAvg($workOrders, 'response_time_minutes'),
                 'avg_execution_time_minutes' => $this->roundedAvg($workOrders, 'execution_time_minutes'),
                 'avg_total_time_minutes' => $this->roundedAvg($workOrders, 'total_time_minutes'),
+                'avg_response_time_formatted' => DurationFormatter::format($this->roundedAvg($workOrders, 'response_time_minutes')),
+                'avg_execution_time_formatted' => DurationFormatter::format($this->roundedAvg($workOrders, 'execution_time_minutes')),
+                'avg_total_time_formatted' => DurationFormatter::format($this->roundedAvg($workOrders, 'total_time_minutes')),
             ],
         ]);
     }
