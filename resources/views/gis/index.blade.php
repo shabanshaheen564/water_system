@@ -24,14 +24,17 @@
     }
 
     .map-panel { border-radius: 0 14px 14px 0; }
+    /* The operational panel occupies the entire right edge of the map.
+       Keep the native Leaflet zoom control in the bottom-right of the
+       visible map area, outside the panel and the legend. */
     .map-shell .leaflet-control-container .leaflet-bottom.leaflet-right {
-        right: 16px !important;
+        right: 346px !important;
         left: auto !important;
         bottom: 16px !important;
         z-index: 1001 !important;
     }
     .map-shell .leaflet-control-zoom {
-        margin: 0 !important;
+        margin: 0 0 72px 0 !important;
         z-index: 1001 !important;
         direction: ltr !important;
     }
