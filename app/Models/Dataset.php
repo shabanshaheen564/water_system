@@ -13,6 +13,7 @@ class Dataset extends Model
         'display_name',
         'description',
         'dataset_type',
+        'management_mode',
         'source_name',
         'source_format',
         'is_active',
@@ -81,6 +82,11 @@ class Dataset extends Model
     public function isSpatial(): bool
     {
         return $this->is_spatial;
+    }
+
+    public function isWebEditable(): bool
+    {
+        return $this->management_mode === 'web_editable';
     }
 
     public function getSupportedGeometryTypes(): array
