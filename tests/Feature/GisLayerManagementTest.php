@@ -37,6 +37,7 @@ class GisLayerManagementTest extends TestCase
             'name' => 'water_pipes_layer',
             'display_name' => 'Water Pipes',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'official',
             'is_spatial' => true,
             'geometry_type' => 'LineString',
             'srid' => 28191,
@@ -87,6 +88,54 @@ class GisLayerManagementTest extends TestCase
             ->assertJsonPath('default_visible', false)
             ->assertJsonPath('map_opacity', 0.8)
             ->assertJsonPath('display_color', '#16A34A');
+    }
+
+    public function test_management_mode_is_required_for_api_creation(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+        ])->postJson('/api/datasets', [
+            'name' => 'missing_management_mode',
+            'display_name' => 'Missing Management Mode',
+            'dataset_type' => 'official_layer',
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['management_mode']);
+    }
+
+    public function test_web_editable_dataset_must_be_spatial(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+        ])->postJson('/api/datasets', [
+            'name' => 'web_editable_table',
+            'display_name' => 'Web Editable Table',
+            'dataset_type' => 'additional_table',
+            'management_mode' => 'web_editable',
+            'is_spatial' => false,
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['management_mode']);
+    }
+
+    public function test_management_mode_is_exposed_in_api(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+        ])->postJson('/api/datasets', [
+            'name' => 'wadi_salqa',
+            'display_name' => 'Wadi Al-Salqa',
+            'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
+            'is_spatial' => true,
+            'geometry_type' => 'Polygon',
+            'srid' => 4326,
+        ]);
+
+        $response->assertStatus(201)->assertJsonPath('management_mode', 'web_editable');
     }
 
     public function test_layer_settings_reject_invalid_opacity_and_color(): void
