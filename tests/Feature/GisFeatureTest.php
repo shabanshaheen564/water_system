@@ -811,7 +811,7 @@ GisFeature::create([
         $feature = GisFeature::where('dataset_id', $dataset->id)->where('dataset_record_id', $record->id)->first();
         $this->assertNotNull($feature);
         $this->assertEquals('Point', $response->json('geometry.type'));
-        $this->assertEquals($record->id, $response->json('properties.dataset_record_id'));
+        $this->assertEquals('Wadi Al-Salqa', $response->json('properties.name'));
     }
 
     // Spatial Index Verification (metadata check)
