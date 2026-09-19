@@ -72,6 +72,18 @@ class WorkOrderWebTest extends TestCase
         $this->assertDatabaseHas('archived_work_orders', ['work_order_number' => $workOrder->work_order_number, 'status' => 'completed']);
     }
 
+    public function test_assigned_work_order_can_be_completed_directly(): void
+    {
+        $workOrder = WorkOrder::create(['work_order_number' => 'WO-910004', 'title' => 'مهمة مباشرة', 'description' => 'اختبار الإكمال المباشر', 'status' => 'assigned', 'priority' => 'medium', 'assigned_to' => $this->user->id, 'created_by' => $this->user->id]);
+
+        $this->actingAs($this->user)
+            ->put("/work-orders/{$workOrder->id}", ['status' => 'completed', 'assigned_to' => $this->user->id, 'priority' => 'medium'])
+            ->assertRedirect('/work-orders');
+
+        $this->assertDatabaseMissing('work_orders', ['id' => $workOrder->id]);
+        $this->assertDatabaseHas('archived_work_orders', ['work_order_number' => 'WO-910004', 'status' => 'completed']);
+    }
+
     public function test_inactive_user_cannot_be_assigned_from_work_order_page(): void
     {
         $inactive = User::factory()->create(['is_active' => false]);
