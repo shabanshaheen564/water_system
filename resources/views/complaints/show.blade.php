@@ -7,7 +7,7 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div><div class="flex items-center gap-3"><h2 class="text-xl font-semibold text-ink">تفاصيل الشكوى</h2><code class="ltr-value text-sm text-brand-600">{{ $complaint->complaint_number }}</code></div><p class="mt-1 text-sm text-ink-secondary">{{ $complaint->title }}</p></div>
         <div class="flex flex-wrap gap-2">
-            @can('reports.export')<a href="{{ route('reports.complaints.pdf', $complaint) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">تقرير PDF</a>@endcan
+            @canany(['reports.export','complaints.export'])<a href="{{ route('reports.complaints.pdf', $complaint) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">تقرير PDF</a>@endcan
             @can('complaints.convert_to_task')
                 @if($complaint->workOrders->isEmpty())
                     <a href="{{ route('complaints.convert-to-work-order', $complaint) }}" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">تحويل إلى مهمة جديدة</a>
