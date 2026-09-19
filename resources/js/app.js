@@ -309,12 +309,30 @@ function initMapPage() {
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
+    const state = {
+        complaints: [],
+        tasks: [],
+        datasets: [],
+        complaintLayer: L.layerGroup().addTo(map),
+        taskLayer: L.layerGroup().addTo(map),
+        datasetLayers: {},
+        filtered: { complaints: [], tasks: [] },
+        drawing: { active: false, layer: null }
+    };
+
     const drawingStatus = document.getElementById('gis-drawing-status');
     const drawingDataset = document.getElementById('gis-edit-dataset');
     const drawingButton = document.getElementById('gis-start-drawing');
     const drawnItems = new L.FeatureGroup().addTo(map);
+    const attributeModal = document.getElementById('gis-attribute-modal');
+    const attributeFields = document.getElementById('gis-attribute-fields');
+    const attributeError = document.getElementById('gis-attribute-error');
+    const attributeDatasetName = document.getElementById('gis-attribute-dataset-name');
+    const attributeSave = document.getElementById('gis-attribute-save');
+    let attributeFieldsData = [];
 
     const drawingGeometryType = () => drawingDataset?.selectedOptions?.[0]?.dataset.geometryType || '';
+
     const syncDrawingControls = () => {
         const type = drawingGeometryType();
         const supported = ['Point', 'LineString', 'Polygon'].includes(type);
@@ -329,8 +347,81 @@ function initMapPage() {
             map.removeLayer(state.drawing.layer);
             state.drawing.layer = null;
         }
+        drawnItems.clearLayers();
         state.drawing.active = false;
         syncDrawingControls();
+    };
+
+    const geometryCoordinatesFromLayer = (layer, type) => {
+        if (type === 'Point') {
+            const point = layer.getLatLng();
+            return [point.lng, point.lat];
+        }
+
+        const convert = value => Array.isArray(value)
+            ? value.map(convert)
+            : [value.lng, value.lat];
+
+        return convert(layer.getLatLngs());
+    };
+
+    const closeAttributeModal = () => {
+        attributeModal?.classList.add('hidden');
+        attributeModal?.classList.remove('flex');
+        if (attributeError) {
+            attributeError.textContent = '';
+            attributeError.classList.add('hidden');
+        }
+    };
+
+    const fieldInput = field => {
+        const required = field.is_required ? 'required' : '';
+        const value = field.default_value ?? '';
+        const base = 'mt-1 w-full rounded-md border border-border-strong bg-white px-3 py-2 text-sm outline-none focus:border-brand-600';
+        const label = '<label class="block text-xs font-medium text-ink">' + escapeHtml(field.display_name || field.name) + (field.is_required ? ' <span class="text-danger">*</span>' : '') + '</label>';
+
+        if (field.data_type === 'text') {
+            return label + '<textarea name="' + escapeHtml(field.name) + '" rows="3" class="' + base + '" ' + required + '>' + escapeHtml(value) + '</textarea>';
+        }
+
+        if (field.data_type === 'boolean') {
+            return '<label class="flex items-center gap-2 text-xs font-medium text-ink"><input type="checkbox" name="' + escapeHtml(field.name) + '" value="1" class="h-4 w-4 rounded border-border-strong" ' + (value ? 'checked' : '') + '> ' + escapeHtml(field.display_name || field.name) + '</label>';
+        }
+
+        const type = field.data_type === 'integer' || field.data_type === 'decimal' ? 'number'
+            : field.data_type === 'date' ? 'date'
+            : field.data_type === 'datetime' ? 'datetime-local'
+            : 'text';
+
+        const step = field.data_type === 'decimal' ? ' step="any"' : '';
+        return label + '<input name="' + escapeHtml(field.name) + '" type="' + type + '" value="' + escapeHtml(value) + '" class="' + base + '"' + step + ' ' + required + '>';
+    };
+
+    const openAttributeModal = async () => {
+        const datasetId = drawingDataset?.value;
+        if (!datasetId || !state.drawing.layer) return;
+
+        const selected = drawingDataset.selectedOptions?.[0];
+        if (attributeDatasetName) attributeDatasetName.textContent = selected?.textContent || '';
+        if (attributeFields) attributeFields.innerHTML = '<p class="text-xs text-ink-secondary">جاري تحميل الحقول...</p>';
+        attributeModal?.classList.remove('hidden');
+        attributeModal?.classList.add('flex');
+
+        try {
+            const response = await fetch('/api/datasets/' + datasetId + '/fields?per_page=100');
+            if (!response.ok) throw new Error('تعذر تحميل حقول الطبقة.');
+            const data = await response.json();
+            attributeFieldsData = data.data || [];
+            attributeFields.innerHTML = attributeFieldsData.length
+                ? attributeFieldsData.map(fieldInput).join('')
+                : '<p class="text-xs text-ink-secondary">لا توجد حقول. سيتم حفظ المعلم بدون خصائص إضافية.</p>';
+        } catch (error) {
+            if (attributeFields) attributeFields.innerHTML = '';
+            if (attributeError) {
+                attributeError.textContent = error.message || 'تعذر تحميل حقول الطبقة.';
+                attributeError.classList.remove('hidden');
+            }
+        }
     };
 
     const startDrawing = () => {
@@ -357,22 +448,99 @@ function initMapPage() {
             stopDrawing();
             return;
         }
-        stopDrawing();
+
         state.drawing.layer = event.layer;
         drawnItems.clearLayers();
         drawnItems.addLayer(event.layer);
-        if (drawingStatus) drawingStatus.textContent = 'تم إنشاء الشكل مؤقتًا. حفظ المعلم والبيانات سيكون في GIS-3.2.';
+        state.drawing.active = false;
+        syncDrawingControls();
+
+        if (drawingStatus) drawingStatus.textContent = 'تم إنشاء الشكل. أدخل الخصائص ثم اضغط حفظ المعلم.';
         const bounds = event.layer.getBounds ? event.layer.getBounds() : null;
         if (bounds?.isValid?.()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
         else if (event.layer.getLatLng) map.setView(event.layer.getLatLng(), Math.max(map.getZoom(), 17));
+        openAttributeModal();
     });
 
-    drawingDataset?.addEventListener('change', () => { stopDrawing(); drawnItems.clearLayers(); syncDrawingControls(); });
+    drawingDataset?.addEventListener('change', () => { stopDrawing(); closeAttributeModal(); syncDrawingControls(); });
     drawingButton?.addEventListener('click', startDrawing);
-    document.addEventListener('keydown', event => { if (event.key === 'Escape' && state.drawing.active) stopDrawing(); });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && state.drawing.active) stopDrawing();
+        else if (event.key === 'Escape' && attributeModal && !attributeModal.classList.contains('hidden')) closeAttributeModal();
+    });
+
+    document.getElementById('gis-attribute-close')?.addEventListener('click', closeAttributeModal);
+    document.getElementById('gis-attribute-cancel')?.addEventListener('click', closeAttributeModal);
+
+    attributeSave?.addEventListener('click', async () => {
+        const datasetId = drawingDataset?.value;
+        const type = drawingGeometryType();
+        const layer = state.drawing.layer;
+        if (!datasetId || !layer) return;
+
+        attributeSave.disabled = true;
+        if (attributeError) {
+            attributeError.textContent = '';
+            attributeError.classList.add('hidden');
+        }
+
+        const values = {};
+        attributeFieldsData.forEach(field => {
+            const input = attributeFields?.querySelector('[name="' + CSS.escape(field.name) + '"]');
+            if (!input) return;
+
+            if (field.data_type === 'boolean') {
+                values[field.name] = input.checked;
+                return;
+            }
+
+            if (input.value !== '') values[field.name] = input.value;
+        });
+
+        const payload = {
+            values,
+            geometry: {
+                type,
+                coordinates: geometryCoordinatesFromLayer(layer, type),
+            },
+        };
+
+        try {
+            const response = await fetch('/api/datasets/' + datasetId + '/features', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                const messages = Object.values(data.errors || {}).flat();
+                throw new Error(messages.join(' ') || data.message || 'تعذر حفظ المعلم.');
+            }
+
+            closeAttributeModal();
+            stopDrawing();
+            if (drawingStatus) drawingStatus.textContent = 'تم حفظ المعلم وخصائصه بنجاح.';
+            const checkbox = document.querySelector('.dataset-toggle[data-dataset-id="' + datasetId + '"]');
+            if (checkbox?.checked) {
+                removeDataset(datasetId);
+                loadDataset(datasetId, checkbox);
+            }
+        } catch (error) {
+            if (attributeError) {
+                attributeError.textContent = error.message || 'تعذر حفظ المعلم.';
+                attributeError.classList.remove('hidden');
+            }
+        } finally {
+            attributeSave.disabled = false;
+        }
+    });
+
     syncDrawingControls();
 
-    const state = { complaints: [], tasks: [], datasets: [], complaintLayer: L.layerGroup().addTo(map), taskLayer: L.layerGroup().addTo(map), datasetLayers: {}, filtered: { complaints: [], tasks: [] }, drawing: { active: false, layer: null } };
     const strings = { loadFailed: mapElement.dataset.msgLoadFailed || 'تعذر تحميل بيانات الخريطة.' };
     const dataUrl = mapElement.dataset.mapDataUrl;
     const labels = {
