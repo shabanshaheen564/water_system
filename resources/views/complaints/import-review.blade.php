@@ -23,16 +23,16 @@
         <div class="card-institutional p-4"><div class="text-xs text-ink-secondary">تحتاج قراراً</div><div class="mt-1 text-2xl font-semibold text-warning">{{ count($analysis['suspicious']) }}</div></div>
     </div>
 
-    @if(count($analysis['suspicious']) === 0)
-        <div class="card-institutional p-6">
-            <div class="font-medium text-ink">لم يتم العثور على شكاوى مشابهة بشكل كافٍ.</div>
-            <p class="mt-1 text-sm text-ink-secondary">يمكنك متابعة الاستيراد، وستتم إضافة الصفوف الجديدة فقط.</p>
-        </div>
-    @else
-        <form method="POST" action="{{ route('complaints.import.store') }}" class="space-y-5">
-            @csrf
-            <input type="hidden" name="token" value="{{ $token }}">
+    <form method="POST" action="{{ route('complaints.import.store') }}" class="space-y-5">
+        @csrf
+        <input type="hidden" name="token" value="{{ $token }}">
 
+        @if(count($analysis['suspicious']) === 0)
+            <div class="card-institutional p-6">
+                <div class="font-medium text-ink">لم يتم العثور على شكاوى مشابهة بشكل كافٍ.</div>
+                <p class="mt-1 text-sm text-ink-secondary">يمكنك متابعة الاستيراد، وستتم إضافة الصفوف التي اجتازت الفحص.</p>
+            </div>
+        @else
             @foreach($analysis['suspicious'] as $item)
                 <div class="card-institutional overflow-hidden">
                     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
@@ -83,13 +83,13 @@
                     </div>
                 </div>
             @endforeach
+        @endif
 
-            <div class="card-institutional flex flex-wrap items-center justify-between gap-3 p-4">
-                <a href="{{ route('complaints.import.mapping', ['token' => $token]) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">العودة للأعمدة</a>
-                <button type="submit" class="rounded-md bg-brand-600 px-5 py-2 text-sm font-medium text-white hover:bg-brand-700">تنفيذ الاستيراد حسب قراراتي</button>
-            </div>
-        </form>
-    @endif
+        <div class="card-institutional flex flex-wrap items-center justify-between gap-3 p-4">
+            <a href="{{ route('complaints.import.mapping', ['token' => $token]) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">العودة للأعمدة</a>
+            <button type="submit" class="rounded-md bg-brand-600 px-5 py-2 text-sm font-medium text-white hover:bg-brand-700">تنفيذ الاستيراد حسب قراراتي</button>
+        </div>
+    </form>
 
     @if(!empty($analysis['errors']))
         <div class="mt-5 card-institutional border-danger p-4">
