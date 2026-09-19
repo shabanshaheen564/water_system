@@ -485,7 +485,15 @@ function initMapPage() {
 
     document.getElementById('toggle-complaints')?.addEventListener('change', (event) => event.target.checked ? map.addLayer(state.complaintLayer) : map.removeLayer(state.complaintLayer));
     document.getElementById('toggle-tasks')?.addEventListener('change', (event) => event.target.checked ? map.addLayer(state.taskLayer) : map.removeLayer(state.taskLayer));
-    document.querySelectorAll('.dataset-toggle').forEach(checkbox => checkbox.addEventListener('change', (event) => event.target.checked ? loadDataset(event.target.dataset.datasetId, event.target) : removeDataset(event.target.dataset.datasetId)));
+    document.querySelectorAll('.dataset-toggle').forEach(checkbox => {
+        checkbox.addEventListener('change', (event) => event.target.checked
+            ? loadDataset(event.target.dataset.datasetId, event.target)
+            : removeDataset(event.target.dataset.datasetId));
+
+        if (checkbox.checked) {
+            loadDataset(checkbox.dataset.datasetId, checkbox);
+        }
+    });
     document.getElementById('toggle-map-filter')?.addEventListener('click', () => document.getElementById('map-filter')?.classList.toggle('open'));
     document.getElementById('map-search')?.addEventListener('input', applyFilters);
     document.getElementById('map-place-search-button')?.addEventListener('click', searchMapPlace);
