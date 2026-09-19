@@ -33,7 +33,7 @@ class GisFeature extends Model
         return $this->belongsTo(Dataset::class);
     }
 
-    public function toGeoJsonFeature(int $outputSrid = 4326): array
+    public function toGeoJsonFeature(?int $outputSrid = null): array
     {
         $record = $this->datasetRecord;
         $properties = $record ? $record->values : [];
@@ -42,7 +42,7 @@ class GisFeature extends Model
         $geojson = null;
         if ($this->geometry) {
             $storedSrid = (int) ($this->srid ?? 4326);
-            $outSrid = (int) $outputSrid;
+            $outSrid = (int) ($outputSrid ?? config('gis.output_srid', 4326));
             
             if ($storedSrid === $outSrid) {
                 // No transformation needed
