@@ -84,6 +84,10 @@ class ReportController extends Controller
         $sheet->setAutoFilter('A1:'.$sheet->getHighestColumn().$sheet->getHighestRow());
 
         $writer = $format === 'csv' ? new Csv($spreadsheet) : new Xlsx($spreadsheet);
+        if ($writer instanceof Csv) {
+            $writer->setUseBOM(true);
+            $writer->setOutputEncoding('UTF-8');
+        }
         $extension = $format === 'csv' ? 'csv' : 'xlsx';
         $mime = $format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
