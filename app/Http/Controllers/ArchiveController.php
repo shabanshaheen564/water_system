@@ -26,12 +26,14 @@ class ArchiveController extends Controller
             ->when($dateTo, fn ($q) => $q->whereDate('archived_at', '<=', $dateTo))
             ->latest('archived_at')->paginate(10, ['*'], 'work_orders_page')->withQueryString();
 
+        $statsComplaints = ArchivedComplaint::query()->when($dateFrom, fn ($q) => $q->whereDate('archived_at', '>=', $dateFrom))->when($dateTo, fn ($q) => $q->whereDate('archived_at', '<=', $dateTo));
+        $statsWorkOrders = ArchivedWorkOrder::query()->when($dateFrom, fn ($q) => $q->whereDate('archived_at', '>=', $dateFrom))->when($dateTo, fn ($q) => $q->whereDate('archived_at', '<=', $dateTo));
         $stats = [
-            'complaints_count' => ArchivedComplaint::query()->count(),
-            'work_orders_count' => ArchivedWorkOrder::query()->count(),
-            'avg_response_minutes' => ArchivedComplaint::query()->whereNotNull('response_time_minutes')->avg('response_time_minutes'),
-            'avg_resolution_minutes' => ArchivedComplaint::query()->whereNotNull('resolution_time_minutes')->avg('resolution_time_minutes'),
-            'avg_task_execution_minutes' => ArchivedWorkOrder::query()->whereNotNull('execution_time_minutes')->avg('execution_time_minutes'),
+            'complaints_count' => (clone $statsComplaints)->count(),
+            'work_orders_count' => (clone $statsWorkOrders)->count(),
+            'avg_response_minutes' => (clone $statsComplaints)->whereNotNull('response_time_minutes')->avg('response_time_minutes'),
+            'avg_resolution_minutes' => (clone $statsComplaints)->whereNotNull('resolution_time_minutes')->avg('resolution_time_minutes'),
+            'avg_task_execution_minutes' => (clone $statsWorkOrders)->whereNotNull('execution_time_minutes')->avg('execution_time_minutes'),
         ];
 
         return view('archive.index', compact('complaints', 'workOrders', 'stats', 'show', 'dateFrom', 'dateTo'));
