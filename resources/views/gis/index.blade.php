@@ -100,4 +100,4 @@
         </div>
     </div>
 </div>
-\n<script>\ndocument.addEventListener('DOMContentLoaded', function () {\n    const toggle = document.getElementById('toggle-map-panel');\n    const body = document.getElementById('map-panel-body');\n    if (!toggle || !body) return;\n    toggle.addEventListener('click', function () {\n        const collapsed = body.classList.toggle('hidden');\n        toggle.setAttribute('aria-expanded', String(!collapsed));\n        toggle.textContent = collapsed ? '⌄' : '⌃';\n    });\n});\n</script>\n@endsection
+\n\n@endsection
