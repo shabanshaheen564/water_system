@@ -39,6 +39,10 @@ class DatasetWebController extends Controller
             'is_spatial' => $validated['is_spatial'] ?? false,
             'geometry_type' => $validated['geometry_type'] ?? null,
             'srid' => $validated['srid'] ?? null,
+            'map_order' => $validated['map_order'] ?? 0,
+            'default_visible' => $validated['default_visible'] ?? true,
+            'map_opacity' => $validated['map_opacity'] ?? 1,
+            'display_color' => $validated['display_color'] ?? '#475467',
             'created_by' => auth()->id(),
         ]);
 
