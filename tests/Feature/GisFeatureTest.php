@@ -52,6 +52,7 @@ class GisFeatureTest extends TestCase
             'display_name' => 'Non Spatial Dataset',
             'dataset_type' => 'additional_table',
             'is_spatial' => false,
+            'management_mode' => 'official',
         ]);
 
         $response->assertStatus(201);
