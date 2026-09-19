@@ -25,8 +25,10 @@ class ComplaintWebController extends Controller
             });
         }
         foreach (['status', 'priority'] as $filter) if ($request->filled($filter)) $query->where($filter, $request->input($filter));
+        if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->input('date_from'));
+        if ($request->filled('date_to')) $query->whereDate('created_at', '<=', $request->input('date_to'));
         $complaints = $query->paginate(20)->withQueryString();
-        return view('complaints.index', ['complaints' => $complaints, 'search' => $search, 'status' => $request->input('status'), 'priority' => $request->input('priority')]);
+        return view('complaints.index', ['complaints' => $complaints, 'search' => $search, 'status' => $request->input('status'), 'priority' => $request->input('priority'), 'dateFrom' => $request->input('date_from'), 'dateTo' => $request->input('date_to')]);
     }
 
     public function create(): View { return view('complaints.create', ['assignees' => $this->assignableUsers()]); }
