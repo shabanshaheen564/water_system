@@ -32,6 +32,7 @@ Route::middleware(['auth', 'active', 'permission:tasks.view'])->get('/work-order
 Route::middleware(['auth', 'active', 'permission:tasks.create'])->group(function () { Route::get('/work-orders/create', [WorkOrderWebController::class, 'create'])->name('work-orders.create'); Route::post('/work-orders', [WorkOrderWebController::class, 'store'])->name('work-orders.store'); });
 Route::middleware(['auth', 'active', 'permission:tasks.view'])->get('/work-orders/{workOrder}', [WorkOrderWebController::class, 'show'])->name('work-orders.show');
 Route::middleware(['auth', 'active', 'permission:tasks.update|tasks.assign|tasks.transition'])->put('/work-orders/{workOrder}', [WorkOrderWebController::class, 'update'])->name('work-orders.update');
+Route::middleware(['auth', 'active', 'permission:tasks.update'])->post('/work-orders/{workOrder}/convert-to-complaint', [WorkOrderWebController::class, 'convertToComplaint'])->name('work-orders.convert-to-complaint');
 Route::middleware(['auth', 'active', 'permission:tasks.delete'])->delete('/work-orders/{workOrder}', [WorkOrderWebController::class, 'destroy'])->name('work-orders.destroy');
 
 Route::middleware(['auth', 'active', 'permission:gis.view|complaints.view|tasks.view|datasets.view'])->group(function () {
