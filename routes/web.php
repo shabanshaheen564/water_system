@@ -57,9 +57,7 @@ Route::middleware(['auth', 'active', 'permission:datasets.update'])->group(funct
 Route::middleware(['auth', 'active', 'permission:datasets.delete'])->group(function () { Route::delete('/datasets/{dataset}/fields/{field}', [DatasetFieldWebController::class, 'destroy'])->name('datasets.fields.destroy'); Route::delete('/datasets/{dataset}/records/{record}', [DatasetRecordWebController::class, 'destroy'])->name('datasets.records.destroy'); });
 Route::middleware(['auth', 'active'])->post('/logout', [LoginController::class, 'webLogout'])->name('logout');
 
-Route::middleware(['auth', 'active', 'permission:reports.export|complaints.export|tasks.export'])->group(function () {
-    Route::get('/reports/complaints/export', [ReportController::class, 'exportComplaints'])->name('reports.complaints.export');
-    Route::get('/reports/work-orders/export', [ReportController::class, 'exportWorkOrders'])->name('reports.work-orders.export');
-});
-Route::middleware(['auth', 'active', 'permission:reports.export'])->get('/reports/complaints/{complaint}/pdf', [ReportController::class, 'complaintPdf'])->name('reports.complaints.pdf');
-Route::middleware(['auth', 'active', 'permission:reports.export'])->get('/reports/work-orders/{workOrder}/pdf', [ReportController::class, 'workOrderPdf'])->name('reports.work-orders.pdf');
+Route::middleware(['auth', 'active', 'permission:reports.export|complaints.export'])->get('/reports/complaints/export', [ReportController::class, 'exportComplaints'])->name('reports.complaints.export');
+Route::middleware(['auth', 'active', 'permission:reports.export|complaints.export'])->get('/reports/complaints/{complaint}/pdf', [ReportController::class, 'complaintPdf'])->name('reports.complaints.pdf');
+Route::middleware(['auth', 'active', 'permission:reports.export|tasks.export'])->get('/reports/work-orders/export', [ReportController::class, 'exportWorkOrders'])->name('reports.work-orders.export');
+Route::middleware(['auth', 'active', 'permission:reports.export|tasks.export'])->get('/reports/work-orders/{workOrder}/pdf', [ReportController::class, 'workOrderPdf'])->name('reports.work-orders.pdf');
