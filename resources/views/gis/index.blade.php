@@ -24,23 +24,38 @@
     }
 
     .map-panel { border-radius: 0 14px 14px 0; }
-    /* The operational panel occupies the entire right edge of the map.
-       Keep the native Leaflet zoom control in the bottom-right of the
-       visible map area, outside the panel and the legend. */
+    /* Keep Leaflet's native controls above the map content.
+       The right panel is 330px wide, so only the zoom control is shifted
+       left; the attribution remains centered independently. */
     .map-shell .leaflet-control-container .leaflet-bottom.leaflet-right {
-        right: 346px !important;
+        right: 16px !important;
         left: auto !important;
         bottom: 16px !important;
         z-index: 1001 !important;
     }
     .map-shell .leaflet-control-zoom {
-        margin: 0 0 72px 0 !important;
+        margin: 0 330px 72px 0 !important;
         z-index: 1001 !important;
         direction: ltr !important;
     }
     .map-shell .leaflet-control-zoom a {
         direction: ltr !important;
         text-align: center !important;
+    }
+    .map-shell .leaflet-control-attribution {
+        position: absolute !important;
+        left: 50% !important;
+        right: auto !important;
+        bottom: 0 !important;
+        margin: 0 !important;
+        transform: translateX(-50%) !important;
+        white-space: nowrap;
+    }
+    @media (max-width:1023px) {
+        .map-shell .leaflet-control-zoom {
+            margin-right: 0 !important;
+            margin-bottom: 72px !important;
+        }
     }
 </style>
 
