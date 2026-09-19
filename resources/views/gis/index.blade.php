@@ -166,6 +166,24 @@
         </div>
     </div>
 
+    <div id="gis-attribute-modal" class="fixed inset-0 z-[2000] hidden items-center justify-center bg-black/40 p-4" dir="rtl">
+        <div class="w-full max-w-lg rounded-xl border border-border bg-white shadow-xl">
+            <div class="flex items-center justify-between border-b border-border px-5 py-4">
+                <div>
+                    <h3 class="text-sm font-semibold text-ink">خصائص المعلم</h3>
+                    <p id="gis-attribute-dataset-name" class="mt-1 text-xs text-ink-secondary"></p>
+                </div>
+                <button id="gis-attribute-close" type="button" class="rounded-md px-2 py-1 text-lg text-ink-secondary hover:bg-surface-1" aria-label="إغلاق">×</button>
+            </div>
+            <div id="gis-attribute-fields" class="max-h-[60vh] space-y-3 overflow-y-auto px-5 py-4"></div>
+            <p id="gis-attribute-error" class="hidden px-5 pb-3 text-xs text-danger"></p>
+            <div class="flex justify-end gap-2 border-t border-border px-5 py-4">
+                <button id="gis-attribute-cancel" type="button" class="rounded-md border border-border-strong bg-white px-4 py-2 text-xs font-medium text-ink">إلغاء</button>
+                <button id="gis-attribute-save" type="button" class="rounded-md bg-brand-600 px-4 py-2 text-xs font-medium text-white">حفظ المعلم</button>
+            </div>
+        </div>
+    </div>
+
     <div class="absolute bottom-4 end-4 z-[1000] rounded-lg border border-border bg-white/95 p-3 shadow-sm backdrop-blur">
         <p class="mb-2 text-xs font-semibold text-ink">مفتاح الخريطة</p>
         <div class="flex gap-4 text-xs text-ink-secondary">
