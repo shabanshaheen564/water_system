@@ -7,6 +7,7 @@ use App\Http\Requests\WorkOrder\UpdateWorkOrderRequest;
 use App\Models\Complaint;
 use App\Models\User;
 use App\Models\WorkOrder;
+use App\Services\ArchiveService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -61,7 +62,7 @@ class WorkOrderController extends Controller
         return response()->json($this->formatWorkOrder($workOrder));
     }
 
-    public function update(UpdateWorkOrderRequest $request, WorkOrder $workOrder): JsonResponse
+    public function update(UpdateWorkOrderRequest $request, WorkOrder $workOrder, ArchiveService $archive): JsonResponse
     {
         $validated = $request->validated();
         abort_unless($validated !== [], 422);
@@ -73,12 +74,24 @@ class WorkOrderController extends Controller
         if (array_key_exists('status', $validated)) abort_unless($request->user()->can('tasks.transition'), 403);
         foreach (['title', 'description', 'priority', 'notes', 'latitude', 'longitude'] as $field) if (array_key_exists($field, $validated)) abort_unless($request->user()->can('tasks.update'), 403);
         $oldStatus = $workOrder->status;
-        return DB::transaction(function () use ($validated, $workOrder, $oldStatus, $request) {
+        $payload = DB::transaction(function () use ($validated, $workOrder, $oldStatus, $request) {
             $workOrder->update($validated);
             if (isset($validated['status']) && $validated['status'] !== $oldStatus) $this->handleStatusTransition($workOrder, $oldStatus, $validated['status'], $request->user()->id);
             $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
-            return response()->json($this->formatWorkOrder($workOrder));
+            return $this->formatWorkOrder($workOrder);
         });
+
+        if (($validated['status'] ?? $oldStatus) === 'completed') {
+            $workOrder->load('complaints');
+            $complaintIds = $workOrder->complaints->pluck('id')->all();
+            $archive->archiveCompletedWorkOrder($workOrder);
+            foreach ($complaintIds as $complaintId) {
+                $complaint = Complaint::find($complaintId);
+                if ($complaint?->status === 'closed') $archive->archiveClosedComplaint($complaint);
+            }
+        }
+
+        return response()->json($payload);
     }
 
     public function destroy(WorkOrder $workOrder): JsonResponse
@@ -119,7 +132,7 @@ class WorkOrderController extends Controller
             $workOrder->complaints()->attach($complaint->id);
 
             if ($workOrder->status === 'completed') {
-                $complaint->update(['status' => 'closed', 'resolved_at' => now(), 'processed_by' => $request->user()->id, 'processed_at' => now()]);
+                $complaint->update(['status' => 'closed', 'resolved_at' => now(), 'processed_by' => $request->user()->id, 'processed_at' => now(), 'first_response_at' => now()]);
             } elseif (! in_array($workOrder->status, ['cancelled', 'pending'], true)) {
                 $complaint->update(['status' => 'in_progress', 'processed_by' => $request->user()->id, 'processed_at' => now()]);
             }
@@ -150,7 +163,7 @@ class WorkOrderController extends Controller
             if (in_array($workOrder->status, ['completed', 'cancelled'], true)) return response()->json(['message' => 'Cannot add a complaint to a completed or cancelled work order.'], 422);
             $complaint = Complaint::findOrFail($validated['complaint_id']);
             if (!$workOrder->complaints()->whereKey($complaint->id)->exists()) $workOrder->complaints()->attach($complaint->id);
-            $complaint->update(['status' => 'in_progress', 'assigned_to' => $workOrder->assigned_to, 'processed_by' => $request->user()->id, 'processed_at' => now()]);
+            $complaint->update(['status' => 'in_progress', 'assigned_to' => $workOrder->assigned_to, 'processed_by' => $request->user()->id, 'processed_at' => now(), 'first_response_at' => $complaint->first_response_at ?? now()]);
             $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
             return response()->json($this->formatWorkOrder($workOrder));
         });
