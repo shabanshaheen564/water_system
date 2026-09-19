@@ -110,7 +110,7 @@ class WorkOrderWebController extends Controller
 
         $old = $workOrder->status;
         $new = $validated['status'] ?? $old;
-        $transitions = ['pending' => ['assigned', 'cancelled'], 'assigned' => ['in_progress', 'cancelled', 'pending'], 'in_progress' => ['completed', 'cancelled', 'assigned'], 'completed' => ['in_progress'], 'cancelled' => ['pending']];
+        $transitions = ['pending' => ['assigned', 'cancelled'], 'assigned' => ['in_progress', 'completed', 'cancelled', 'pending'], 'in_progress' => ['completed', 'cancelled', 'assigned'], 'completed' => ['in_progress'], 'cancelled' => ['pending']];
         if ($old !== $new && !in_array($new, $transitions[$old] ?? [], true)) return back()->withErrors(['status' => 'انتقال حالة المهمة المطلوب غير مسموح به.'])->withInput();
 
         DB::transaction(function () use ($workOrder, $validated, $old, $new) {
@@ -119,6 +119,7 @@ class WorkOrderWebController extends Controller
             $workOrder->update($changes);
             if ($new === 'in_progress' && !$workOrder->started_at) $workOrder->update(['started_at' => now()]);
             if ($new === 'completed' && !$workOrder->completed_at) {
+                if (!$workOrder->started_at) $workOrder->update(['started_at' => now()]);
                 $workOrder->update(['completed_at' => now()]);
                 $workOrder->load('complaints');
                 foreach ($workOrder->complaints as $complaint) {
