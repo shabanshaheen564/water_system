@@ -16,7 +16,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Roles & Permissions
             'roles.view', 'roles.create', 'roles.update', 'roles.delete', 'permissions.view',
             // Complaints
-            'complaints.view', 'complaints.create', 'complaints.update', 'complaints.delete', 'complaints.transition', 'complaints.convert_to_task',
+            'complaints.view', 'complaints.create', 'complaints.update', 'complaints.delete', 'complaints.transition', 'complaints.convert_to_task', 'complaints.import', 'complaints.export',
             // Tasks
             'tasks.view', 'tasks.create', 'tasks.update', 'tasks.delete', 'tasks.assign', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
             // GIS
@@ -45,7 +45,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'datasets.view', 'datasets.create', 'datasets.update', 'datasets.delete',
             ],
             'Engineer' => [
-                'complaints.view', 'complaints.create', 'complaints.update', 'complaints.transition', 'complaints.convert_to_task',
+                'complaints.view', 'complaints.create', 'complaints.update', 'complaints.transition', 'complaints.convert_to_task', 'complaints.export',
                 'tasks.view', 'tasks.create', 'tasks.update', 'tasks.assign', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
                 'assets.view', 'assets.create', 'assets.update',
                 'reports.view', 'reports.export',
