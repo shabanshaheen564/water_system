@@ -16,7 +16,7 @@
                     </div>
                 </details>
             @endcan
-            @can('tasks.create')<a href="{{ route('work-orders.create') }}" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">إنشاء مهمة</a>@endcan
+            @can('tasks.view')<a href="{{ route('archive.index', ['show' => 'work_orders']) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">الأرشيف</a>@endcan @can('tasks.create')<a href="{{ route('work-orders.create') }}" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">إنشاء مهمة</a>@endcan
         </div>
     </div>
 
