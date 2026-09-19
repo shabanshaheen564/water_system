@@ -93,6 +93,22 @@ class ComplaintImportWebController extends Controller
         }
 
         session()->put('complaint_import.' . $token . '.mapping', $mapping);
+        session()->put('complaint_import.' . $token . '.analysis', $analysis);
+
+        return view('complaints.import-review', [
+            'token' => $token,
+            'analysis' => $analysis,
+        ]);
+    }
+
+    public function showReview(string $token): View|RedirectResponse
+    {
+        $import = session('complaint_import.' . $token);
+        $analysis = is_array($import) ? ($import['analysis'] ?? null) : null;
+
+        if (! Str::isUuid($token) || ! is_array($import) || ! ($import['path'] ?? null) || ! is_array($analysis)) {
+            return redirect()->route('complaints.import')->withErrors(['file' => 'انتهت صلاحية مرحلة مراجعة الاستيراد.']);
+        }
 
         return view('complaints.import-review', [
             'token' => $token,
