@@ -13,9 +13,13 @@ class OperationalReportService
     {
         $query = Complaint::with(['reportedBy:id,name,email', 'assignedTo:id,name,email', 'processedBy:id,name,email', 'workOrders:id,work_order_number,title,status,priority']);
 
-        foreach (['status', 'priority', 'assigned_to', 'reported_by'] as $field) {
-            if ($request->filled($field)) $query->where($field, $request->input($field));
-        }
+        $filters = [
+            'status' => $request->input('complaint_status', $request->input('status')),
+            'priority' => $request->input('complaint_priority', $request->input('priority')),
+            'assigned_to' => $request->input('complaint_assigned_to', $request->input('assigned_to')),
+            'reported_by' => $request->input('reported_by'),
+        ];
+        foreach ($filters as $field => $value) if ($value !== null && $value !== '') $query->where($field, $value);
 
         if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->input('date_from'));
         if ($request->filled('date_to')) $query->whereDate('created_at', '<=', $request->input('date_to'));
@@ -39,9 +43,12 @@ class OperationalReportService
     {
         $query = WorkOrder::with(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
 
-        foreach (['status', 'priority', 'assigned_to'] as $field) {
-            if ($request->filled($field)) $query->where($field, $request->input($field));
-        }
+        $filters = [
+            'status' => $request->input('task_status', $request->input('status')),
+            'priority' => $request->input('task_priority', $request->input('priority')),
+            'assigned_to' => $request->input('task_assigned_to', $request->input('assigned_to')),
+        ];
+        foreach ($filters as $field => $value) if ($value !== null && $value !== '') $query->where($field, $value);
 
         if ($request->filled('complaint_id')) {
             $query->whereHas('complaints', fn ($q) => $q->whereKey($request->input('complaint_id')));
@@ -74,9 +81,12 @@ class OperationalReportService
             'filters' => [
                 'date_from' => $request->input('date_from'),
                 'date_to' => $request->input('date_to'),
-                'status' => $request->input('status'),
-                'priority' => $request->input('priority'),
-                'assigned_to' => $request->input('assigned_to'),
+                'complaint_status' => $request->input('complaint_status'),
+                'complaint_priority' => $request->input('complaint_priority'),
+                'complaint_assigned_to' => $request->input('complaint_assigned_to'),
+                'task_status' => $request->input('task_status'),
+                'task_priority' => $request->input('task_priority'),
+                'task_assigned_to' => $request->input('task_assigned_to'),
             ],
             'complaints' => [
                 'total' => (clone $complaints)->count(),
