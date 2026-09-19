@@ -43,9 +43,9 @@ class RolesAndPermissionsTest extends TestCase
             // Roles & Permissions
             'roles.view', 'roles.create', 'roles.update', 'roles.delete', 'permissions.view',
             // Complaints
-            'complaints.view', 'complaints.create', 'complaints.update', 'complaints.delete', 'complaints.transition', 'complaints.convert_to_task',
+            'complaints.view', 'complaints.create', 'complaints.update', 'complaints.delete', 'complaints.transition', 'complaints.convert_to_task', 'complaints.import', 'complaints.export',
             // Tasks
-            'tasks.view', 'tasks.create', 'tasks.update', 'tasks.delete', 'tasks.assign', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
+            'tasks.view', 'tasks.create', 'tasks.update', 'tasks.delete', 'tasks.export', 'tasks.assign', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
             // GIS
             'gis.view', 'gis.layers.create', 'gis.layers.update', 'gis.layers.delete', 'gis.fields.view', 'gis.features.create', 'gis.features.update', 'gis.features.delete', 'gis.import',
             // Assets
@@ -54,6 +54,8 @@ class RolesAndPermissionsTest extends TestCase
             'reports.view', 'reports.export',
             // Audit Logs
             'audit_logs.view',
+            // Datasets
+            'datasets.view', 'datasets.create', 'datasets.update', 'datasets.delete',
         ];
 
         foreach ($requiredPermissions as $permissionName) {
@@ -162,12 +164,12 @@ class RolesAndPermissionsTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\Seeders\RolesAndPermissionsSeeder']);
 
         $this->assertEquals(6, Role::count());
-        $this->assertEquals(44, Permission::count()); // Total permissions defined
+        $this->assertEquals(47, Permission::count()); // Total permissions defined
 
         // Run again
         $this->artisan('db:seed', ['--class' => 'Database\Seeders\RolesAndPermissionsSeeder']);
 
         $this->assertEquals(6, Role::count(), 'Roles should not duplicate on re-seed');
-        $this->assertEquals(44, Permission::count(), 'Permissions should not duplicate on re-seed');
+        $this->assertEquals(47, Permission::count(), 'Permissions should not duplicate on re-seed');
     }
 }
