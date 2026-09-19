@@ -76,7 +76,8 @@ class ComplaintImportWebController extends Controller
         ]);
 
         $token = $request->string('token')->toString();
-        $path = session('complaint_import.' . $token);
+        $import = session('complaint_import.' . $token);
+        $path = is_array($import) ? ($import['path'] ?? null) : $import;
 
         if (! $path || ! Storage::disk('local')->exists($path)) {
             return redirect()->route('complaints.import')->withErrors(['file' => 'انتهت صلاحية ملف الاستيراد. اختر الملف مرة أخرى.']);
