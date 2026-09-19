@@ -8,7 +8,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
 
 const DEIR_AL_BALAH_CENTER = [31.417, 34.368];
-const CENTRAL_GAZA_VIEWBOX = '34.28,31.36,34.58,31.56';
+const CENTRAL_GAZA_VIEWBOX = '34.27,31.56,34.56,31.36';
 
 function escapeHtml(value) {
     const div = document.createElement('div');
@@ -25,7 +25,12 @@ async function searchCentralGaza(query) {
         const response = await fetch(nominatimUrl, { headers: { 'Accept': 'application/json' } });
         if (response.ok) {
             const results = await response.json();
-            if (Array.isArray(results) && results.length) return results;
+            const filteredResults = (Array.isArray(results) ? results : []).filter(result => {
+                const lat = Number(result.lat);
+                const lon = Number(result.lon);
+                return lat >= 31.36 && lat <= 31.56 && lon >= 34.27 && lon <= 34.56;
+            });
+            if (filteredResults.length) return filteredResults;
         }
     } catch {}
 
