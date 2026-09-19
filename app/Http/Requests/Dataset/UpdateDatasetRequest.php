@@ -22,8 +22,8 @@ class UpdateDatasetRequest extends FormRequest
             'source_format' => ['sometimes', 'nullable', 'string', 'max:50'],
             'is_active' => ['boolean'],
             'is_spatial' => ['boolean'],
-            'geometry_type' => ['sometimes', Rule::in(['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'])],
-            'srid' => ['sometimes', 'nullable', 'integer'],
+            'geometry_type' => ['sometimes', Rule::in(config('gis.geometry_types'))],
+            'srid' => ['sometimes', 'nullable', 'integer', Rule::exists('spatial_ref_sys', 'srid')],
         ];
     }
 
@@ -39,6 +39,7 @@ class UpdateDatasetRequest extends FormRequest
                 if (!$geometryType) {
                     $validator->errors()->add('geometry_type', 'Geometry type is required for spatial datasets.');
                 }
+
                 if (!$srid) {
                     $validator->errors()->add('srid', 'SRID is required for spatial datasets.');
                 }
