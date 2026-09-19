@@ -1,6 +1,8 @@
 import './bootstrap';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-draw/dist/leaflet.draw.css';
 import L from 'leaflet';
+import 'leaflet-draw';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -307,7 +309,70 @@ function initMapPage() {
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
-    const state = { complaints: [], tasks: [], datasets: [], complaintLayer: L.layerGroup().addTo(map), taskLayer: L.layerGroup().addTo(map), datasetLayers: {}, filtered: { complaints: [], tasks: [] } };
+    const drawingStatus = document.getElementById('gis-drawing-status');
+    const drawingDataset = document.getElementById('gis-edit-dataset');
+    const drawingButton = document.getElementById('gis-start-drawing');
+    const drawnItems = new L.FeatureGroup().addTo(map);
+
+    const drawingGeometryType = () => drawingDataset?.selectedOptions?.[0]?.dataset.geometryType || '';
+    const syncDrawingControls = () => {
+        const type = drawingGeometryType();
+        const supported = ['Point', 'LineString', 'Polygon'].includes(type);
+        if (drawingButton) drawingButton.disabled = !supported || state.drawing.active;
+        if (drawingStatus && type && !supported) drawingStatus.textContent = 'هذا النوع سيُدعم في مرحلة لاحقة: ' + type + '.';
+        if (drawingStatus && !type) drawingStatus.textContent = 'اختر طبقة مكانية ثم ابدأ الرسم.';
+        if (drawingStatus && supported && !state.drawing.active) drawingStatus.textContent = 'جاهز لرسم ' + type + '.';
+    };
+
+    const stopDrawing = () => {
+        if (state.drawing.layer) {
+            map.removeLayer(state.drawing.layer);
+            state.drawing.layer = null;
+        }
+        state.drawing.active = false;
+        syncDrawingControls();
+    };
+
+    const startDrawing = () => {
+        const type = drawingGeometryType();
+        if (!['Point', 'LineString', 'Polygon'].includes(type)) return;
+        stopDrawing();
+        const options = { shapeOptions: { color: '#475467', weight: 3, fillOpacity: 0.2 } };
+        const handler = type === 'Point'
+            ? new L.Draw.Marker(map)
+            : type === 'LineString'
+                ? new L.Draw.Polyline(map, options)
+                : new L.Draw.Polygon(map, options);
+        state.drawing.active = true;
+        if (drawingStatus) drawingStatus.textContent = 'ارسم ' + type + ' على الخريطة. اضغط Esc للإلغاء.';
+        syncDrawingControls();
+        handler.enable();
+    };
+
+    map.on(L.Draw.Event.CREATED, event => {
+        const selectedType = drawingGeometryType();
+        const drawnType = event.layerType === 'marker' ? 'Point' : event.layerType === 'polyline' ? 'LineString' : 'Polygon';
+        if (selectedType !== drawnType) {
+            if (drawingStatus) drawingStatus.textContent = 'نوع الرسم لا يطابق نوع الطبقة.';
+            stopDrawing();
+            return;
+        }
+        stopDrawing();
+        state.drawing.layer = event.layer;
+        drawnItems.clearLayers();
+        drawnItems.addLayer(event.layer);
+        if (drawingStatus) drawingStatus.textContent = 'تم إنشاء الشكل مؤقتًا. حفظ المعلم والبيانات سيكون في GIS-3.2.';
+        const bounds = event.layer.getBounds ? event.layer.getBounds() : null;
+        if (bounds?.isValid?.()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
+        else if (event.layer.getLatLng) map.setView(event.layer.getLatLng(), Math.max(map.getZoom(), 17));
+    });
+
+    drawingDataset?.addEventListener('change', () => { stopDrawing(); drawnItems.clearLayers(); syncDrawingControls(); });
+    drawingButton?.addEventListener('click', startDrawing);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && state.drawing.active) stopDrawing(); });
+    syncDrawingControls();
+
+    const state = { complaints: [], tasks: [], datasets: [], complaintLayer: L.layerGroup().addTo(map), taskLayer: L.layerGroup().addTo(map), datasetLayers: {}, filtered: { complaints: [], tasks: [] }, drawing: { active: false, layer: null } };
     const strings = { loadFailed: mapElement.dataset.msgLoadFailed || 'تعذر تحميل بيانات الخريطة.' };
     const dataUrl = mapElement.dataset.mapDataUrl;
     const labels = {
