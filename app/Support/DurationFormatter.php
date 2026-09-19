@@ -17,7 +17,7 @@ class DurationFormatter
         $hours = intdiv($minutes, 60);
         $remainingMinutes = $minutes % 60;
 
-        if ($hours <= 24) {
+        if ($hours < 24) {
             return $hours . ' ساعة و' . $remainingMinutes . ' دقيقة';
         }
 
