@@ -57,7 +57,7 @@ class ComplaintImportController extends Controller
     {
         $request->validate([
             'token' => ['required', 'uuid'],
-            'decisions' => ['required', 'array'],
+            'decisions' => ['nullable', 'array'],
         ]);
 
         $token = $request->string('token')->toString();
