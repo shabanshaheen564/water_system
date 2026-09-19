@@ -25,7 +25,7 @@
 </style>
 
 <div class="map-shell">
-    <div id="map" data-operational-map="true" data-map-data-url="{{ route('map.data') }}" data-map-url="{{ url('/map') }}" data-msg-load-failed="تعذر تحميل بيانات الخريطة.">
+    <div id="map" data-operational-map="true" data-map-data-url="{{ route('map.data') }}" data-map-url="{{ url('/map') }}" data-msg-load-failed="تعذر تحميل بيانات الخريطة." data-satellite-layer-label="صورة جوية / ستالايت">
         <span class="sr-only">الخريطة التفاعلية</span>
     </div>
 
