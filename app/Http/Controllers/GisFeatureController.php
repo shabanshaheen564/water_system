@@ -39,6 +39,7 @@ class GisFeatureController extends Controller
 
     public function store(StoreGisFeatureRequest $request, Dataset $dataset): JsonResponse
     {
+        $this->ensureWebEditableDataset($dataset);
         if (!$dataset->isSpatial()) return response()->json(['message' => 'This dataset is not configured as spatial.'], 422);
         $validated = $request->validated();
         $geometryType = $validated['geometry']['type'];
@@ -74,6 +75,7 @@ class GisFeatureController extends Controller
     public function update(UpdateGisFeatureRequest $request, Dataset $dataset, GisFeature $feature): JsonResponse
     {
         $this->ensureFeatureBelongsToDataset($dataset, $feature);
+        $this->ensureWebEditableDataset($dataset);
         if (!$dataset->isSpatial()) return response()->json(['message' => 'This dataset is not configured as spatial.'], 422);
         $validated = $request->validated();
         return DB::transaction(function () use ($validated, $feature, $dataset) {
@@ -102,8 +104,14 @@ class GisFeatureController extends Controller
     public function destroy(Dataset $dataset, GisFeature $feature): JsonResponse
     {
         $this->ensureFeatureBelongsToDataset($dataset, $feature);
+        $this->ensureWebEditableDataset($dataset);
         $feature->delete();
         return response()->json(['message' => 'GIS feature deleted successfully.']);
+    }
+
+    private function ensureWebEditableDataset(Dataset $dataset): void
+    {
+        abort_unless($dataset->isWebEditable(), 403, 'GIS features can only be modified for web-editable datasets.');
     }
 
     private function ensureFeatureBelongsToDataset(Dataset $dataset, GisFeature $feature): void
