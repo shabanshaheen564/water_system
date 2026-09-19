@@ -18,7 +18,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Complaints
             'complaints.view', 'complaints.create', 'complaints.update', 'complaints.delete', 'complaints.transition', 'complaints.convert_to_task', 'complaints.import', 'complaints.export',
             // Tasks
-            'tasks.view', 'tasks.create', 'tasks.update', 'tasks.delete', 'tasks.assign', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
+            'tasks.view', 'tasks.create', 'tasks.update', 'tasks.delete', 'tasks.export', 'tasks.assign', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
             // GIS
             'gis.view', 'gis.layers.create', 'gis.layers.update', 'gis.layers.delete', 'gis.fields.view', 'gis.features.create', 'gis.features.update', 'gis.features.delete', 'gis.import',
             // Assets
@@ -46,7 +46,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
             'Engineer' => [
                 'complaints.view', 'complaints.create', 'complaints.update', 'complaints.transition', 'complaints.convert_to_task', 'complaints.export',
-                'tasks.view', 'tasks.create', 'tasks.update', 'tasks.assign', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
+                'tasks.view', 'tasks.create', 'tasks.update', 'tasks.assign', 'tasks.transition', 'tasks.export', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
                 'assets.view', 'assets.create', 'assets.update',
                 'reports.view', 'reports.export',
                 'gis.view',
@@ -54,7 +54,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
             'Field Worker' => [
                 'complaints.view', 'complaints.update', 'complaints.transition',
-                'tasks.view', 'tasks.update', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
+                'tasks.view', 'tasks.update', 'tasks.transition', 'tasks.update_status', 'tasks.export', 'tasks.view_updates', 'tasks.create_update',
                 'assets.view', 'assets.create', 'assets.update',
                 'reports.view',
                 'gis.view',
