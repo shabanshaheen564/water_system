@@ -134,7 +134,7 @@ class WorkOrderController extends Controller
             if ($workOrder->status === 'completed') {
                 $complaint->update(['status' => 'closed', 'resolved_at' => now(), 'processed_by' => $request->user()->id, 'processed_at' => now(), 'first_response_at' => now()]);
             } elseif (! in_array($workOrder->status, ['cancelled', 'pending'], true)) {
-                $complaint->update(['status' => 'in_progress', 'processed_by' => $request->user()->id, 'processed_at' => now()]);
+                $complaint->update(['status' => 'in_progress', 'processed_by' => $request->user()->id, 'processed_at' => now(), 'first_response_at' => $complaint->first_response_at ?? now()]);
             }
 
             $complaint->load(['reportedBy:id,name,email','assignedTo:id,name,email','workOrders']);
@@ -198,7 +198,7 @@ class WorkOrderController extends Controller
             foreach ($workOrder->complaints as $complaint) {
                 if ($complaint->status === 'cancelled') continue;
                 $hasIncompleteWorkOrders = $complaint->workOrders()->where('status', '<>', 'completed')->exists();
-                if (!$hasIncompleteWorkOrders) $complaint->update(['status' => 'closed', 'resolved_at' => $complaint->resolved_at ?? now(), 'processed_by' => $processedBy, 'processed_at' => now()]);
+                if (!$hasIncompleteWorkOrders) $complaint->update(['status' => 'closed', 'resolved_at' => $complaint->resolved_at ?? now(), 'processed_by' => $processedBy, 'processed_at' => now(), 'first_response_at' => $complaint->first_response_at ?? now()]);
             }
         }
     }
