@@ -68,6 +68,7 @@ class GisFeatureTest extends TestCase
             'name' => 'wells',
             'display_name' => 'Wells',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 4326,
@@ -87,6 +88,7 @@ class GisFeatureTest extends TestCase
             'name' => 'wells',
             'display_name' => 'Wells',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             // srid missing
@@ -104,6 +106,7 @@ class GisFeatureTest extends TestCase
             'name' => 'wells',
             'display_name' => 'Wells',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'InvalidType',
             'srid' => 4326,
@@ -144,6 +147,7 @@ class GisFeatureTest extends TestCase
             'name' => 'wells',
             'display_name' => 'Wells',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 4326,
@@ -202,6 +206,7 @@ class GisFeatureTest extends TestCase
             'name' => 'parcels',
             'display_name' => 'Parcels',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Polygon',
             'srid' => 4326,
@@ -559,6 +564,7 @@ GisFeature::create([
             'name' => 'other',
             'display_name' => 'Other',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 4326,
@@ -636,6 +642,7 @@ GisFeature::create([
             'name' => 'wells',
             'display_name' => 'Wells',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 4326,
@@ -647,6 +654,7 @@ GisFeature::create([
             'name' => 'parcels',
             'display_name' => 'Parcels',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Polygon',
             'srid' => 4326,
@@ -706,6 +714,72 @@ GisFeature::create([
         $this->assertStringStartsWith('/api/datasets/', "/api/datasets/{$parcelsDataset->id}/features");
     }
 
+    public function test_official_dataset_rejects_feature_creation(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'official_wells',
+            'display_name' => 'Official Wells',
+            'dataset_type' => 'official_layer',
+            'management_mode' => 'official',
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+            'created_by' => $this->admin->id,
+        ]);
+        $record = $this->createRecord($dataset);
+
+        $this->withHeaders(['Authorization' => 'Bearer ' . $this->adminToken])
+            ->postJson("/api/datasets/{$dataset->id}/features", [
+                'dataset_record_id' => $record->id,
+                'geometry' => ['type' => 'Point', 'coordinates' => [34.4668, 31.5326]],
+            ])
+            ->assertStatus(403);
+    }
+
+    public function test_official_dataset_rejects_feature_update_and_delete(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'official_wells',
+            'display_name' => 'Official Wells',
+            'dataset_type' => 'official_layer',
+            'management_mode' => 'official',
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+            'created_by' => $this->admin->id,
+        ]);
+        $record = $this->createRecord($dataset);
+        $feature = GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\\"type\\":\\"Point\\",\\"coordinates\\":[34.4668,31.5326]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $headers = ['Authorization' => 'Bearer ' . $this->adminToken];
+        $this->withHeaders($headers)->putJson("/api/datasets/{$dataset->id}/features/{$feature->id}", [
+            'geometry' => ['type' => 'Point', 'coordinates' => [34.4670, 31.5328]],
+        ])->assertStatus(403);
+
+        $this->withHeaders($headers)
+            ->deleteJson("/api/datasets/{$dataset->id}/features/{$feature->id}")
+            ->assertStatus(403);
+    }
+
+    public function test_web_editable_dataset_allows_feature_creation(): void
+    {
+        $dataset = $this->createSpatialDataset();
+        $record = $this->createRecord($dataset);
+
+        $this->withHeaders(['Authorization' => 'Bearer ' . $this->adminToken])
+            ->postJson("/api/datasets/{$dataset->id}/features", [
+                'dataset_record_id' => $record->id,
+                'geometry' => ['type' => 'Point', 'coordinates' => [34.4668, 31.5326]],
+            ])
+            ->assertStatus(201);
+    }
+
     // Spatial Index Verification (metadata check)
     public function test_spatial_index_exists(): void
     {
@@ -727,6 +801,7 @@ GisFeature::create([
             'name' => 'test_srid',
             'display_name' => 'Test SRID',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 3857, // Web Mercator
@@ -761,6 +836,7 @@ GisFeature::create([
             'name' => 'test_srid_transform',
             'display_name' => 'Test SRID Transform',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 3857,
@@ -818,6 +894,7 @@ GisFeature::create([
             'name' => 'dataset_one',
             'display_name' => 'Dataset One',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 4326,
@@ -828,6 +905,7 @@ GisFeature::create([
             'name' => 'dataset_two',
             'display_name' => 'Dataset Two',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 4326,
@@ -863,6 +941,7 @@ GisFeature::create([
             'name' => 'multi_points',
             'display_name' => 'Multi Points',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'MultiPoint',
             'srid' => 4326,
@@ -900,6 +979,7 @@ GisFeature::create([
             'name' => 'pipes',
             'display_name' => 'Pipes',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'LineString',
             'srid' => 4326,
@@ -982,6 +1062,7 @@ GisFeature::create([
             'name' => 'test_3857',
             'display_name' => 'Test 3857',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 3857,
@@ -1061,6 +1142,7 @@ GisFeature::create([
             'name' => 'test_radius_3857',
             'display_name' => 'Test Radius 3857',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 3857,
