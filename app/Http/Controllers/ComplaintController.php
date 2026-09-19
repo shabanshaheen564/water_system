@@ -19,6 +19,10 @@ class ComplaintController extends Controller
         foreach (['status', 'priority', 'assigned_to', 'reported_by'] as $filter) {
             if ($request->filled($filter)) $query->where($filter, $request->{$filter});
         }
+        if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->input('date_from'));
+        if ($request->filled('date_to')) $query->whereDate('created_at', '<=', $request->input('date_to'));
+        if ($request->filled('updated_from')) $query->whereDate('updated_at', '>=', $request->input('updated_from'));
+        if ($request->filled('updated_to')) $query->whereDate('updated_at', '<=', $request->input('updated_to'));
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
             $query->where(function ($q) use ($search) {
