@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initUserMenu();
     initLoginPage();
     initSpatialDatasetForm();
+    initLocationPickers();
     initMapPage();
 });
 
@@ -100,6 +101,132 @@ function initSpatialDatasetForm() {
     const sync = () => { const enabled = checkbox.checked; fields.classList.toggle('hidden', !enabled); geometry.required = enabled; srid.required = enabled; };
     checkbox.addEventListener('change', sync);
     sync();
+}
+
+function initLocationPickers() {
+    const buttons = document.querySelectorAll('[data-location-picker]');
+    if (!buttons.length) return;
+
+    let modalMap = null;
+    let modalMarker = null;
+    let activeButton = null;
+
+    const modal = document.createElement('div');
+    modal.id = 'location-picker-modal';
+    modal.className = 'fixed inset-0 z-[2000] hidden items-center justify-center bg-black/50 p-4';
+    modal.innerHTML = `
+        <div class="flex h-[min(760px,92vh)] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl" dir="rtl">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+                <div>
+                    <h3 class="text-base font-semibold text-ink">تحديد الموقع على الخريطة</h3>
+                    <p class="text-xs text-ink-secondary">ابحث عن مكان ثم اضغط على الخريطة لتحديد النقطة.</p>
+                </div>
+                <button type="button" data-location-close class="rounded-md border border-border-strong bg-white px-3 py-1.5 text-sm text-ink">إغلاق</button>
+            </div>
+            <div class="flex flex-wrap gap-2 border-b border-border bg-surface-1 p-3">
+                <input data-location-search type="search" placeholder="ابحث عن مكان، شارع، حي..." class="min-w-0 flex-1 rounded-md border border-border-strong bg-white px-3 py-2 text-sm">
+                <button type="button" data-location-search-button class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white">بحث</button>
+                <span data-location-status class="flex items-center text-xs text-ink-secondary"></span>
+            </div>
+            <div data-location-map class="min-h-0 flex-1"></div>
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+                <div data-location-coordinates class="text-xs text-ink-secondary">لم يتم تحديد موقع بعد.</div>
+                <button type="button" data-location-confirm disabled class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50">اعتماد الموقع</button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+
+    const mapHost = modal.querySelector('[data-location-map]');
+    const searchInput = modal.querySelector('[data-location-search]');
+    const searchButton = modal.querySelector('[data-location-search-button]');
+    const status = modal.querySelector('[data-location-status]');
+    const coordinates = modal.querySelector('[data-location-coordinates]');
+    const confirmButton = modal.querySelector('[data-location-confirm]');
+
+    const setMarker = (lat, lng, zoom = 17) => {
+        if (!modalMap) return;
+        const point = L.latLng(Number(lat), Number(lng));
+        if (modalMarker) modalMarker.setLatLng(point);
+        else modalMarker = L.marker(point).addTo(modalMap);
+        modalMap.setView(point, Math.max(modalMap.getZoom(), zoom));
+        coordinates.textContent = `خط العرض: ${point.lat.toFixed(6)} — خط الطول: ${point.lng.toFixed(6)}`;
+        confirmButton.disabled = false;
+        activeButton.dataset.selectedLat = String(point.lat);
+        activeButton.dataset.selectedLng = String(point.lng);
+    };
+
+    const searchPlaces = async () => {
+        const query = searchInput.value.trim();
+        if (!query) return;
+        status.textContent = 'جاري البحث...';
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=ar&countrycodes=ps&q=${encodeURIComponent(query)}`, {
+                headers: { Accept: 'application/json' }
+            });
+            if (!response.ok) throw new Error('تعذر البحث عن المكان.');
+            const results = await response.json();
+            if (!results.length) { status.textContent = 'لم يتم العثور على نتائج.'; return; }
+            const result = results[0];
+            setMarker(result.lat, result.lon, 17);
+            status.textContent = result.display_name || 'تم العثور على المكان.';
+        } catch (error) {
+            status.textContent = 'تعذر تنفيذ البحث حالياً.';
+        }
+    };
+
+    const open = (button) => {
+        activeButton = button;
+        const latField = document.getElementById(button.dataset.latitudeField);
+        const lngField = document.getElementById(button.dataset.longitudeField);
+        const initialLat = Number(latField?.value);
+        const initialLng = Number(lngField?.value);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.classList.add('overflow-hidden');
+
+        if (!modalMap) {
+            modalMap = L.map(mapHost, { zoomControl: true, attributionControl: true }).setView([31.5, 34.5], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(modalMap);
+            modalMap.on('click', event => setMarker(event.latlng.lat, event.latlng.lng, 17));
+        }
+        window.setTimeout(() => {
+            modalMap.invalidateSize();
+            if (Number.isFinite(initialLat) && Number.isFinite(initialLng)) setMarker(initialLat, initialLng, 17);
+            else if (activeButton.dataset.selectedLat && activeButton.dataset.selectedLng) setMarker(activeButton.dataset.selectedLat, activeButton.dataset.selectedLng, 17);
+        }, 80);
+        searchInput.value = '';
+        status.textContent = '';
+        searchInput.focus();
+    };
+
+    const close = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.classList.remove('overflow-hidden');
+        activeButton = null;
+    };
+
+    modal.querySelector('[data-location-close]').addEventListener('click', close);
+    modal.addEventListener('click', event => { if (event.target === modal) close(); });
+    searchButton.addEventListener('click', searchPlaces);
+    searchInput.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); searchPlaces(); } });
+    confirmButton.addEventListener('click', () => {
+        if (!activeButton) return;
+        const latField = document.getElementById(activeButton.dataset.latitudeField);
+        const lngField = document.getElementById(activeButton.dataset.longitudeField);
+        if (latField && lngField && activeButton.dataset.selectedLat && activeButton.dataset.selectedLng) {
+            latField.value = Number(activeButton.dataset.selectedLat).toFixed(6);
+            lngField.value = Number(activeButton.dataset.selectedLng).toFixed(6);
+            latField.dispatchEvent(new Event('input', { bubbles: true }));
+            lngField.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        close();
+    });
+
+    buttons.forEach(button => button.addEventListener('click', () => open(button)));
 }
 
 function initMapPage() {
