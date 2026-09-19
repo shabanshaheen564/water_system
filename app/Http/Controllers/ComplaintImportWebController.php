@@ -103,11 +103,13 @@ class ComplaintImportWebController extends Controller
         try {
             $result = $service->importStored(Storage::disk('local')->path($path), $request->user()->id, $mapping);
         } catch (\Throwable $e) {
-            return back()->withErrors(['mapping' => $e->getMessage()]);
-        } finally {
-            Storage::disk('local')->delete($path);
-            session()->forget('complaint_import.' . $token);
+            return redirect()
+                ->route('complaints.import.mapping', ['token' => $token])
+                ->withErrors(['mapping' => 'تعذر تنفيذ الاستيراد: ' . $e->getMessage()]);
         }
+
+        Storage::disk('local')->delete($path);
+        session()->forget('complaint_import.' . $token);
 
         return redirect()->route('complaints.import')->with([
             'import_result' => $result,
