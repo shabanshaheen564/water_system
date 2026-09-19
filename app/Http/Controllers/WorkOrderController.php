@@ -19,6 +19,10 @@ class WorkOrderController extends Controller
         if ($request->filled('status')) $query->where('status', $request->status);
         if ($request->filled('priority')) $query->where('priority', $request->priority);
         if ($request->filled('assigned_to')) $query->where('assigned_to', $request->assigned_to);
+        if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->input('date_from'));
+        if ($request->filled('date_to')) $query->whereDate('created_at', '<=', $request->input('date_to'));
+        if ($request->filled('updated_from')) $query->whereDate('updated_at', '>=', $request->input('updated_from'));
+        if ($request->filled('updated_to')) $query->whereDate('updated_at', '<=', $request->input('updated_to'));
         if ($request->filled('complaint_id')) $query->whereHas('complaints', fn ($complaints) => $complaints->whereKey($request->complaint_id));
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
