@@ -48,7 +48,7 @@ class MobileBootstrapController extends Controller
                 'convert_task_to_complaint' => $user->can('tasks.update') && $user->can('complaints.create'),
                 'create_task' => $user->can('tasks.create'),
                 'update_task' => $user->can('tasks.update') || $user->can('tasks.assign') || $user->can('tasks.transition'),
-                'export_reports' => $user->can('reports.export'),
+                'export_reports' => ($user->can('reports.export') || $user->can('complaints.export') || $user->can('tasks.export')),
                 'offline_sync' => true,
             ],
             'filters' => $reports->filters(),
