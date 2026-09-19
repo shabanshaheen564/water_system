@@ -129,18 +129,26 @@ class WorkOrderWebController extends Controller
             }
         });
 
+        $archivedWorkOrder = null;
         if ($new === 'completed') {
             $workOrder->load('complaints');
             $complaintIds = $workOrder->complaints->pluck('id')->all();
-            $archive->archiveCompletedWorkOrder($workOrder);
+            $archivedWorkOrder = $archive->archiveCompletedWorkOrder($workOrder);
             foreach ($complaintIds as $complaintId) {
                 $complaint = Complaint::find($complaintId);
                 if ($complaint?->status === 'closed') $archive->archiveClosedComplaint($complaint);
             }
         }
 
-        $redirectUrl = route('work-orders.show', ['workOrder' => $workOrder->id]);
-        return redirect()->to($redirectUrl)->with('success', $new === 'completed' ? 'تم إكمال المهمة وأرشفتها مع بيانات زمن التنفيذ والاستجابة.' : 'تم تحديث المهمة بنجاح.');
+        if ($archivedWorkOrder) {
+            return redirect()->route('work-orders.index')
+                ->with('success', 'تم إكمال المهمة وأرشفتها مع بيانات زمن التنفيذ والاستجابة.');
+        }
+
+        return redirect()->route('work-orders.show', ['workOrder' => $workOrder->id])
+            ->with('success', $new === 'completed'
+                ? 'تم إكمال المهمة. بقيت المهمة في السجل التشغيلي لأن بعض الشكاوى المرتبطة بها لم تصبح مؤهلة للأرشفة.'
+                : 'تم تحديث المهمة بنجاح.');
     }
 
     public function destroy(WorkOrder $workOrder): RedirectResponse
