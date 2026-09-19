@@ -17,7 +17,7 @@ class GisFeatureController extends Controller
     {
         if (!$dataset->isSpatial()) return response()->json(['message' => 'This dataset is not configured as spatial.'], 422);
         $query = GisFeature::where('dataset_id', $dataset->id)->with(['datasetRecord:id,values,identifier_value']);
-        $datasetSrid = $dataset->srid ?? 4326;
+        $datasetSrid = (int) ($dataset->srid ?? 4326);
         if ($request->has('bbox')) {
             $bbox = explode(',', $request->bbox);
             if (count($bbox) === 4) {
@@ -48,7 +48,16 @@ class GisFeatureController extends Controller
         return DB::transaction(function () use ($validated, $dataset, $record, $geometryType) {
             $geojson = json_encode(['type' => $geometryType, 'coordinates' => $validated['geometry']['coordinates']]);
             $srid = $dataset->srid ?? 4326;
-            $geometry = DB::selectOne('SELECT ST_SetSRID(ST_GeomFromGeoJSON(?), ?) as geometry', [$geojson, $srid])->geometry;
+            $geometry = $geometryResult = DB::selectOne(
+                'SELECT ST_SetSRID(ST_GeomFromGeoJSON(?), ?::integer) as geometry, ST_IsValid(ST_SetSRID(ST_GeomFromGeoJSON(?), ?::integer)) as is_valid',
+                [$geojson, $srid, $geojson, $srid]
+            );
+
+            if (!$geometryResult->is_valid) {
+                return response()->json(['message' => 'The supplied geometry is not valid.'], 422);
+            }
+
+            $geometry = $geometryResult->geometry;
             $feature = GisFeature::create(['dataset_record_id' => $record->id, 'dataset_id' => $dataset->id, 'geometry' => $geometry, 'geometry_type' => $geometryType, 'srid' => $srid]);
             $feature->load('datasetRecord:id,values,identifier_value');
             return response()->json($feature->toGeoJsonFeature(), 201);
@@ -73,7 +82,16 @@ class GisFeatureController extends Controller
                 if ($dataset->geometry_type && $geometryType !== $dataset->geometry_type) return response()->json(['message' => "Geometry type must be {$dataset->geometry_type} for this dataset."], 422);
                 $geojson = json_encode(['type' => $geometryType, 'coordinates' => $validated['geometry']['coordinates']]);
                 $srid = $dataset->srid ?? 4326;
-                $feature->geometry = DB::selectOne('SELECT ST_SetSRID(ST_GeomFromGeoJSON(?), ?) as geometry', [$geojson, $srid])->geometry;
+                $feature->geometry = $geometryResult = DB::selectOne(
+                    'SELECT ST_SetSRID(ST_GeomFromGeoJSON(?), ?::integer) as geometry, ST_IsValid(ST_SetSRID(ST_GeomFromGeoJSON(?), ?::integer)) as is_valid',
+                    [$geojson, $srid, $geojson, $srid]
+                );
+
+                if (!$geometryResult->is_valid) {
+                    return response()->json(['message' => 'The supplied geometry is not valid.'], 422);
+                }
+
+                $feature->geometry = $geometryResult->geometry;
                 $feature->geometry_type = $geometryType; $feature->srid = $srid;
             }
             $feature->save(); $feature->load('datasetRecord:id,values,identifier_value');
