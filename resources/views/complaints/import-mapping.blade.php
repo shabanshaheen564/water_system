@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('complaints.import.store') }}" class="space-y-5">
+    <form method="POST" action="{{ route('complaints.import.review') }}" class="space-y-5">
         @csrf
         <input type="hidden" name="token" value="{{ $token }}">
 
@@ -62,10 +62,10 @@
         </div>
 
         <div class="card-institutional flex flex-wrap items-center justify-between gap-3 p-4">
-            <p class="text-xs text-ink-secondary">حقل <strong class="text-ink">العنوان</strong> مطلوب. الأعمدة التي تختار تجاهلها لن يتم استيرادها.</p>
+            <p class="text-xs text-ink-secondary">حقل <strong class="text-ink">العنوان</strong> مطلوب. بعد ذلك سيعرض النظام الشكاوى المحتمل تكرارها لتقرر أنت استيرادها أو تجاوزها. الأعمدة التي تختار تجاهلها لن يتم استيرادها.</p>
             <div class="flex items-center gap-2">
                 <a href="{{ route('complaints.import') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">إلغاء</a>
-                <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">تأكيد الاستيراد</button>
+                <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">فحص الشكاوى المشكوك بتكرارها</button>
             </div>
         </div>
     </form>
