@@ -6,7 +6,7 @@
 <div class="mx-auto max-w-5xl p-4 sm:p-6 lg:p-8">
     <div class="mb-6">
         <h2 class="text-xl font-semibold text-ink">استيراد الشكاوى</h2>
-        <p class="mt-1 text-sm text-ink-secondary">يدعم Excel بصيغ XLSX وXLS وملفات CSV. يتم التعرف تلقائياً على أسماء الأعمدة العربية والإنجليزية الشائعة.</p>
+        <p class="mt-1 text-sm text-ink-secondary">اختر ملف Excel أو CSV، ثم سيتم نقلك مباشرة إلى صفحة تحديد الأعمدة قبل تنفيذ الاستيراد.</p>
     </div>
 
     @if(session('success'))
@@ -18,23 +18,25 @@
         </div>
     @endif
 
-    <div class="card-institutional p-6">
-        <form method="POST" action="{{ route('complaints.import.store') }}" enctype="multipart/form-data" class="space-y-5">
+    <div class="card-institutional p-8">
+        <form id="complaint-import-form" method="POST" action="{{ route('complaints.import.preview') }}" enctype="multipart/form-data">
             @csrf
-            <div>
-                <label class="mb-2 block text-sm font-medium text-ink">ملف الشكاوى</label>
-                <input type="file" name="file" accept=".xlsx,.xls,.csv,.txt" required class="input-institutional w-full">
-                <p class="mt-2 text-xs text-ink-muted">الحد الأقصى 10 MB. الصف الأول يجب أن يحتوي على أسماء الأعمدة.</p>
-            </div>
-            <div class="rounded-md border border-border bg-surface-1 p-4 text-sm text-ink-secondary">
-                <strong class="text-ink">الأعمدة التي يمكن التعرف عليها:</strong>
-                complaint_number, title, description, status, priority, contact_name, contact_phone, address, latitude, longitude, assigned_to, processing_notes, solution.
-                <br>العنوان/title مطلوب، وإذا لم يوجد رقم شكوى يتم توليده تلقائياً.
-            </div>
-            <div class="flex gap-2">
-                <button class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">بدء الاستيراد</button>
-                <a href="{{ route('complaints.index') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink">إلغاء</a>
-            </div>
+            <input id="complaint-import-file" type="file" name="file" accept=".xlsx,.xls,.csv,.txt" required class="sr-only">
+
+            <label for="complaint-import-file" class="mx-auto flex min-h-56 max-w-2xl cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border-strong bg-surface-1 px-6 text-center transition hover:bg-white">
+                <div class="text-sm font-semibold text-ink">ملف الشكاوى</div>
+                <div class="mt-2 text-xs text-ink-secondary">Excel: XLSX / XLS أو CSV</div>
+                <span class="mt-5 inline-flex rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">استيراد ملف</span>
+                <div id="selected-file-name" class="mt-3 text-xs text-ink-muted">لم يتم اختيار ملف</div>
+            </label>
+
+            <p class="mt-3 text-center text-xs text-ink-muted">الحد الأقصى 10 MB. بعد اختيار الملف ستنتقل تلقائياً إلى تحديد الأعمدة.</p>
+
+            <noscript>
+                <div class="mt-4 text-center">
+                    <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white">متابعة</button>
+                </div>
+            </noscript>
         </form>
     </div>
 
@@ -58,4 +60,12 @@
         </div>
     @endif
 </div>
+
+<script>
+document.getElementById('complaint-import-file')?.addEventListener('change', function () {
+    if (!this.files?.length) return;
+    document.getElementById('selected-file-name').textContent = this.files[0].name;
+    document.getElementById('complaint-import-form').submit();
+});
+</script>
 @endsection
