@@ -128,7 +128,7 @@ function initLocationPickers() {
                 <button type="button" data-location-search-button class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white">بحث</button>
                 <span data-location-status class="flex items-center text-xs text-ink-secondary"></span>
             </div>
-            <div data-location-map class="min-h-0 flex-1"></div>
+            <div class="min-h-0 flex-1"><div data-location-map class="h-full min-h-0"></div><div data-location-results class="absolute bottom-20 end-4 z-[2100] max-h-64 w-[min(420px,calc(100%-2rem))] overflow-y-auto rounded-md border border-border bg-white shadow-lg"></div></div>
             <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
                 <div data-location-coordinates class="text-xs text-ink-secondary">لم يتم تحديد موقع بعد.</div>
                 <button type="button" data-location-confirm disabled class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50">اعتماد الموقع</button>
@@ -155,21 +155,36 @@ function initLocationPickers() {
         activeButton.dataset.selectedLng = String(point.lng);
     };
 
+    const renderSearchResults = (results, listElement, onSelect) => {
+        listElement.innerHTML = '';
+        results.forEach(result => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'block w-full border-b border-border px-3 py-2 text-start text-xs hover:bg-surface-1 last:border-b-0';
+            item.innerHTML = '<strong class="block text-ink">' + escapeHtml(result.name || result.display_name || 'نتيجة') + '</strong><span class="mt-0.5 block text-ink-secondary">' + escapeHtml(result.display_name || '') + '</span>';
+            item.addEventListener('click', () => onSelect(result));
+            listElement.appendChild(item);
+        });
+    };
+
     const searchPlaces = async () => {
         const query = searchInput.value.trim();
         if (!query) return;
         status.textContent = 'جاري البحث...';
+        const resultsList = modal.querySelector('[data-location-results]');
+        resultsList.innerHTML = '';
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=ar&countrycodes=ps&q=${encodeURIComponent(query)}`, {
-                headers: { Accept: 'application/json' }
-            });
-            if (!response.ok) throw new Error('تعذر البحث عن المكان.');
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&addressdetails=1&accept-language=ar&countrycodes=ps&q=${encodeURIComponent(query)}`);
+            if (!response.ok) throw new Error();
             const results = await response.json();
             if (!results.length) { status.textContent = 'لم يتم العثور على نتائج.'; return; }
-            const result = results[0];
-            setMarker(result.lat, result.lon, 17);
-            status.textContent = result.display_name || 'تم العثور على المكان.';
-        } catch (error) {
+            status.textContent = `تم العثور على ${results.length} نتائج — اختر الموقع المطلوب.`;
+            renderSearchResults(results, resultsList, result => {
+                setMarker(result.lat, result.lon, 17);
+                status.textContent = result.display_name || 'تم اختيار الموقع.';
+                resultsList.innerHTML = '';
+            });
+        } catch {
             status.textContent = 'تعذر تنفيذ البحث حالياً.';
         }
     };
@@ -324,27 +339,34 @@ function initMapPage() {
     async function searchMapPlace() {
         const input = document.getElementById('map-place-search');
         const status = document.getElementById('map-place-search-status');
+        const resultsList = document.getElementById('map-place-search-results');
         const query = input?.value.trim();
         if (!query) return;
         status.textContent = 'جاري البحث...';
+        resultsList.innerHTML = '';
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=ar&countrycodes=ps&q=${encodeURIComponent(query)}`, {
-                headers: { Accept: 'application/json' }
-            });
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&addressdetails=1&accept-language=ar&countrycodes=ps&q=${encodeURIComponent(query)}`);
             if (!response.ok) throw new Error();
             const results = await response.json();
-            if (!results.length) {
-                status.textContent = 'لم يتم العثور على المكان.';
-                return;
-            }
-            const result = results[0];
-            const lat = Number(result.lat);
-            const lng = Number(result.lon);
-            if (placeSearchMarker) map.removeLayer(placeSearchMarker);
-            placeSearchMarker = L.marker([lat, lng]).addTo(map);
-            placeSearchMarker.bindPopup(`<div dir="rtl"><strong>${escapeHtml(result.display_name || query)}</strong><div class="mt-1 text-xs">Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}</div></div>`).openPopup();
-            map.setView([lat, lng], Math.max(map.getZoom(), 16));
-            status.textContent = result.display_name || 'تم العثور على المكان.';
+            if (!results.length) { status.textContent = 'لم يتم العثور على نتائج.'; return; }
+            status.textContent = `تم العثور على ${results.length} نتائج — اختر الموقع المطلوب.`;
+            results.forEach(result => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'block w-full border-b border-border px-3 py-2 text-start text-xs hover:bg-surface-1 last:border-b-0';
+                item.innerHTML = '<strong class="block text-ink">' + escapeHtml(result.name || result.display_name || 'نتيجة') + '</strong><span class="mt-0.5 block text-ink-secondary">' + escapeHtml(result.display_name || '') + '</span>';
+                item.addEventListener('click', () => {
+                    const lat = Number(result.lat);
+                    const lng = Number(result.lon);
+                    if (placeSearchMarker) map.removeLayer(placeSearchMarker);
+                    placeSearchMarker = L.marker([lat, lng]).addTo(map);
+                    placeSearchMarker.bindPopup('<div dir="rtl"><strong>' + escapeHtml(result.display_name || query) + '</strong><div class="mt-1 text-xs">Lat: ' + lat.toFixed(6) + '<br>Lng: ' + lng.toFixed(6) + '</div></div>').openPopup();
+                    map.setView([lat, lng], 17);
+                    resultsList.innerHTML = '';
+                    status.textContent = result.display_name || 'تم اختيار الموقع.';
+                });
+                resultsList.appendChild(item);
+            });
         } catch {
             status.textContent = 'تعذر تنفيذ البحث حالياً.';
         }
