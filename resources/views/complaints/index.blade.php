@@ -13,7 +13,7 @@
             <a href="{{ route('complaints.import') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">استيراد</a>
         @endcan
         @can('reports.export')
-            <a href="{{ route('reports.complaints.export', request()->query()) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">تصدير Excel</a>
+            <a href="{{ route('reports.complaints.export', request()->query()) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">تصدير Excel</a><a href="{{ route('reports.complaints.export', array_merge(request()->query(), ['format' => 'csv'])) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">تصدير CSV</a>
         @endcan
         @can('complaints.create')
             <a href="{{ route('complaints.create') }}" class="btn-motion rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">تسجيل شكوى</a>
