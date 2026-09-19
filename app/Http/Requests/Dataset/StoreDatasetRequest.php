@@ -19,6 +19,7 @@ class StoreDatasetRequest extends FormRequest
             'display_name' => ['required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'dataset_type' => ['required', Rule::in(['official_layer', 'additional_table'])],
+            'management_mode' => ['required', Rule::in(['official', 'web_editable', 'operational', 'analytical'])],
             'source_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'source_format' => ['sometimes', 'nullable', 'string', 'max:50'],
             'is_active' => ['boolean'],
@@ -38,6 +39,7 @@ class StoreDatasetRequest extends FormRequest
             $isSpatial = $this->boolean('is_spatial');
             $geometryType = $this->input('geometry_type');
             $srid = $this->input('srid');
+            $managementMode = $this->input('management_mode');
 
             if ($isSpatial) {
                 if (!$geometryType) {
@@ -52,6 +54,10 @@ class StoreDatasetRequest extends FormRequest
                     $validator->errors()->add('geometry_type', 'Geometry type and SRID must be null for non-spatial datasets.');
                     $validator->errors()->add('srid', 'Geometry type and SRID must be null for non-spatial datasets.');
                 }
+            }
+
+            if ($managementMode === 'web_editable' && !$isSpatial) {
+                $validator->errors()->add('management_mode', 'Web editable datasets must be spatial.');
             }
         });
     }
