@@ -16,6 +16,7 @@
     },
     "dependencies": {
         "leaflet": "^1.9.4",
-        "@fontsource/tajawal": "^5.3.0"
+        "@fontsource/tajawal": "^5.3.0",
+        "leaflet-draw": "^1.0.4"
     }
 }
