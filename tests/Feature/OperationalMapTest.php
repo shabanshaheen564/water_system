@@ -36,7 +36,7 @@ class OperationalMapTest extends TestCase
             ->get('/map')
             ->assertOk()
             ->assertSee('الخريطة التشغيلية')
-            ->assertSee('صورة جوية / ستالايت')
+            ->assertSee('data-satellite-layer-label="صورة جوية / ستالايت"', false)
             ->assertSee(route('map.data'), false);
     }
 
