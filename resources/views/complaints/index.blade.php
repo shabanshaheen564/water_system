@@ -9,15 +9,23 @@
             <h2 class="text-xl font-semibold text-ink">الشكاوى</h2>
             <p class="mt-1 text-sm text-ink-secondary">تسجيل ومتابعة شكاوى المواطنين المتعلقة بخدمات المياه.</p>
         </div>
-        @can('complaints.import')
-            <a href="{{ route('complaints.import') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">استيراد</a>
-        @endcan
-        @canany(['reports.export','complaints.export'])
-            <a href="{{ route('reports.complaints.export', request()->query()) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">تصدير Excel</a><a href="{{ route('reports.complaints.export', array_merge(request()->query(), ['format' => 'csv'])) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">تصدير CSV</a>
-        @endcan
-        @can('complaints.create')
-            <a href="{{ route('complaints.create') }}" class="btn-motion rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">تسجيل شكوى</a>
-        @endcan
+        <div class="flex flex-wrap items-center gap-2">
+            @can('complaints.import')
+                <a href="{{ route('complaints.import') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">استيراد</a>
+            @endcan
+            @canany(['reports.export','complaints.export'])
+                <details class="relative">
+                    <summary class="cursor-pointer list-none rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">تصدير</summary>
+                    <div class="absolute left-0 z-20 mt-2 w-36 overflow-hidden rounded-md border border-border bg-white shadow-lg">
+                        <a href="{{ route('reports.complaints.export', request()->query()) }}" class="block px-3 py-2 text-sm text-ink hover:bg-surface-1">Excel</a>
+                        <a href="{{ route('reports.complaints.export', array_merge(request()->query(), ['format' => 'csv'])) }}" class="block px-3 py-2 text-sm text-ink hover:bg-surface-1">CSV</a>
+                    </div>
+                </details>
+            @endcan
+            @can('complaints.create')
+                <a href="{{ route('complaints.create') }}" class="btn-motion rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">تسجيل شكوى</a>
+            @endcan
+        </div>
     </div>
 
     @if($errors->has('delete'))
@@ -41,7 +49,8 @@
                 <option value="">كل الأولويات</option><option value="low" @selected($priority === 'low')>منخفضة</option><option value="medium" @selected($priority === 'medium')>متوسطة</option><option value="high" @selected($priority === 'high')>عالية</option><option value="urgent" @selected($priority === 'urgent')>عاجلة</option>
             </select>
         </div>
-        <div><label for="date_from" class="mb-1 block text-sm font-medium text-ink">من تاريخ</label><input id="date_from" name="date_from" type="date" value="{{ $dateFrom ?? request('date_from') }}" class="input-institutional w-full text-sm"></div><div><label for="date_to" class="mb-1 block text-sm font-medium text-ink">إلى تاريخ</label><input id="date_to" name="date_to" type="date" value="{{ $dateTo ?? request('date_to') }}" class="input-institutional w-full text-sm"></div>
+        <div><label for="date_from" class="mb-1 block text-sm font-medium text-ink">من تاريخ</label><input id="date_from" name="date_from" type="date" value="{{ $dateFrom ?? request('date_from') }}" class="input-institutional w-full text-sm"></div>
+        <div><label for="date_to" class="mb-1 block text-sm font-medium text-ink">إلى تاريخ</label><input id="date_to" name="date_to" type="date" value="{{ $dateTo ?? request('date_to') }}" class="input-institutional w-full text-sm"></div>
         <div class="md:col-span-4 flex gap-2 border-t border-border pt-4"><button class="rounded-md bg-ink px-4 py-2 text-sm font-medium text-white">تطبيق البحث</button><a href="{{ route('complaints.index') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">مسح</a></div>
     </form>
 
