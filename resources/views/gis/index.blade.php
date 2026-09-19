@@ -123,7 +123,7 @@
                     <div class="space-y-2">
                         <select id="gis-edit-dataset" class="w-full rounded-md border border-border-strong bg-white px-2 py-2 text-xs">
                             <option value="">اختر طبقة للإضافة</option>
-                            @foreach($spatialDatasets as $dataset)
+                            @foreach($spatialDatasets->where('management_mode', 'web_editable') as $dataset)
                                 <option value="{{ $dataset->id }}" data-geometry-type="{{ $dataset->geometry_type }}">{{ $dataset->display_name }} — {{ $dataset->geometry_type }}</option>
                             @endforeach
                         </select>
