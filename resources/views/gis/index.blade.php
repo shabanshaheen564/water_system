@@ -117,6 +117,22 @@
         </div>
 
         @can('datasets.view')
+            @can('datasets.create')
+                <div class="mt-3 border-t border-border pt-3">
+                    <h3 class="mb-2 text-xs font-semibold text-ink-secondary">تحرير المعالم</h3>
+                    <div class="space-y-2">
+                        <select id="gis-edit-dataset" class="w-full rounded-md border border-border-strong bg-white px-2 py-2 text-xs">
+                            <option value="">اختر طبقة للإضافة</option>
+                            @foreach($spatialDatasets as $dataset)
+                                <option value="{{ $dataset->id }}" data-geometry-type="{{ $dataset->geometry_type }}">{{ $dataset->display_name }} — {{ $dataset->geometry_type }}</option>
+                            @endforeach
+                        </select>
+                        <button id="gis-start-drawing" type="button" disabled class="w-full rounded-md bg-brand-600 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50">بدء رسم معلم</button>
+                        <p id="gis-drawing-status" class="text-[11px] leading-5 text-ink-secondary">اختر طبقة مكانية ثم ابدأ الرسم.</p>
+                    </div>
+                </div>
+            @endcan
+
             <div class="mt-3 border-t border-border pt-3">
                 <h3 class="mb-2 text-xs font-semibold text-ink-secondary">الطبقات الجغرافية</h3>
                 <div id="dataset-layers" class="max-h-40 space-y-2 overflow-y-auto">
