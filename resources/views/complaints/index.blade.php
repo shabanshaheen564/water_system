@@ -41,6 +41,7 @@
                 <option value="">كل الأولويات</option><option value="low" @selected($priority === 'low')>منخفضة</option><option value="medium" @selected($priority === 'medium')>متوسطة</option><option value="high" @selected($priority === 'high')>عالية</option><option value="urgent" @selected($priority === 'urgent')>عاجلة</option>
             </select>
         </div>
+        <div><label for="date_from" class="mb-1 block text-sm font-medium text-ink">من تاريخ</label><input id="date_from" name="date_from" type="date" value="{{ $dateFrom ?? request('date_from') }}" class="input-institutional w-full text-sm"></div><div><label for="date_to" class="mb-1 block text-sm font-medium text-ink">إلى تاريخ</label><input id="date_to" name="date_to" type="date" value="{{ $dateTo ?? request('date_to') }}" class="input-institutional w-full text-sm"></div>
         <div class="md:col-span-4 flex gap-2 border-t border-border pt-4"><button class="rounded-md bg-ink px-4 py-2 text-sm font-medium text-white">تطبيق البحث</button><a href="{{ route('complaints.index') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">مسح</a></div>
     </form>
 
