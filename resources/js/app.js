@@ -408,7 +408,7 @@ function initMapPage() {
         attributeModal?.classList.add('flex');
 
         try {
-            const response = await fetch('/api/datasets/' + datasetId + '/fields?per_page=100');
+            const response = await fetch('/datasets/' + datasetId + '/fields/data');
             if (!response.ok) throw new Error('تعذر تحميل حقول الطبقة.');
             const data = await response.json();
             attributeFieldsData = data.data || [];
@@ -506,11 +506,12 @@ function initMapPage() {
         };
 
         try {
-            const response = await fetch('/api/datasets/' + datasetId + '/features', {
+            const response = await fetch('/datasets/' + datasetId + '/features', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                 },
                 body: JSON.stringify(payload),
             });
