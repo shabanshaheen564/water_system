@@ -7,6 +7,7 @@ use App\Http\Requests\Complaint\UpdateComplaintRequest;
 use App\Models\Complaint;
 use App\Models\User;
 use App\Models\WorkOrder;
+use App\Services\ArchiveService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +58,7 @@ class ComplaintWebController extends Controller
         return view('complaints.edit', ['complaint' => $complaint, 'assignees' => $this->assignableUsers()]);
     }
 
-    public function update(UpdateComplaintRequest $request, Complaint $complaint): RedirectResponse
+    public function update(UpdateComplaintRequest $request, Complaint $complaint, ArchiveService $archive): RedirectResponse
     {
         $validated = $request->validated();
         abort_unless($validated !== [], 422);
@@ -72,9 +73,13 @@ class ComplaintWebController extends Controller
         $updateFields = ['title', 'description', 'processing_notes', 'solution', 'priority', 'assigned_to', 'contact_name', 'contact_phone', 'address', 'latitude', 'longitude'];
         foreach ($updateFields as $field) if (array_key_exists($field, $validated)) abort_unless($request->user()->can('complaints.update'), 403);
         if (array_key_exists('assigned_to', $validated) && $validated['assigned_to'] !== null) $this->ensureActiveUser($validated['assigned_to']);
-        if (array_key_exists('processing_notes', $validated) || array_key_exists('solution', $validated)) { $validated['processed_by'] = $request->user()->id; $validated['processed_at'] = now(); }
+        if (array_key_exists('processing_notes', $validated) || array_key_exists('solution', $validated) || in_array($validated['status'] ?? null, ['in_progress', 'resolved'], true)) { $validated['processed_by'] = $request->user()->id; $validated['processed_at'] = now(); if (!$complaint->first_response_at) $validated['first_response_at'] = now(); }
         if (($validated['status'] ?? null) === 'resolved' && !$complaint->resolved_at) { $validated['resolved_at'] = now(); $validated['processed_by'] ??= $request->user()->id; $validated['processed_at'] ??= now(); }
         $complaint->update($validated);
+        if ($complaint->status === 'closed') {
+            $archive->archiveClosedComplaint($complaint);
+            return redirect()->route('complaints.index')->with('success', 'تم إغلاق الشكوى وأرشفتها مع بيانات الاستجابة والحل.');
+        }
         return redirect()->route('complaints.show', $complaint)->with('success', 'تم تحديث الشكوى بنجاح.');
     }
 
