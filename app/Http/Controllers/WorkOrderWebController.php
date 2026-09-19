@@ -31,10 +31,12 @@ class WorkOrderWebController extends Controller
         if (in_array($status, ['pending', 'assigned', 'in_progress', 'completed', 'cancelled'], true)) $query->where('status', $status); else $status = '';
         if (in_array($priority, ['low', 'medium', 'high', 'urgent'], true)) $query->where('priority', $priority); else $priority = '';
         if ($assignedTo !== null && $assignedTo !== '' && ctype_digit((string) $assignedTo)) $query->where('assigned_to', (int) $assignedTo); else $assignedTo = '';
+        if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->input('date_from'));
+        if ($request->filled('date_to')) $query->whereDate('created_at', '<=', $request->input('date_to'));
 
         $workOrders = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
         $users = User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
-        return view('work-orders.index', compact('workOrders', 'users', 'search', 'status', 'priority', 'assignedTo'));
+        return view('work-orders.index', compact('workOrders', 'users', 'search', 'status', 'priority', 'assignedTo') + ['dateFrom' => $request->input('date_from'), 'dateTo' => $request->input('date_to')]);
     }
 
     public function create(): View
