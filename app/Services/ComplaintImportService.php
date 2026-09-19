@@ -9,9 +9,25 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ComplaintImportService
 {
-    public function import(UploadedFile $file, int $userId): array
+    public const TARGET_FIELDS = [
+        'complaint_number' => 'رقم الشكوى',
+        'title' => 'العنوان',
+        'description' => 'الوصف / المشكلة',
+        'status' => 'الحالة',
+        'priority' => 'الأولوية',
+        'contact_name' => 'اسم المواطن',
+        'contact_phone' => 'الهاتف',
+        'address' => 'العنوان / الموقع',
+        'latitude' => 'خط العرض',
+        'longitude' => 'خط الطول',
+        'assigned_to' => 'المسند إليه',
+        'processing_notes' => 'ملاحظات المعالجة',
+        'solution' => 'الحل',
+    ];
+
+    public function preview(UploadedFile|string $file): array
     {
-        $spreadsheet = IOFactory::load($file->getRealPath());
+        $spreadsheet = IOFactory::load($file instanceof UploadedFile ? $file->getRealPath() : $file);
         $sheet = $spreadsheet->getActiveSheet();
         $rows = $sheet->toArray(null, true, true, false);
 
@@ -20,13 +36,57 @@ class ComplaintImportService
         }
 
         $headers = array_map(fn ($value) => trim((string) $value), $rows[0]);
-        $headers = array_map(fn ($value) => $this->normalize($value), $headers);
-
-        if (! in_array('title', $headers, true)) {
-            throw new \RuntimeException('يجب أن يحتوي الملف على عمود للعُنوان (title/العنوان/الموضوع).');
+        if (count(array_filter($headers, fn ($value) => $value !== '')) === 0) {
+            throw new \RuntimeException('الصف الأول في الملف لا يحتوي على أسماء أعمدة.');
         }
 
-        $map = $this->buildMapping($headers);
+        $normalizedHeaders = array_map(fn ($value) => $this->normalize($value), $headers);
+        $autoMapping = $this->buildMapping($normalizedHeaders);
+
+        $sampleRows = [];
+        foreach (array_slice($rows, 1, 5) as $row) {
+            $sampleRows[] = array_map(
+                fn ($value) => is_scalar($value) ? (string) $value : '',
+                array_pad($row, count($headers), '')
+            );
+        }
+
+        return [
+            'headers' => $headers,
+            'sample_rows' => $sampleRows,
+            'total_rows' => max(count($rows) - 1, 0),
+            'auto_mapping' => $autoMapping,
+        ];
+    }
+
+    public function import(UploadedFile $file, int $userId): array
+    {
+        return $this->importFile($file->getRealPath(), $userId, null);
+    }
+
+    public function importStored(string $path, int $userId, array $mapping): array
+    {
+        return $this->importFile($path, $userId, $mapping);
+    }
+
+    private function importFile(string $path, int $userId, ?array $selectedMapping): array
+    {
+        $spreadsheet = IOFactory::load($path);
+        $sheet = $spreadsheet->getActiveSheet();
+        $rows = $sheet->toArray(null, true, true, false);
+
+        if ($rows === []) {
+            throw new \RuntimeException('ملف الاستيراد فارغ.');
+        }
+
+        $rawHeaders = array_map(fn ($value) => trim((string) $value), $rows[0]);
+        $headers = array_map(fn ($value) => $this->normalize($value), $rawHeaders);
+
+        if (! in_array('title', $selectedMapping ? array_values($selectedMapping) : $headers, true)) {
+            throw new \RuntimeException('يجب ربط عمود العنوان بحقل العنوان.');
+        }
+
+        $map = $selectedMapping ?: $this->buildMapping($headers);
         $created = 0;
         $skipped = 0;
         $errors = [];
@@ -40,8 +100,8 @@ class ComplaintImportService
             try {
                 $data = [];
                 foreach ($headers as $columnIndex => $header) {
-                    $field = $map[$header] ?? null;
-                    if ($field !== null) {
+                    $field = $map[$columnIndex] ?? ($map[$header] ?? null);
+                    if ($field !== null && array_key_exists($field, self::TARGET_FIELDS)) {
                         $data[$field] = is_string($row[$columnIndex] ?? null)
                             ? trim($row[$columnIndex])
                             : ($row[$columnIndex] ?? null);
@@ -112,10 +172,10 @@ class ComplaintImportService
         ];
 
         $map = [];
-        foreach ($headers as $header) {
+        foreach ($headers as $columnIndex => $header) {
             foreach ($aliases as $field => $fieldAliases) {
                 if (in_array($header, array_map(fn ($value) => $this->normalize($value), $fieldAliases), true)) {
-                    $map[$header] = $field;
+                    $map[$columnIndex] = $field;
                     break;
                 }
             }
@@ -134,10 +194,10 @@ class ComplaintImportService
         $value = $this->normalize((string) $value);
         return match ($value) {
             'open', 'جديدة', 'جديد', 'مفتوحة' => 'open',
-            'in_progress', 'inprogress', 'قيد_المعالجة', 'قيد_المعالجة' => 'in_progress',
+            'in_progress', 'inprogress', 'قيد_المعالجة' => 'in_progress',
             'resolved', 'تم_الحل', 'محلولة' => 'resolved',
             'closed', 'مغلقة', 'مغلق' => 'closed',
-            'cancelled', 'canceled', 'ملغاة', 'ملغاة' => 'cancelled',
+            'cancelled', 'canceled', 'ملغاة' => 'cancelled',
             default => 'open',
         };
     }
