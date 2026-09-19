@@ -29,7 +29,7 @@
         <span class="sr-only">الخريطة التفاعلية</span>
     </div>
 
-    <div class="map-panel absolute end-4 top-24 z-[1000] w-[330px] max-w-[calc(100vw-32px)] rounded-xl border border-border p-4">
+    <div class="map-panel absolute end-4 top-4 z-[1000] md:top-24 w-[330px] max-w-[calc(100vw-32px)] rounded-xl border border-border p-4">
         <div class="flex items-center justify-between gap-3">
             <div>
                 <h2 class="text-base font-semibold text-ink">الخريطة التشغيلية</h2>
