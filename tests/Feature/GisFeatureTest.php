@@ -781,6 +781,39 @@ GisFeature::create([
             ->assertStatus(201);
     }
 
+    public function test_web_editable_dataset_creates_dynamic_record_and_feature_together(): void
+    {
+        $dataset = $this->createSpatialDataset();
+
+        DatasetField::create([
+            'dataset_id' => $dataset->id,
+            'name' => 'name',
+            'display_name' => 'Name',
+            'data_type' => 'string',
+            'is_required' => true,
+            'is_unique' => false,
+            'is_identifier' => true,
+            'sort_order' => 1,
+        ]);
+
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->adminToken])
+            ->postJson("/api/datasets/{$dataset->id}/features", [
+                'values' => ['name' => 'Wadi Al-Salqa'],
+                'geometry' => ['type' => 'Point', 'coordinates' => [34.4668, 31.5326]],
+            ]);
+
+        $response->assertStatus(201);
+
+        $record = DatasetRecord::where('dataset_id', $dataset->id)->where('identifier_value', 'Wadi Al-Salqa')->first();
+        $this->assertNotNull($record);
+        $this->assertEquals('Wadi Al-Salqa', $record->values['name']);
+
+        $feature = GisFeature::where('dataset_id', $dataset->id)->where('dataset_record_id', $record->id)->first();
+        $this->assertNotNull($feature);
+        $this->assertEquals('Point', $response->json('geometry.type'));
+        $this->assertEquals($record->id, $response->json('properties.dataset_record_id'));
+    }
+
     // Spatial Index Verification (metadata check)
     public function test_spatial_index_exists(): void
     {
