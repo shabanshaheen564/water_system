@@ -30,6 +30,7 @@ class ComplaintWorkOrderWebTest extends TestCase
         $complaint = Complaint::create([
             'complaint_number' => 'CMP-900013', 'title' => 'كسر خط مياه', 'description' => 'كسر في الخط الرئيسي',
             'status' => 'open', 'priority' => 'high', 'reported_by' => $this->user->id,
+            'latitude' => 31.41712345, 'longitude' => 34.36854321,
         ]);
 
         $this->actingAs($this->user)
@@ -55,6 +56,11 @@ class ComplaintWorkOrderWebTest extends TestCase
             'status' => 'assigned',
             'assigned_to' => $this->user->id,
             'created_by' => $this->user->id,
+        ]);
+        $this->assertDatabaseHas('work_orders', [
+            'id' => $workOrder->id,
+            'latitude' => '31.41712345',
+            'longitude' => '34.36854321',
         ]);
         $this->assertDatabaseHas('complaint_work_order', [
             'complaint_id' => $complaint->id,
