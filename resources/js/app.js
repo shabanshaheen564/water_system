@@ -107,7 +107,7 @@ function initMapPage() {
     if (!mapElement) return;
     if (mapElement.dataset.operationalMap !== 'true') return;
 
-    const map = L.map(mapElement, { center: [31.5, 34.5], zoom: 10, zoomControl: true, attributionControl: true });
+    const map = L.map(mapElement, { center: [31.5, 34.5], zoom: 10, zoomControl: false, attributionControl: true });
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -118,6 +118,7 @@ function initMapPage() {
     });
     osm.addTo(map);
     L.control.layers({ 'خريطة الشوارع': osm, 'صورة جوية / ستالايت': satellite }, {}, { position: 'topright', collapsed: false }).addTo(map);
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
     const state = { complaints: [], tasks: [], datasets: [], complaintLayer: L.layerGroup().addTo(map), taskLayer: L.layerGroup().addTo(map), datasetLayers: {}, filtered: { complaints: [], tasks: [] } };
