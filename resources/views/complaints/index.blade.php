@@ -22,6 +22,9 @@
                     </div>
                 </details>
             @endcan
+            @can('complaints.view')
+                <a href="{{ route('archive.index', ['show' => 'complaints']) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">الأرشيف</a>
+            @endcan
             @can('complaints.create')
                 <a href="{{ route('complaints.create') }}" class="btn-motion rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">تسجيل شكوى</a>
             @endcan
