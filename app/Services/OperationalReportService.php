@@ -78,6 +78,8 @@ class OperationalReportService
     {
         $complaints = $this->complaintQuery($request);
         $tasks = $this->workOrderQuery($request);
+        $archivedComplaints = $this->archivedComplaintQuery($request);
+        $archivedWorkOrders = $this->archivedWorkOrderQuery($request);
 
         return [
             'filters' => [
@@ -98,8 +100,8 @@ class OperationalReportService
                 'closed' => (clone $complaints)->where('status', 'closed')->count(),
                 'cancelled' => (clone $complaints)->where('status', 'cancelled')->count(),
                 'urgent' => (clone $complaints)->where('priority', 'urgent')->count(),
-                'archived' => ArchivedComplaint::query()->count(),
-                'total_with_archive' => (clone $complaints)->count() + ArchivedComplaint::query()->count(),
+                'archived' => (clone $archivedComplaints)->count(),
+                'total_with_archive' => (clone $complaints)->count() + (clone $archivedComplaints)->count(),
             ],
             'tasks' => [
                 'total' => (clone $tasks)->count(),
@@ -109,23 +111,44 @@ class OperationalReportService
                 'completed' => (clone $tasks)->where('status', 'completed')->count(),
                 'cancelled' => (clone $tasks)->where('status', 'cancelled')->count(),
                 'urgent' => (clone $tasks)->where('priority', 'urgent')->count(),
-                'archived' => ArchivedWorkOrder::query()->count(),
-                'total_with_archive' => (clone $tasks)->count() + ArchivedWorkOrder::query()->count(),
+                'archived' => (clone $archivedWorkOrders)->count(),
+                'total_with_archive' => (clone $tasks)->count() + (clone $archivedWorkOrders)->count(),
             ],
             'performance' => [
                 'archived_complaints' => [
-                    'average_response_time_minutes' => $this->roundedAverage(ArchivedComplaint::query(), 'response_time_minutes'),
-                    'average_resolution_time_minutes' => $this->roundedAverage(ArchivedComplaint::query(), 'resolution_time_minutes'),
-                    'fastest_response_minutes' => ArchivedComplaint::query()->whereNotNull('response_time_minutes')->min('response_time_minutes'),
-                    'slowest_response_minutes' => ArchivedComplaint::query()->whereNotNull('response_time_minutes')->max('response_time_minutes'),
+                    'average_response_time_minutes' => $this->roundedAverage($archivedComplaints, 'response_time_minutes'),
+                    'average_resolution_time_minutes' => $this->roundedAverage($archivedComplaints, 'resolution_time_minutes'),
+                    'fastest_response_minutes' => (clone $archivedComplaints)->whereNotNull('response_time_minutes')->min('response_time_minutes'),
+                    'slowest_response_minutes' => (clone $archivedComplaints)->whereNotNull('response_time_minutes')->max('response_time_minutes'),
                 ],
                 'archived_work_orders' => [
-                    'average_response_time_minutes' => $this->roundedAverage(ArchivedWorkOrder::query(), 'response_time_minutes'),
-                    'average_execution_time_minutes' => $this->roundedAverage(ArchivedWorkOrder::query(), 'execution_time_minutes'),
-                    'average_total_time_minutes' => $this->roundedAverage(ArchivedWorkOrder::query(), 'total_time_minutes'),
+                    'average_response_time_minutes' => $this->roundedAverage($archivedWorkOrders, 'response_time_minutes'),
+                    'average_execution_time_minutes' => $this->roundedAverage($archivedWorkOrders, 'execution_time_minutes'),
+                    'average_total_time_minutes' => $this->roundedAverage($archivedWorkOrders, 'total_time_minutes'),
                 ],
             ],
         ];
+    }
+
+
+    public function archivedComplaintQuery(Request $request): Builder
+    {
+        $query = ArchivedComplaint::query();
+        if ($request->filled('date_from')) $query->whereDate('archived_at', '>=', $request->input('date_from'));
+        if ($request->filled('date_to')) $query->whereDate('archived_at', '<=', $request->input('date_to'));
+        if ($request->filled('complaint_priority')) $query->where('priority', $request->input('complaint_priority'));
+        if ($request->filled('complaint_assigned_to')) $query->where('assigned_to', $request->input('complaint_assigned_to'));
+        return $query;
+    }
+
+    public function archivedWorkOrderQuery(Request $request): Builder
+    {
+        $query = ArchivedWorkOrder::query();
+        if ($request->filled('date_from')) $query->whereDate('archived_at', '>=', $request->input('date_from'));
+        if ($request->filled('date_to')) $query->whereDate('archived_at', '<=', $request->input('date_to'));
+        if ($request->filled('task_priority')) $query->where('priority', $request->input('task_priority'));
+        if ($request->filled('task_assigned_to')) $query->where('assigned_to', $request->input('task_assigned_to'));
+        return $query;
     }
 
     private function roundedAverage($query, string $field): ?int
