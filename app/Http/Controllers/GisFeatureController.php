@@ -44,9 +44,30 @@ class GisFeatureController extends Controller
         $validated = $request->validated();
         $geometryType = $validated['geometry']['type'];
         if ($dataset->geometry_type && $geometryType !== $dataset->geometry_type) return response()->json(['message' => "Geometry type must be {$dataset->geometry_type} for this dataset."], 422);
-        $record = DatasetRecord::where('id', $validated['dataset_record_id'])->where('dataset_id', $dataset->id)->firstOrFail();
-        if (GisFeature::where('dataset_record_id', $record->id)->exists()) return response()->json(['message' => 'A GIS feature already exists for this record.'], 422);
-        return DB::transaction(function () use ($validated, $dataset, $record, $geometryType) {
+
+        $creatingRecord = !array_key_exists('dataset_record_id', $validated);
+        $record = $creatingRecord
+            ? null
+            : DatasetRecord::where('id', $validated['dataset_record_id'])->where('dataset_id', $dataset->id)->firstOrFail();
+
+        if ($record && GisFeature::where('dataset_record_id', $record->id)->exists()) {
+            return response()->json(['message' => 'A GIS feature already exists for this record.'], 422);
+        }
+
+        return DB::transaction(function () use ($validated, $dataset, $record, $geometryType, $creatingRecord, $request) {
+            if ($creatingRecord) {
+                $values = $this->applyDefaults($dataset, $validated['values'] ?? []);
+                $this->validateChildReferences($dataset, $values);
+
+                $identifier = $dataset->getIdentifierField();
+                $record = DatasetRecord::create([
+                    'dataset_id' => $dataset->id,
+                    'values' => $values,
+                    'identifier_value' => $identifier ? (isset($values[$identifier->name]) ? (string) $values[$identifier->name] : null) : null,
+                    'created_by' => $request->user()->id,
+                ]);
+            }
+
             $geojson = json_encode(['type' => $geometryType, 'coordinates' => $validated['geometry']['coordinates']]);
             $srid = $dataset->srid ?? 4326;
             $geometry = $geometryResult = DB::selectOne(
@@ -107,6 +128,45 @@ class GisFeatureController extends Controller
         $this->ensureWebEditableDataset($dataset);
         $feature->delete();
         return response()->json(['message' => 'GIS feature deleted successfully.']);
+    }
+
+    private function applyDefaults(Dataset $dataset, array $values): array
+    {
+        foreach ($dataset->fields as $field) {
+            if (!array_key_exists($field->name, $values) && $field->default_value !== null) {
+                $values[$field->name] = $field->default_value;
+            }
+        }
+
+        return $values;
+    }
+
+    private function validateChildReferences(Dataset $dataset, array $values): void
+    {
+        $relationships = \App\Models\DatasetRelationship::where('child_dataset_id', $dataset->id)
+            ->with(['parentDataset', 'parentField', 'childField'])
+            ->get();
+
+        foreach ($relationships as $relationship) {
+            $childField = $relationship->childField;
+            $parentField = $relationship->parentField;
+            $childValue = $values[$childField->name] ?? null;
+
+            if ($childValue === null) {
+                if (!$relationship->is_nullable && $childField->is_required) {
+                    throw new \RuntimeException("Child field '{$childField->name}' is required and cannot be null for this relationship.");
+                }
+                continue;
+            }
+
+            $parentExists = DatasetRecord::where('dataset_id', $relationship->parent_dataset_id)
+                ->whereJsonContains('values', [$parentField->name => $childValue])
+                ->exists();
+
+            if (!$parentExists) {
+                throw new \RuntimeException("Referenced parent record not found for field '{$childField->name}' with value: {$childValue}.");
+            }
+        }
     }
 
     private function ensureWebEditableDataset(Dataset $dataset): void
