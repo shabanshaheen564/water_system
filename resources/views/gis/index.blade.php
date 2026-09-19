@@ -39,11 +39,6 @@
         direction: ltr !important;
         text-align: center !important;
     }
-    @media (max-width: 1023px) {
-        .map-shell .leaflet-control-container .leaflet-bottom.leaflet-right {
-            right: 16px !important;
-        }
-    }
 </style>
 
 <div class="map-shell">
