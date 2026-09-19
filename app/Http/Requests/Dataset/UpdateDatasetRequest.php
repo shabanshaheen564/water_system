@@ -18,6 +18,7 @@ class UpdateDatasetRequest extends FormRequest
             'display_name' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'dataset_type' => ['sometimes', Rule::in(['official_layer', 'additional_table'])],
+            'management_mode' => ['sometimes', Rule::in(['official', 'web_editable', 'operational', 'analytical'])],
             'source_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'source_format' => ['sometimes', 'nullable', 'string', 'max:50'],
             'is_active' => ['boolean'],
@@ -38,6 +39,7 @@ class UpdateDatasetRequest extends FormRequest
             $isSpatial = $this->boolean('is_spatial', $dataset->is_spatial);
             $geometryType = $this->input('geometry_type', $dataset->geometry_type);
             $srid = $this->input('srid', $dataset->srid);
+            $managementMode = $this->input('management_mode', $dataset->management_mode);
 
             if ($isSpatial) {
                 if (!$geometryType) {
@@ -52,6 +54,10 @@ class UpdateDatasetRequest extends FormRequest
                     $validator->errors()->add('geometry_type', 'Geometry type and SRID must be null for non-spatial datasets.');
                     $validator->errors()->add('srid', 'Geometry type and SRID must be null for non-spatial datasets.');
                 }
+            }
+
+            if ($managementMode === 'web_editable' && !$isSpatial) {
+                $validator->errors()->add('management_mode', 'Web editable datasets must be spatial.');
             }
         });
     }
