@@ -1,6 +1,5 @@
-@import '@fontsource/noto-sans-arabic/400.css';
-@import '@fontsource/noto-sans-arabic/500.css';
-@import '@fontsource/noto-sans-arabic/600.css';
+@import '@fontsource/tajawal/400.css';
+@import '@fontsource/tajawal/600.css';
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -9,7 +8,7 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Noto Sans Arabic', 'Segoe UI', system-ui, sans-serif;
+    --font-sans: 'Tajawal', 'Segoe UI', system-ui, sans-serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
     --color-surface-0: #ffffff;
     --color-surface-1: #f7f8f9;
@@ -38,8 +37,9 @@
     --duration-slow: 360ms;
 }
 
-html, body { min-height: 100%; font-family: var(--font-sans); background: #fff; color: var(--color-ink); }
+html, body { min-height: 100%; font-family: var(--font-sans); font-weight: 400; background: #fff; color: var(--color-ink); }
 body { font-size: 14px; line-height: 1.8; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-sans); font-weight: 600; }
 button, input, select, textarea { font: inherit; }
 ::selection { background: var(--color-brand-100); color: var(--color-brand-700); }
 .ltr-value { direction: ltr; font-family: var(--font-mono); unicode-bidi: isolate; }
