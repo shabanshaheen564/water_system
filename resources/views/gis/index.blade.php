@@ -6,7 +6,7 @@
 <style>
     #map { width:100%; height:calc(100vh - 64px); min-height:720px; }
     .map-shell { position:relative; width:100%; height:calc(100vh - 64px); min-height:720px; overflow:hidden; background:#eef2f6; }
-    .map-marker { display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9999px; border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.28); font-size:14px; font-weight:700; color:#fff; }
+    .map-marker { display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9999px; border:2px solid #fff; box-shadow:0 2px 8px rgba(16,24,40,.28); font-size:14px; font-weight:700; color:#fff; }
     .map-marker.complaint { background:#b42318; }
     .map-marker.task { background:#175cd3; }
     .map-popup { min-width:250px; direction:rtl; text-align:right; }
