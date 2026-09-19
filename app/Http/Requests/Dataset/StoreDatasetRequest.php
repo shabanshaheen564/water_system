@@ -25,6 +25,10 @@ class StoreDatasetRequest extends FormRequest
             'is_spatial' => ['boolean'],
             'geometry_type' => ['sometimes', Rule::in(config('gis.geometry_types'))],
             'srid' => ['sometimes', 'nullable', 'integer', Rule::exists('spatial_ref_sys', 'srid')],
+            'map_order' => ['sometimes', 'integer', 'min:0', 'max:999999'],
+            'default_visible' => ['sometimes', 'boolean'],
+            'map_opacity' => ['sometimes', 'numeric', 'between:0,1'],
+            'display_color' => ['sometimes', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ];
     }
 
