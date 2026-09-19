@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Complaint;
 use App\Models\WorkOrder;
+use App\Models\ArchivedComplaint;
+use App\Models\ArchivedWorkOrder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -96,6 +98,8 @@ class OperationalReportService
                 'closed' => (clone $complaints)->where('status', 'closed')->count(),
                 'cancelled' => (clone $complaints)->where('status', 'cancelled')->count(),
                 'urgent' => (clone $complaints)->where('priority', 'urgent')->count(),
+                'archived' => ArchivedComplaint::query()->count(),
+                'total_with_archive' => (clone $complaints)->count() + ArchivedComplaint::query()->count(),
             ],
             'tasks' => [
                 'total' => (clone $tasks)->count(),
@@ -105,8 +109,29 @@ class OperationalReportService
                 'completed' => (clone $tasks)->where('status', 'completed')->count(),
                 'cancelled' => (clone $tasks)->where('status', 'cancelled')->count(),
                 'urgent' => (clone $tasks)->where('priority', 'urgent')->count(),
+                'archived' => ArchivedWorkOrder::query()->count(),
+                'total_with_archive' => (clone $tasks)->count() + ArchivedWorkOrder::query()->count(),
+            ],
+            'performance' => [
+                'archived_complaints' => [
+                    'average_response_time_minutes' => $this->roundedAverage(ArchivedComplaint::query(), 'response_time_minutes'),
+                    'average_resolution_time_minutes' => $this->roundedAverage(ArchivedComplaint::query(), 'resolution_time_minutes'),
+                    'fastest_response_minutes' => ArchivedComplaint::query()->whereNotNull('response_time_minutes')->min('response_time_minutes'),
+                    'slowest_response_minutes' => ArchivedComplaint::query()->whereNotNull('response_time_minutes')->max('response_time_minutes'),
+                ],
+                'archived_work_orders' => [
+                    'average_response_time_minutes' => $this->roundedAverage(ArchivedWorkOrder::query(), 'response_time_minutes'),
+                    'average_execution_time_minutes' => $this->roundedAverage(ArchivedWorkOrder::query(), 'execution_time_minutes'),
+                    'average_total_time_minutes' => $this->roundedAverage(ArchivedWorkOrder::query(), 'total_time_minutes'),
+                ],
             ],
         ];
+    }
+
+    private function roundedAverage($query, string $field): ?int
+    {
+        $value = (clone $query)->whereNotNull($field)->avg($field);
+        return $value === null ? null : (int) round($value);
     }
 
     public function filters(): array
