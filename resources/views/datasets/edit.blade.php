@@ -42,6 +42,17 @@
                         @error('dataset_type')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
                     </div>
                     <div>
+                        <label for="management_mode" class="mb-1 block text-sm font-medium text-ink">طريقة إدارة البيانات</label>
+                        <select name="management_mode" id="management_mode" required class="input-institutional mt-1 block w-full text-sm outline-none focus:border-brand-600">
+                            <option value="official" {{ $dataset->management_mode === 'official' ? 'selected' : '' }}>Official — بيانات رسمية من ArcGIS Pro</option>
+                            <option value="web_editable" {{ $dataset->management_mode === 'web_editable' ? 'selected' : '' }}>Web Editable — طبقة قابلة للرسم من الويب</option>
+                            <option value="operational" {{ $dataset->management_mode === 'operational' ? 'selected' : '' }}>Operational — بيانات تشغيلية</option>
+                            <option value="analytical" {{ $dataset->management_mode === 'analytical' ? 'selected' : '' }}>Analytical — طبقة ناتجة عن تحليل مكاني</option>
+                        </select>
+                        @error('management_mode')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
+                        <p class="mt-1 text-xs text-ink-muted">حدد مصدر وإمكانية تعديل الطبقة من الويب.</p>
+                    </div>
+                    <div>
                         <label for="source_name" class="mb-1 block text-sm font-medium text-ink">{{ __('Source Name') }}</label>
                         <input type="text" name="source_name" id="source_name" value="{{ $dataset->source_name }}" class="input-institutional mt-1 block w-full text-sm outline-none focus:border-brand-600">
                         @error('source_name')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
