@@ -146,6 +146,19 @@ class WorkOrderTest extends TestCase
         $response=$this->withHeaders(['Authorization'=>'Bearer '.$this->adminToken])->putJson("/api/work-orders/{$workOrder->id}",['status'=>'completed']); $response->assertStatus(200); $this->assertEquals('completed',$response->json('status')); $this->assertNotNull($response->json('completed_at'));
     }
 
+    public function test_assigned_work_order_can_be_completed_directly(): void
+    {
+        $workOrder = $this->admin->createdWorkOrders()->create(['work_order_number' => 'WO-000099', 'title' => 'Direct completion', 'description' => 'Test', 'status' => 'assigned', 'priority' => 'medium', 'assigned_to' => $this->admin->id, 'created_by' => $this->admin->id]);
+
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->adminToken])
+            ->putJson("/api/work-orders/{$workOrder->id}", ['status' => 'completed']);
+
+        $response->assertStatus(200);
+        $this->assertEquals('completed', $response->json('status'));
+        $this->assertNotNull($response->json('started_at'));
+        $this->assertNotNull($response->json('completed_at'));
+    }
+
     public function test_invalid_status_transition_gets_422(): void
     {
         $complaint=Complaint::create(['complaint_number'=>'CMP-000001','title'=>'Test','description'=>'Test','status'=>'open','priority'=>'medium','reported_by'=>$this->admin->id]); $workOrder=$this->admin->createdWorkOrders()->create(['work_order_number'=>'WO-000001','complaint_id'=>$complaint->id,'title'=>'Test','description'=>'Test','status'=>'pending','priority'=>'medium','created_by'=>$this->admin->id]); $response=$this->withHeaders(['Authorization'=>'Bearer '.$this->adminToken])->putJson("/api/work-orders/{$workOrder->id}",['status'=>'completed']); $response->assertStatus(422);
