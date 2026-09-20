@@ -40,8 +40,8 @@ class GisFeature extends Model
 
         // Convert WKB to GeoJSON using PostGIS with SRID transformation
         $geojson = null;
+        $storedSrid = (int) ($this->srid ?? 4326);
         if ($this->geometry) {
-            $storedSrid = (int) ($this->srid ?? 4326);
             $outSrid = (int) ($outputSrid ?? config('gis.output_srid', 4326));
             
             if ($storedSrid === $outSrid) {
