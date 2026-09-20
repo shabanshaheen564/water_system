@@ -1756,7 +1756,7 @@ GisFeature::create([
         GisFeature::create([
             'dataset_record_id' => $record->id,
             'dataset_id' => $dataset->id,
-            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{"type":"Point","coordinates":[34.368,31.417]}'), 4326) as geometry")->geometry,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.368,31.417]}'), 4326) as geometry")->geometry,
             'geometry_type' => 'Point',
             'srid' => 4326,
         ]);
