@@ -17,7 +17,10 @@ class UpdateGisFeatureRequest extends FormRequest
     {
         $dataset = $this->route('dataset');
 
-        return [
+        $fields = $dataset->fields()->get();
+
+        $rules = [
+            'values' => ['sometimes', 'array'],
             'geometry' => ['sometimes', 'array'],
             'geometry.type' => [
                 'sometimes',
@@ -27,6 +30,44 @@ class UpdateGisFeatureRequest extends FormRequest
             ],
             'geometry.coordinates' => ['sometimes', 'required', 'array'],
         ];
+
+        foreach ($fields as $field) {
+            $fieldRules = ['sometimes'];
+
+            switch ($field->data_type) {
+                case 'string':
+                    $fieldRules[] = 'string';
+                    break;
+                case 'integer':
+                    $fieldRules[] = 'integer';
+                    break;
+                case 'decimal':
+                    $fieldRules[] = 'numeric';
+                    break;
+                case 'boolean':
+                    $fieldRules[] = 'boolean';
+                    break;
+                case 'date':
+                case 'datetime':
+                    $fieldRules[] = 'date';
+                    break;
+                case 'text':
+                    $fieldRules[] = 'string';
+                    break;
+            }
+
+            if ($field->is_unique || $field->is_identifier) {
+                $feature = $this->route('feature');
+                $recordId = $feature?->dataset_record_id;
+                $fieldRules[] = Rule::unique('dataset_records', 'values->' . $field->name)
+                    ->where('dataset_id', $dataset->id)
+                    ->ignore($recordId);
+            }
+
+            $rules["values.{$field->name}"] = $fieldRules;
+        }
+
+        return $rules;
     }
 
     public function withValidator($validator)
@@ -44,6 +85,28 @@ class UpdateGisFeatureRequest extends FormRequest
                 $geometryType = $this->input('geometry.type');
                 if ($geometryType && $geometryType !== $dataset->geometry_type) {
                     $validator->errors()->add('geometry.type', "Geometry type must be {$dataset->geometry_type} for this dataset.");
+                }
+            }
+
+            $values = $this->input('values', []);
+
+            $knownFields = $fields = $dataset->fields()->get();
+            $knownFieldNames = $fields->pluck('name')->toArray();
+            $unknownFields = array_diff(array_keys($values), $knownFieldNames);
+
+            if (!empty($unknownFields)) {
+                $validator->errors()->add('values', 'Unknown fields: ' . implode(', ', $unknownFields));
+            }
+
+            foreach ($fields as $field) {
+                if ($field->is_required && array_key_exists($field->name, $values)) {
+                    $value = $values[$field->name];
+                    if ($value === null || $value === '') {
+                        $validator->errors()->add(
+                            "values.{$field->name}",
+                            "The field '{$field->name}' is required."
+                        );
+                    }
                 }
             }
 
