@@ -1720,4 +1720,51 @@ GisFeature::create([
             ->assertForbidden();
     }
 
+
+
+    public function test_gis_import_page_requires_create_permission(): void
+    {
+        $this->actingAs($this->user)
+            ->get('/datasets/import')
+            ->assertForbidden();
+    }
+
+    public function test_gis_export_geojson_requires_view_permission(): void
+    {
+        $dataset = $this->createSpatialDataset();
+        $record = $this->createRecord($dataset);
+
+        GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{"type":"Point","coordinates":[34.368,31.417]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get("/datasets/{$dataset->id}/export/geojson")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/geo+json');
+    }
+
+    public function test_gis_export_csv_requires_view_permission(): void
+    {
+        $dataset = $this->createSpatialDataset();
+        $record = $this->createRecord($dataset);
+
+        GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{"type":"Point","coordinates":[34.368,31.417]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get("/datasets/{$dataset->id}/export/csv")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+    }
+
 }
