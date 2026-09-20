@@ -318,7 +318,10 @@ function initMapPage() {
         datasetLayers: {},
         filtered: { complaints: [], tasks: [] },
         drawing: { active: false, layer: null },
-        editingFeature: null
+        editingFeature: null,
+        analysisLayer: L.layerGroup().addTo(map),
+        spatialPick: { active: false, marker: null, lat: null, lng: null },
+        measurement: { active: false, type: null }
     };
 
     const drawingStatus = document.getElementById('gis-drawing-status');
@@ -442,6 +445,11 @@ function initMapPage() {
     };
 
     map.on(L.Draw.Event.CREATED, event => {
+        if (state.measurement.active) {
+            handleMeasurementCreated(event);
+            return;
+        }
+
         const selectedType = drawingGeometryType();
         const drawnType = event.layerType === 'marker' ? 'Point' : event.layerType === 'polyline' ? 'LineString' : 'Polygon';
         if (selectedType !== drawnType) {
@@ -833,6 +841,292 @@ function initMapPage() {
 
     syncDrawingControls();
 
+    const gisToolsDataset = document.getElementById('gis-query-dataset');
+    const gisToolsField = document.getElementById('gis-query-field');
+    const gisToolsOperator = document.getElementById('gis-query-operator');
+    const gisToolsValue = document.getElementById('gis-query-value');
+    const gisToolsStatus = document.getElementById('gis-tools-status');
+    const gisRadius = document.getElementById('gis-radius');
+    const gisRadiusPick = document.getElementById('gis-radius-pick');
+    const gisRadiusSearch = document.getElementById('gis-radius-search');
+    const gisNearestSearch = document.getElementById('gis-nearest-search');
+    const gisBboxSearch = document.getElementById('gis-bbox-search');
+    const gisQuerySubmit = document.getElementById('gis-query-submit');
+    const gisMeasureDistance = document.getElementById('gis-measure-distance');
+    const gisMeasureArea = document.getElementById('gis-measure-area');
+
+    const setGisToolsStatus = (message) => {
+        if (gisToolsStatus) gisToolsStatus.textContent = message || '';
+    };
+
+    const clearAnalysis = () => {
+        state.analysisLayer.clearLayers();
+        setGisToolsStatus('');
+    };
+
+    const renderAnalysisResults = (data, fit = true) => {
+        state.analysisLayer.clearLayers();
+        const features = Array.isArray(data.features) ? data.features : [];
+        const layer = L.geoJSON(features, {
+            pointToLayer: (_, latlng) => L.circleMarker(latlng, {
+                radius: 8,
+                color: '#175cd3',
+                weight: 2,
+                fillColor: '#175cd3',
+                fillOpacity: 0.35,
+            }),
+            style: () => ({
+                color: '#175cd3',
+                weight: 3,
+                opacity: 0.9,
+                fillColor: '#175cd3',
+                fillOpacity: 0.15,
+            }),
+            onEachFeature: (feature, featureLayer) => {
+                const rows = Object.entries(feature.properties || {})
+                    .filter(([, value]) => value !== null && value !== '')
+                    .map(([key, value]) => '<div class="row"><span class="key">' + escapeHtml(key) + '</span><span class="value">' + escapeHtml(typeof value === 'object' ? JSON.stringify(value) : String(value)) + '</span></div>')
+                    .join('');
+                const distance = feature.distance_m != null
+                    ? '<div class="row"><span class="key">المسافة</span><span class="value">' + Number(feature.distance_m).toFixed(2) + ' م</span></div>'
+                    : '';
+                featureLayer.bindPopup('<div class="map-popup"><h4>نتيجة التحليل</h4>' + distance + rows + '</div>', { maxWidth: 380 });
+            },
+        }).addTo(state.analysisLayer);
+
+        if (fit && layer.getLayers().length) {
+            const bounds = layer.getBounds();
+            if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
+        }
+
+        return layer;
+    };
+
+    const loadGisFields = async () => {
+        const datasetId = gisToolsDataset?.value;
+        if (!datasetId || !gisToolsField) return;
+        gisToolsField.innerHTML = '<option value="">جاري تحميل الحقول...</option>';
+        gisToolsField.disabled = true;
+        try {
+            const response = await fetch('/datasets/' + datasetId + '/fields/data');
+            if (!response.ok) throw new Error('تعذر تحميل حقول الطبقة.');
+            const data = await response.json();
+            const fields = data.data || [];
+            gisToolsField.innerHTML = '<option value="">اختر الحقل</option>' +
+                fields.map(field => '<option value="' + escapeHtml(field.name) + '">' + escapeHtml(field.display_name || field.name) + '</option>').join('');
+            gisToolsField.disabled = fields.length === 0;
+            if (!fields.length) setGisToolsStatus('هذه الطبقة لا تحتوي حقولاً ديناميكية.');
+        } catch (error) {
+            gisToolsField.innerHTML = '<option value="">تعذر تحميل الحقول</option>';
+            setGisToolsStatus(error.message || 'تعذر تحميل الحقول.');
+        }
+    };
+
+    const getSpatialPoint = () => {
+        if (Number.isFinite(state.spatialPick.lat) && Number.isFinite(state.spatialPick.lng)) {
+            return { lat: state.spatialPick.lat, lng: state.spatialPick.lng };
+        }
+        const center = map.getCenter();
+        return { lat: center.lat, lng: center.lng };
+    };
+
+    const setSpatialPickMode = (enabled) => {
+        state.spatialPick.active = enabled;
+        if (gisRadiusPick) gisRadiusPick.textContent = enabled ? 'اضغط على الخريطة' : 'اختر نقطة';
+        if (enabled) {
+            setGisToolsStatus('اضغط على الخريطة لتحديد نقطة البحث.');
+        } else {
+            setGisToolsStatus('تم تحديد نقطة البحث.');
+        }
+    };
+
+    const runAttributeQuery = async () => {
+        const datasetId = gisToolsDataset?.value;
+        const field = gisToolsField?.value;
+        const value = gisToolsValue?.value?.trim();
+        if (!datasetId || !field || !value) {
+            setGisToolsStatus('اختر الطبقة والحقل وأدخل قيمة البحث.');
+            return;
+        }
+
+        setGisToolsStatus('جاري البحث في خصائص الطبقة...');
+        try {
+            const params = new URLSearchParams({
+                field,
+                operator: gisToolsOperator?.value || 'contains',
+                value,
+            });
+            const response = await fetch('/datasets/' + datasetId + '/features/query?' + params.toString());
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'تعذر تنفيذ البحث.');
+            renderAnalysisResults(data);
+            setGisToolsStatus('عدد النتائج: ' + (data.meta?.total ?? data.features?.length ?? 0));
+        } catch (error) {
+            setGisToolsStatus(error.message || 'تعذر تنفيذ البحث.');
+        }
+    };
+
+    const runBboxSearch = async () => {
+        const datasetId = gisToolsDataset?.value;
+        if (!datasetId) {
+            setGisToolsStatus('اختر الطبقة أولاً.');
+            return;
+        }
+
+        const bounds = map.getBounds();
+        const params = new URLSearchParams({
+            bbox: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(','),
+            per_page: '500',
+        });
+        setGisToolsStatus('جاري البحث داخل نطاق الخريطة...');
+        try {
+            const response = await fetch('/datasets/' + datasetId + '/features?' + params.toString());
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'تعذر تنفيذ البحث المكاني.');
+            renderAnalysisResults(data, false);
+            setGisToolsStatus('عدد النتائج داخل الشاشة: ' + (data.meta?.total ?? data.features?.length ?? 0));
+        } catch (error) {
+            setGisToolsStatus(error.message || 'تعذر تنفيذ البحث المكاني.');
+        }
+    };
+
+    const runNearestSearch = async (withRadius = false) => {
+        const datasetId = gisToolsDataset?.value;
+        if (!datasetId) {
+            setGisToolsStatus('اختر الطبقة أولاً.');
+            return;
+        }
+
+        const point = getSpatialPoint();
+        const params = new URLSearchParams({
+            lat: point.lat,
+            lng: point.lng,
+            limit: '1',
+        });
+        if (withRadius) {
+            const radius = Number(gisRadius?.value);
+            if (!Number.isFinite(radius) || radius <= 0) {
+                setGisToolsStatus('أدخل نصف قطر صحيح بالمتر.');
+                return;
+            }
+            params.set('radius', String(radius));
+        }
+
+        setGisToolsStatus('جاري البحث عن أقرب معلم...');
+        try {
+            const response = await fetch('/datasets/' + datasetId + '/features/nearest?' + params.toString());
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'تعذر تنفيذ البحث عن أقرب معلم.');
+            renderAnalysisResults(data);
+            if (!data.features?.length) {
+                setGisToolsStatus(withRadius ? 'لا يوجد معلم داخل نصف القطر المحدد.' : 'لا توجد معالم في الطبقة.');
+                return;
+            }
+            setGisToolsStatus('أقرب معلم: ' + Number(data.features[0].distance_m || 0).toFixed(2) + ' متر.');
+        } catch (error) {
+            setGisToolsStatus(error.message || 'تعذر تنفيذ البحث عن أقرب معلم.');
+        }
+    };
+
+    const startMeasurement = (type) => {
+        if (state.measurement.active) return;
+        state.measurement.active = true;
+        state.measurement.type = type;
+        setGisToolsStatus(type === 'distance'
+            ? 'ارسم خط القياس على الخريطة.'
+            : 'ارسم مضلع القياس على الخريطة، ثم أغلقه.');
+        const options = { shapeOptions: { color: '#175cd3', weight: 3, fillOpacity: 0.15 } };
+        const handler = type === 'distance'
+            ? new L.Draw.Polyline(map, options)
+            : new L.Draw.Polygon(map, options);
+        handler.enable();
+    };
+
+    const handleMeasurementCreated = async (event) => {
+        const type = state.measurement.type;
+        state.measurement.active = false;
+        state.measurement.type = null;
+
+        const geometryType = event.layerType === 'polyline' ? 'LineString' : 'Polygon';
+        const geometry = {
+            type: geometryType,
+            coordinates: geometryCoordinatesFromLayer(event.layer, geometryType),
+        };
+
+        const temp = L.geoJSON([geometry], {
+            style: { color: '#175cd3', weight: 3, fillOpacity: 0.12 },
+        }).addTo(state.analysisLayer);
+
+        setGisToolsStatus('جاري حساب القياس...');
+        try {
+            const datasetId = gisToolsDataset?.value;
+            if (!datasetId) throw new Error('اختر الطبقة أولاً لاستخدام أداة القياس.');
+            const response = await fetch('/datasets/' + datasetId + '/features/measure', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({ geometry }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'تعذر حساب القياس.');
+
+            if (type === 'distance') {
+                setGisToolsStatus('المسافة: ' + Number(data.meters || 0).toFixed(2) + ' م — ' + Number(data.kilometers || 0).toFixed(3) + ' كم');
+            } else {
+                setGisToolsStatus('المساحة: ' + Number(data.square_meters || 0).toFixed(2) + ' م² — ' + Number(data.dunums || 0).toFixed(4) + ' دونم — ' + Number(data.square_kilometers || 0).toFixed(6) + ' كم²');
+            }
+        } catch (error) {
+            state.analysisLayer.removeLayer(temp);
+            setGisToolsStatus(error.message || 'تعذر حساب القياس.');
+        }
+    };
+
+    map.on(L.Draw.Event.CREATED, event => {
+        if (state.measurement.active) {
+            handleMeasurementCreated(event);
+            return;
+        }
+    });
+
+    map.on('click', event => {
+        if (!state.spatialPick.active) return;
+        state.spatialPick.lat = event.latlng.lat;
+        state.spatialPick.lng = event.latlng.lng;
+        if (state.spatialPick.marker) map.removeLayer(state.spatialPick.marker);
+        state.spatialPick.marker = L.circleMarker(event.latlng, {
+            radius: 7,
+            color: '#175cd3',
+            weight: 2,
+            fillColor: '#175cd3',
+            fillOpacity: 0.35,
+        }).addTo(map);
+        setSpatialPickMode(false);
+        setGisToolsStatus('نقطة البحث: ' + event.latlng.lat.toFixed(6) + '، ' + event.latlng.lng.toFixed(6));
+    });
+
+    gisToolsDataset?.addEventListener('change', loadGisFields);
+    gisQuerySubmit?.addEventListener('click', runAttributeQuery);
+    gisToolsValue?.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); runAttributeQuery(); } });
+    gisBboxSearch?.addEventListener('click', runBboxSearch);
+    gisNearestSearch?.addEventListener('click', () => runNearestSearch(false));
+    gisRadiusSearch?.addEventListener('click', () => runNearestSearch(true));
+    gisRadiusPick?.addEventListener('click', () => setSpatialPickMode(!state.spatialPick.active));
+    gisMeasureDistance?.addEventListener('click', () => startMeasurement('distance'));
+    gisMeasureArea?.addEventListener('click', () => startMeasurement('area'));
+    document.getElementById('gis-tools-clear')?.addEventListener('click', () => {
+        clearAnalysis();
+        if (state.spatialPick.marker) {
+            map.removeLayer(state.spatialPick.marker);
+            state.spatialPick.marker = null;
+        }
+        state.spatialPick.lat = null;
+        state.spatialPick.lng = null;
+        setSpatialPickMode(false);
+    });
+
     const strings = { loadFailed: mapElement.dataset.msgLoadFailed || 'تعذر تحميل بيانات الخريطة.' };
     const dataUrl = mapElement.dataset.mapDataUrl;
     const labels = {
@@ -992,10 +1286,15 @@ function initMapPage() {
                         const deleteAction = canDelete
                             ? '<button type="button" data-gis-delete-feature class="mt-2 w-full rounded-md border border-danger-300 bg-white px-3 py-2 text-xs font-medium text-danger">حذف المعلم</button>'
                             : '';
+                        const bufferAction = feature.id
+                            ? '<button type="button" data-gis-buffer-feature class="mt-2 w-full rounded-md border border-brand-600 bg-white px-3 py-2 text-xs font-medium text-brand-700">إنشاء Buffer</button>'
+                            : '';
+                        const identifyMeta = '<div class="row"><span class="key">Feature ID</span><span class="value">' + escapeHtml(String(feature.id ?? '—')) + '</span></div>'
+                            + '<div class="row"><span class="key">نوع الهندسة</span><span class="value">' + escapeHtml(feature.geometry?.type || '—') + '</span></div>';
 
-                        featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${rows}${editAction}${deleteAction}</div>`, { maxWidth: 380 });
+                        featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${identifyMeta}${rows}${bufferAction}${editAction}${deleteAction}</div>`, { maxWidth: 380 });
 
-                        if (canEdit || canDelete) {
+                        if (canEdit || canDelete || feature.id) {
                             featureLayer.on('popupopen', event => {
                                 const popupElement = event.popup.getElement();
                                 popupElement?.querySelector('[data-gis-edit-feature]')?.addEventListener('click', () => {
