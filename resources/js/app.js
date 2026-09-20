@@ -875,6 +875,17 @@ function initMapPage() {
     const gisQuerySubmit = document.getElementById('gis-query-submit');
     const gisMeasureDistance = document.getElementById('gis-measure-distance');
     const gisMeasureArea = document.getElementById('gis-measure-area');
+    const gisAnalysisOperation = document.getElementById('gis-analysis-operation');
+    const gisAnalysisDataset = document.getElementById('gis-analysis-dataset');
+    const gisAnalysisTarget = document.getElementById('gis-analysis-target');
+    const gisAnalysisDistance = document.getElementById('gis-analysis-distance');
+    const gisAnalysisDensityOptions = document.getElementById('gis-analysis-density-options');
+    const gisAnalysisCellSize = document.getElementById('gis-analysis-cell-size');
+    const gisAnalysisMinCount = document.getElementById('gis-analysis-min-count');
+    const gisAnalysisRun = document.getElementById('gis-analysis-run');
+    const gisAnalysisClear = document.getElementById('gis-analysis-clear');
+    const gisAnalysisStatus = document.getElementById('gis-analysis-status');
+
 
     const setGisToolsStatus = (message) => {
         if (gisToolsStatus) gisToolsStatus.textContent = message || '';
@@ -921,6 +932,89 @@ function initMapPage() {
         }
 
         return layer;
+    };
+
+    const setGisAnalysisStatus = (message) => {
+        if (gisAnalysisStatus) gisAnalysisStatus.textContent = message || '';
+    };
+
+    const syncGisAnalysisOptions = () => {
+        const operation = gisAnalysisOperation?.value || '';
+        const needsTarget = ['intersection', 'within', 'contains', 'affected_area'].includes(operation);
+        const needsDistance = ['service_area', 'affected_area'].includes(operation);
+        const needsDensity = ['density', 'risk_zone'].includes(operation);
+
+        gisAnalysisTarget?.classList.toggle('hidden', !needsTarget);
+        gisAnalysisDistance?.classList.toggle('hidden', !needsDistance);
+        gisAnalysisDensityOptions?.classList.toggle('hidden', !needsDensity);
+
+        if (needsTarget && gisAnalysisTarget?.value === gisAnalysisDataset?.value) {
+            gisAnalysisTarget.value = '';
+        }
+    };
+
+    const runSpatialAnalysis = async () => {
+        const datasetId = gisAnalysisDataset?.value;
+        const operation = gisAnalysisOperation?.value;
+
+        if (!datasetId || !operation) {
+            setGisAnalysisStatus('اختر نوع التحليل والطبقة المصدر.');
+            return;
+        }
+
+        const needsTarget = ['intersection', 'within', 'contains', 'affected_area'].includes(operation);
+        const needsDistance = ['service_area', 'affected_area'].includes(operation);
+        const needsDensity = ['density', 'risk_zone'].includes(operation);
+
+        if (needsTarget && (!gisAnalysisTarget?.value || gisAnalysisTarget.value === datasetId)) {
+            setGisAnalysisStatus('اختر طبقة مستهدفة مختلفة عن الطبقة المصدر.');
+            return;
+        }
+
+        const payload = { operation };
+        if (needsTarget) payload.target_dataset_id = Number(gisAnalysisTarget.value);
+        if (needsDistance) {
+            const distance = Number(gisAnalysisDistance?.value);
+            if (!Number.isFinite(distance) || distance <= 0) {
+                setGisAnalysisStatus('أدخل مسافة صحيحة بالمتر.');
+                return;
+            }
+            payload.distance_m = distance;
+        }
+        if (needsDensity) {
+            const cellSize = Number(gisAnalysisCellSize?.value);
+            const minCount = Number(gisAnalysisMinCount?.value);
+            if (!Number.isFinite(cellSize) || cellSize < 10 || cellSize > 10000 || !Number.isFinite(minCount) || minCount < 1) {
+                setGisAnalysisStatus('تحقق من حجم الخلية والحد الأدنى للكثافة.');
+                return;
+            }
+            payload.cell_size_m = cellSize;
+            payload.min_count = minCount;
+        }
+
+        setGisAnalysisStatus('جاري تنفيذ التحليل المكاني...');
+        gisAnalysisRun && (gisAnalysisRun.disabled = true);
+
+        try {
+            const response = await fetch('/datasets/' + datasetId + '/analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'تعذر تنفيذ التحليل المكاني.');
+
+            renderAnalysisResults(data);
+            setGisAnalysisStatus('تم التحليل. عدد النتائج: ' + (data.meta?.total ?? data.features?.length ?? 0));
+        } catch (error) {
+            setGisAnalysisStatus(error.message || 'تعذر تنفيذ التحليل المكاني.');
+        } finally {
+            if (gisAnalysisRun) gisAnalysisRun.disabled = false;
+        }
     };
 
     const loadGisFields = async () => {
@@ -1154,6 +1248,10 @@ function initMapPage() {
         setGisToolsStatus('نقطة البحث: ' + event.latlng.lat.toFixed(6) + '، ' + event.latlng.lng.toFixed(6));
     });
 
+    gisAnalysisOperation?.addEventListener('change', syncGisAnalysisOptions);
+    gisAnalysisDataset?.addEventListener('change', syncGisAnalysisOptions);
+    gisAnalysisRun?.addEventListener('click', runSpatialAnalysis);
+    gisAnalysisClear?.addEventListener('click', clearAnalysis);
     gisToolsDataset?.addEventListener('change', loadGisFields);
     gisQuerySubmit?.addEventListener('click', runAttributeQuery);
     gisToolsValue?.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); runAttributeQuery(); } });
