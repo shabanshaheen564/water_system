@@ -664,7 +664,7 @@ function initMapPage() {
         const color = /^#[0-9A-Fa-f]{6}$/.test(checkbox.dataset.color || '') ? checkbox.dataset.color : '#475467';
         const opacity = Math.min(1, Math.max(0, Number(checkbox.dataset.opacity || 1)));
 
-        fetch(`/api/datasets/${datasetId}/features`)
+        fetch(`/datasets/${datasetId}/features`)
             .then(response => { if (!response.ok) throw new Error(strings.loadFailed); return response.json(); })
             .then(data => {
                 const layer = L.geoJSON(data.features || [], {
