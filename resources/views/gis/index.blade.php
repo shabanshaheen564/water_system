@@ -176,7 +176,18 @@
                 </div>
                 <button id="gis-attribute-close" type="button" class="rounded-md px-2 py-1 text-lg text-ink-secondary hover:bg-surface-1" aria-label="إغلاق">×</button>
             </div>
-            <div id="gis-attribute-fields" class="max-h-[60vh] space-y-3 overflow-y-auto px-5 py-4"></div>
+            <div class="px-5 pt-4">
+                <div class="rounded-md border border-border bg-surface-1 p-3">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-semibold text-ink">موقع المعلم</p>
+                            <p id="gis-edit-location-status" class="mt-1 text-[11px] text-ink-secondary">يمكنك تعديل الموقع من الزر.</p>
+                        </div>
+                        <button id="gis-edit-location" type="button" class="shrink-0 rounded-md border border-brand-600 bg-white px-3 py-2 text-xs font-medium text-brand-700">📍 تعديل الموقع</button>
+                    </div>
+                </div>
+            </div>
+            <div id="gis-attribute-fields" class="max-h-[55vh] space-y-3 overflow-y-auto px-5 py-4"></div>
             <p id="gis-attribute-error" class="hidden px-5 pb-3 text-xs text-danger"></p>
             <div class="flex justify-end gap-2 border-t border-border px-5 py-4">
                 <button id="gis-attribute-cancel" type="button" class="rounded-md border border-border-strong bg-white px-4 py-2 text-xs font-medium text-ink">إلغاء</button>
