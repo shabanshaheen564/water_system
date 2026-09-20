@@ -529,6 +529,7 @@ function initMapPage() {
             }
 
             editing.locationEditing = true;
+            editing.editLayer = editing.pointMarker;
             editing.featureLayer.setStyle({ opacity: 0, fillOpacity: 0 });
             attributeModal?.classList.add('hidden');
             attributeModal?.classList.remove('flex');
@@ -541,7 +542,7 @@ function initMapPage() {
                 container.style.minWidth = '230px';
                 container.style.direction = 'rtl';
                 container.innerHTML = `
-                    <div style="font-size:12px;font-weight:600;margin-bottom:6px;">📍 تعديل موقع المعلم</div>
+                    <div style="font-size:12px;font-weight:600;margin-bottom:6px;">تعديل موقع المعلم</div>
                     <div style="font-size:11px;color:#667085;margin-bottom:8px;">اسحب النقطة إلى الموقع الجديد.</div>
                     <button type="button" data-gis-finish-location style="width:100%;padding:7px 10px;border-radius:6px;background:#175cd3;color:#fff;font-size:12px;font-weight:600;">إنهاء تعديل الموقع</button>
                     <button type="button" data-gis-cancel-location style="width:100%;margin-top:5px;padding:7px 10px;border-radius:6px;border:1px solid #d0d5dd;background:#fff;color:#344054;font-size:12px;">إلغاء</button>
@@ -563,6 +564,7 @@ function initMapPage() {
         }
 
         editing.locationEditing = false;
+        editing.editLayer = editing.pointMarker || editing.featureLayer;
 
         if (editing.locationControl) {
             map.removeControl(editing.locationControl);
