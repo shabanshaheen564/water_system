@@ -149,6 +149,133 @@ class GisFeatureController extends Controller
         });
     }
 
+    public function query(Request $request, Dataset $dataset): JsonResponse
+    {
+        if (!$dataset->isSpatial()) {
+            return response()->json(['message' => 'This dataset is not configured as spatial.'], 422);
+        }
+
+        $validated = $request->validate([
+            'field' => ['required', 'string', 'max:100'],
+            'operator' => ['sometimes', 'in:equals,contains'],
+            'value' => ['required', 'string', 'max:500'],
+        ]);
+
+        $field = $dataset->fields()->where('name', $validated['field'])->first();
+        if (!$field) {
+            return response()->json(['message' => 'The selected field does not belong to this dataset.'], 422);
+        }
+
+        $operator = $validated['operator'] ?? 'contains';
+        $value = $validated['value'];
+        $query = GisFeature::where('gis_features.dataset_id', $dataset->id)
+            ->with(['datasetRecord:id,values,identifier_value']);
+
+        if ($operator === 'equals') {
+            $query->whereHas('datasetRecord', function ($records) use ($field, $value) {
+                $records->whereRaw("values->>? = ?", [$field->name, $value]);
+            });
+        } else {
+            $query->whereHas('datasetRecord', function ($records) use ($field, $value) {
+                $records->whereRaw("values->>? ILIKE ?", [$field->name, '%' . $value . '%']);
+            });
+        }
+
+        $features = $query->orderByDesc('gis_features.created_at')->limit(500)->get();
+
+        return response()->json([
+            'type' => 'FeatureCollection',
+            'features' => $features->map(fn ($feature) => $feature->toGeoJsonFeature())->values(),
+            'meta' => ['total' => $features->count(), 'field' => $field->name, 'operator' => $operator, 'value' => $value],
+        ]);
+    }
+
+    public function nearest(Request $request, Dataset $dataset): JsonResponse
+    {
+        if (!$dataset->isSpatial()) {
+            return response()->json(['message' => 'This dataset is not configured as spatial.'], 422);
+        }
+
+        $validated = $request->validate([
+            'lat' => ['required', 'numeric', 'between:-90,90'],
+            'lng' => ['required', 'numeric', 'between:-180,180'],
+            'radius' => ['sometimes', 'numeric', 'min:1', 'max:1000000'],
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $lat = (float) $validated['lat'];
+        $lng = (float) $validated['lng'];
+        $radius = isset($validated['radius']) ? (float) $validated['radius'] : null;
+        $limit = (int) ($validated['limit'] ?? 1);
+        $datasetSrid = (int) ($dataset->srid ?? 4326);
+
+        $distanceExpression = $datasetSrid === 4326
+            ? 'ST_Distance(gis_features.geometry::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography)'
+            : 'ST_Distance(ST_Transform(gis_features.geometry, 4326)::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography)';
+
+        $query = GisFeature::where('gis_features.dataset_id', $dataset->id)
+            ->with(['datasetRecord:id,values,identifier_value'])
+            ->select('gis_features.*')
+            ->selectRaw("{$distanceExpression} as distance_m", [$lng, $lat]);
+
+        if ($radius !== null) {
+            if ($datasetSrid === 4326) {
+                $query->whereRaw('ST_DWithin(gis_features.geometry::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)', [$lng, $lat, $radius]);
+            } else {
+                $query->whereRaw('ST_DWithin(ST_Transform(gis_features.geometry, 4326)::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)', [$lng, $lat, $radius]);
+            }
+        }
+
+        $features = $query->orderBy('distance_m')->limit($limit)->get();
+
+        return response()->json([
+            'type' => 'FeatureCollection',
+            'features' => $features->map(function ($feature) {
+                $geojson = $feature->toGeoJsonFeature();
+                $geojson['distance_m'] = round((float) $feature->distance_m, 2);
+                return $geojson;
+            })->values(),
+            'meta' => ['total' => $features->count(), 'lat' => $lat, 'lng' => $lng, 'radius' => $radius],
+        ]);
+    }
+
+    public function buffer(Request $request, Dataset $dataset): JsonResponse
+    {
+        if (!$dataset->isSpatial()) {
+            return response()->json(['message' => 'This dataset is not configured as spatial.'], 422);
+        }
+
+        $validated = $request->validate([
+            'geometry' => ['required', 'array'],
+            'geometry.type' => ['required', 'string', 'in:Point,LineString,Polygon,MultiPoint,MultiLineString,MultiPolygon'],
+            'geometry.coordinates' => ['required', 'array'],
+            'distance_m' => ['required', 'numeric', 'gt:0', 'max:1000000'],
+        ]);
+
+        $geojson = json_encode([
+            'type' => $validated['geometry']['type'],
+            'coordinates' => $validated['geometry']['coordinates'],
+        ]);
+
+        $result = DB::selectOne(
+            'SELECT ST_AsGeoJSON(ST_Buffer(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)::geography, ?)) as geojson',
+            [$geojson, (float) $validated['distance_m']]
+        );
+
+        if (!$result?->geojson) {
+            return response()->json(['message' => 'تعذر إنشاء نطاق Buffer.'], 422);
+        }
+
+        return response()->json([
+            'type' => 'Feature',
+            'geometry' => json_decode($result->geojson, true),
+            'properties' => [
+                'distance_m' => (float) $validated['distance_m'],
+                'source_dataset_id' => $dataset->id,
+            ],
+        ]);
+    }
+
     public function destroy(Dataset $dataset, GisFeature $feature): JsonResponse
     {
         $this->ensureFeatureBelongsToDataset($dataset, $feature);
