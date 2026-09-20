@@ -69,7 +69,7 @@ class GisImportExportController extends Controller
         session()->put("gis_imports.{$token}", [
             'directory' => $relativeDir,
             'shp' => $info['shp'],
-            'original_filename' => $files->firstWhere(fn ($file) => strtolower($file->getClientOriginalExtension()) === 'shp')->getClientOriginalName(),
+            'original_filename' => $files->first(fn ($file) => strtolower($file->getClientOriginalExtension()) === 'shp')->getClientOriginalName(),
         ]);
 
         return view('datasets.import-preview', compact('token', 'info'));
@@ -176,14 +176,6 @@ class GisImportExportController extends Controller
                             $values[$field['name']] = $this->normalizeImportedValue($raw, $field['data_type']);
                         }
 
-                        $record = DatasetRecord::create([
-                            'dataset_id' => $dataset->id,
-                            'values' => $values,
-                            'identifier_value' => $this->identifierValue($values),
-                            'created_by' => auth()->id(),
-                            'updated_by' => auth()->id(),
-                        ]);
-
                         $valid = DB::selectOne(
                             'SELECT ST_IsValid(ST_GeomFromText(?, ?)) AS valid, ST_GeometryType(ST_GeomFromText(?, ?)) AS geometry_type',
                             [$wkt, $dataset->srid, $wkt, $dataset->srid]
@@ -193,6 +185,14 @@ class GisImportExportController extends Controller
                         if (!$valid->valid || $valid->geometry_type !== $expected) {
                             throw new \RuntimeException('Geometry غير صالح أو لا يطابق نوع الطبقة.');
                         }
+
+                        $record = DatasetRecord::create([
+                            'dataset_id' => $dataset->id,
+                            'values' => $values,
+                            'identifier_value' => $this->identifierValue($values),
+                            'created_by' => auth()->id(),
+                            'updated_by' => auth()->id(),
+                        ]);
 
                         DB::insert(
                             'INSERT INTO gis_features (dataset_record_id, dataset_id, geometry, geometry_type, srid, created_at, updated_at)
@@ -326,7 +326,7 @@ class GisImportExportController extends Controller
         );
 
         foreach ($rows as $row) {
-            $geometry = $this->geometryObjectForType($dataset->geometry_type);
+            $geometry = $this->geometryObjectForWkt($row->wkt, $dataset->geometry_type);
             $geometry->initFromWKT($row->wkt);
             $record = DatasetRecord::find($row->dataset_record_id);
             foreach ($fieldMap as $original => $exportName) {
@@ -498,6 +498,21 @@ class GisImportExportController extends Controller
             'Polygon' => Shapefile::SHAPE_TYPE_POLYGON,
             'MultiPolygon' => Shapefile::SHAPE_TYPE_POLYGON,
             default => abort(422, 'نوع Geometry غير مدعوم للتصدير.'),
+        };
+    }
+
+    private function geometryObjectForWkt(string $wkt, string $datasetGeometryType): object
+    {
+        $upper = strtoupper(ltrim($wkt));
+
+        return match (true) {
+            str_starts_with($upper, 'MULTIPOINT') => new MultiPoint(),
+            str_starts_with($upper, 'MULTILINESTRING') => new MultiLinestring(),
+            str_starts_with($upper, 'MULTIPOLYGON') => new MultiPolygon(),
+            str_starts_with($upper, 'POINT') => new Point(0, 0),
+            str_starts_with($upper, 'LINESTRING') => new Linestring(),
+            str_starts_with($upper, 'POLYGON') => new Polygon(),
+            default => $this->geometryObjectForType($datasetGeometryType),
         };
     }
 
