@@ -1597,4 +1597,127 @@ GisFeature::create([
     }
 
 
+    protected function createAnalysisDataset(string $name, string $geometryType): Dataset
+    {
+        return Dataset::create([
+            'name' => $name,
+            'display_name' => ucfirst($name),
+            'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
+            'is_spatial' => true,
+            'geometry_type' => $geometryType,
+            'srid' => 4326,
+            'created_by' => $this->admin->id,
+        ]);
+    }
+
+    public function test_web_spatial_analysis_intersection_returns_intersection_geometry(): void
+    {
+        $source = $this->createAnalysisDataset('analysis_points', 'Point');
+        $target = $this->createAnalysisDataset('analysis_zone', 'Polygon');
+
+        $sourceRecord = $this->createRecord($source);
+        $targetRecord = DatasetRecord::create([
+            'dataset_id' => $target->id,
+            'values' => ['zone_id' => 'Z-001'],
+            'identifier_value' => 'Z-001',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $this->withHeaders(['Authorization' => 'Bearer ' . $this->adminToken])
+            ->postJson("/api/datasets/{$source->id}/features", [
+                'dataset_record_id' => $sourceRecord->id,
+                'geometry' => ['type' => 'Point', 'coordinates' => [34.368, 31.417]],
+            ])->assertCreated();
+
+        $this->withHeaders(['Authorization' => 'Bearer ' . $this->adminToken])
+            ->postJson("/api/datasets/{$target->id}/features", [
+                'dataset_record_id' => $targetRecord->id,
+                'geometry' => ['type' => 'Polygon', 'coordinates' => [[
+                    [34.36, 31.41], [34.38, 31.41], [34.38, 31.43], [34.36, 31.43], [34.36, 31.41],
+                ]]],
+            ])->assertCreated();
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/datasets/{$source->id}/analysis", [
+                'operation' => 'intersection',
+                'target_dataset_id' => $target->id,
+            ])
+            ->assertOk();
+
+        $response->assertJsonPath('meta.operation', 'intersection');
+        $this->assertGreaterThan(0, $response->json('meta.total'));
+    }
+
+    public function test_web_spatial_analysis_service_area_returns_polygon(): void
+    {
+        $dataset = $this->createAnalysisDataset('service_points', 'Point');
+        $record = $this->createRecord($dataset);
+
+        $this->withHeaders(['Authorization' => 'Bearer ' . $this->adminToken])
+            ->postJson("/api/datasets/{$dataset->id}/features", [
+                'dataset_record_id' => $record->id,
+                'geometry' => ['type' => 'Point', 'coordinates' => [34.368, 31.417]],
+            ])->assertCreated();
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/datasets/{$dataset->id}/analysis", [
+                'operation' => 'service_area',
+                'distance_m' => 500,
+            ])
+            ->assertOk();
+
+        $response->assertJsonPath('features.0.geometry.type', 'Polygon');
+        $this->assertSame(1, $response->json('meta.total'));
+    }
+
+    public function test_web_spatial_analysis_density_returns_counts(): void
+    {
+        $dataset = $this->createAnalysisDataset('density_points', 'Point');
+
+        foreach ([
+            [34.368, 31.417],
+            [34.3685, 31.4175],
+            [34.369, 31.418],
+        ] as $index => $coordinates) {
+            $record = DatasetRecord::create([
+                'dataset_id' => $dataset->id,
+                'values' => ['well_id' => 'D-' . ($index + 1)],
+                'identifier_value' => 'D-' . ($index + 1),
+                'created_by' => $this->admin->id,
+            ]);
+
+            $this->withHeaders(['Authorization' => 'Bearer ' . $this->adminToken])
+                ->postJson("/api/datasets/{$dataset->id}/features", [
+                    'dataset_record_id' => $record->id,
+                    'geometry' => ['type' => 'Point', 'coordinates' => $coordinates],
+                ])->assertCreated();
+        }
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/datasets/{$dataset->id}/analysis", [
+                'operation' => 'density',
+                'cell_size_m' => 500,
+                'min_count' => 1,
+            ])
+            ->assertOk();
+
+        $response->assertJsonPath('meta.operation', 'density');
+        $this->assertGreaterThan(0, $response->json('meta.total'));
+        $this->assertNotNull($response->json('features.0.properties.feature_count'));
+    }
+
+    public function test_web_spatial_analysis_requires_dataset_view_permission(): void
+    {
+        $user = User::factory()->create();
+        $dataset = $this->createAnalysisDataset('protected_analysis', 'Point');
+
+        $this->actingAs($user)
+            ->postJson("/datasets/{$dataset->id}/analysis", [
+                'operation' => 'service_area',
+                'distance_m' => 100,
+            ])
+            ->assertForbidden();
+    }
+
 }
