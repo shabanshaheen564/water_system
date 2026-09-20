@@ -67,6 +67,10 @@ class GisFeature extends Model
         return [
             'type' => 'Feature',
             'id' => $this->id,
+            'dataset_id' => $this->dataset_id,
+            'dataset_record_id' => $this->dataset_record_id,
+            'geometry_type' => $this->geometry_type,
+            'srid' => $storedSrid,
             'geometry' => $geojson,
             'properties' => $properties,
         ];
