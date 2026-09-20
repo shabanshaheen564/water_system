@@ -68,7 +68,7 @@
 </style>
 
 <div class="map-shell">
-    <div id="map" data-operational-map="true" data-map-data-url="{{ route('map.data') }}" data-map-url="{{ url('/map') }}" data-msg-load-failed="تعذر تحميل بيانات الخريطة." data-satellite-layer-label="صورة جوية / ستالايت">
+    <div id="map" data-operational-map="true" data-can-edit-gis="{{ auth()->user()->can('datasets.update') ? '1' : '0' }}" data-map-data-url="{{ route('map.data') }}" data-map-url="{{ url('/map') }}" data-msg-load-failed="تعذر تحميل بيانات الخريطة." data-satellite-layer-label="صورة جوية / ستالايت">
         <span class="sr-only">الخريطة التفاعلية</span>
     </div>
 
@@ -142,6 +142,7 @@
                             <input type="checkbox" class="dataset-toggle h-4 w-4 rounded border-border-strong text-brand-600"
        data-dataset-id="{{ $dataset->id }}"
        data-geometry-type="{{ $dataset->geometry_type }}"
+       data-management-mode="{{ $dataset->management_mode }}"
        data-opacity="{{ $dataset->map_opacity }}"
        data-color="{{ $dataset->display_color }}"
        {{ $dataset->default_visible ? 'checked' : '' }}>
@@ -170,7 +171,7 @@
         <div class="w-full max-w-lg rounded-xl border border-border bg-white shadow-xl">
             <div class="flex items-center justify-between border-b border-border px-5 py-4">
                 <div>
-                    <h3 class="text-sm font-semibold text-ink">خصائص المعلم</h3>
+                    <h3 id="gis-attribute-title" class="text-sm font-semibold text-ink">خصائص المعلم</h3>
                     <p id="gis-attribute-dataset-name" class="mt-1 text-xs text-ink-secondary"></p>
                 </div>
                 <button id="gis-attribute-close" type="button" class="rounded-md px-2 py-1 text-lg text-ink-secondary hover:bg-surface-1" aria-label="إغلاق">×</button>
