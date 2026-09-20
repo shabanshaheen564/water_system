@@ -247,33 +247,31 @@ class GisFeatureController extends Controller
 
         $validated = $request->validate([
             'geometry' => ['required', 'array'],
-            'geometry.type' => ['required', 'string', 'in:Point,LineString,Polygon,MultiPoint,MultiLineString,MultiPolygon'],
+            'geometry.type' => ['required', 'string', 'in:LineString,MultiLineString,Polygon,MultiPolygon'],
             'geometry.coordinates' => ['required', 'array'],
         ]);
 
         $geojson = json_encode([
             'type' => $validated['geometry']['type'],
             'coordinates' => $validated['geometry']['coordinates'],
-        ]);
+        ], JSON_THROW_ON_ERROR);
 
-        $result = DB::selectOne(
-            "SELECT
-                ST_GeometryType(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)) as geometry_type,
-                CASE
-                    WHEN ST_GeometryType(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)) IN ('ST_LineString', 'ST_MultiLineString')
-                        THEN ST_Length(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)::geography)
-                    WHEN ST_GeometryType(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)) IN ('ST_Polygon', 'ST_MultiPolygon')
-                        THEN ST_Area(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)::geography)
-                    ELSE 0
-                END as value_meters",
-            [$geojson, $geojson, $geojson, $geojson, $geojson]
-        );
+        $geometryType = $validated['geometry']['type'];
+        $isArea = in_array($geometryType, ['Polygon', 'MultiPolygon'], true);
 
+        $sql = $isArea
+            ? 'SELECT ST_Area(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)::geography) as value_meters'
+            : 'SELECT ST_Length(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)::geography) as value_meters';
+
+        $result = DB::selectOne($sql, [$geojson]);
         $value = (float) ($result->value_meters ?? 0);
-        $isArea = in_array($validated['geometry']['type'], ['Polygon', 'MultiPolygon'], true);
+
+        if ($value <= 0) {
+            return response()->json(['message' => 'تعذر حساب قياس هندسي صالح لهذه الرسمة.'], 422);
+        }
 
         return response()->json([
-            'geometry_type' => $validated['geometry']['type'],
+            'geometry_type' => $geometryType,
             'measurement_type' => $isArea ? 'area' : 'distance',
             'meters' => $isArea ? null : round($value, 3),
             'kilometers' => $isArea ? null : round($value / 1000, 6),
