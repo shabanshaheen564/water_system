@@ -160,10 +160,14 @@ class GisAnalysisController extends Controller
                 ) AS geom
                 FROM gis_features WHERE dataset_id = ?
             ),
-            cells AS (
-                SELECT ST_SnapToGrid(geom, ?) AS cell, COUNT(*)::integer AS feature_count
+            snapped AS (
+                SELECT ST_SnapToGrid(geom, ?) AS cell
                 FROM points
-                GROUP BY ST_SnapToGrid(geom, ?)
+            ),
+            cells AS (
+                SELECT cell, COUNT(*)::integer AS feature_count
+                FROM snapped
+                GROUP BY cell
             )
             SELECT ST_AsGeoJSON(
                        ST_Transform(
