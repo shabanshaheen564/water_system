@@ -92,6 +92,59 @@
             <div id="map-place-search-results" class="mt-2 max-h-56 overflow-y-auto rounded-md border border-border bg-white"></div>
         </div>
 
+        @can('datasets.view')
+            <div class="mt-3 rounded-md border border-border bg-surface-1 p-3">
+                <div class="flex items-center justify-between gap-2">
+                    <div>
+                        <h3 class="text-xs font-semibold text-ink">أدوات GIS</h3>
+                        <p class="mt-0.5 text-[11px] text-ink-secondary">بحث مكاني، قياس، Buffer وأقرب معلم</p>
+                    </div>
+                    <button id="gis-tools-clear" type="button" class="rounded-md border border-border-strong bg-white px-2 py-1 text-[11px] text-ink">مسح</button>
+                </div>
+
+                <div class="mt-3 space-y-2">
+                    <select id="gis-query-dataset" class="w-full rounded-md border border-border-strong bg-white px-2 py-2 text-xs">
+                        <option value="">اختر الطبقة</option>
+                        @foreach($spatialDatasets as $dataset)
+                            <option value="{{ $dataset->id }}" data-geometry-type="{{ $dataset->geometry_type }}">{{ $dataset->display_name }}</option>
+                        @endforeach
+                    </select>
+
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <select id="gis-query-field" class="min-w-0 rounded-md border border-border-strong bg-white px-2 py-2 text-xs" disabled>
+                            <option value="">اختر الحقل</option>
+                        </select>
+                        <select id="gis-query-operator" class="rounded-md border border-border-strong bg-white px-2 py-2 text-xs">
+                            <option value="contains">يحتوي</option>
+                            <option value="equals">يساوي</option>
+                        </select>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <input id="gis-query-value" type="search" placeholder="قيمة البحث..." class="min-w-0 flex-1 rounded-md border border-border-strong bg-white px-3 py-2 text-xs">
+                        <button id="gis-query-submit" type="button" class="rounded-md bg-brand-600 px-3 py-2 text-xs font-medium text-white">بحث</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="gis-bbox-search" type="button" class="rounded-md border border-border-strong bg-white px-2 py-2 text-xs font-medium text-ink">بحث داخل الشاشة</button>
+                        <button id="gis-nearest-search" type="button" class="rounded-md border border-border-strong bg-white px-2 py-2 text-xs font-medium text-ink">أقرب معلم</button>
+                    </div>
+
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <input id="gis-radius" type="number" min="1" step="1" value="500" class="rounded-md border border-border-strong bg-white px-3 py-2 text-xs" placeholder="نصف القطر بالمتر">
+                        <button id="gis-radius-pick" type="button" class="rounded-md border border-brand-600 bg-white px-3 py-2 text-xs font-medium text-brand-700">اختر نقطة</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="gis-measure-distance" type="button" class="rounded-md border border-border-strong bg-white px-2 py-2 text-xs font-medium text-ink">قياس مسافة</button>
+                        <button id="gis-measure-area" type="button" class="rounded-md border border-border-strong bg-white px-2 py-2 text-xs font-medium text-ink">قياس مساحة</button>
+                    </div>
+
+                    <p id="gis-tools-status" class="min-h-5 text-[11px] leading-5 text-ink-secondary"></p>
+                </div>
+            </div>
+        @endcan
+
         <div id="map-filter" class="map-filter mt-3 border-y border-border py-3">
             <label class="mb-2 block text-xs font-medium text-ink-secondary">بحث</label>
             <input id="map-search" type="search" placeholder="رقم الشكوى، المهمة، العنوان..." class="w-full rounded-md border border-border-strong bg-white px-3 py-2 text-sm outline-none focus:border-brand-600">
