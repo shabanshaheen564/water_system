@@ -239,6 +239,50 @@ class GisFeatureController extends Controller
         ]);
     }
 
+    public function measure(Request $request, Dataset $dataset): JsonResponse
+    {
+        if (!$dataset->isSpatial()) {
+            return response()->json(['message' => 'This dataset is not configured as spatial.'], 422);
+        }
+
+        $validated = $request->validate([
+            'geometry' => ['required', 'array'],
+            'geometry.type' => ['required', 'string', 'in:Point,LineString,Polygon,MultiPoint,MultiLineString,MultiPolygon'],
+            'geometry.coordinates' => ['required', 'array'],
+        ]);
+
+        $geojson = json_encode([
+            'type' => $validated['geometry']['type'],
+            'coordinates' => $validated['geometry']['coordinates'],
+        ]);
+
+        $result = DB::selectOne(
+            "SELECT
+                ST_GeometryType(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)) as geometry_type,
+                CASE
+                    WHEN ST_GeometryType(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)) IN ('ST_LineString', 'ST_MultiLineString')
+                        THEN ST_Length(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)::geography)
+                    WHEN ST_GeometryType(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)) IN ('ST_Polygon', 'ST_MultiPolygon')
+                        THEN ST_Area(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)::geography)
+                    ELSE 0
+                END as value_meters",
+            [$geojson, $geojson, $geojson, $geojson, $geojson]
+        );
+
+        $value = (float) ($result->value_meters ?? 0);
+        $isArea = in_array($validated['geometry']['type'], ['Polygon', 'MultiPolygon'], true);
+
+        return response()->json([
+            'geometry_type' => $validated['geometry']['type'],
+            'measurement_type' => $isArea ? 'area' : 'distance',
+            'meters' => $isArea ? null : round($value, 3),
+            'kilometers' => $isArea ? null : round($value / 1000, 6),
+            'square_meters' => $isArea ? round($value, 3) : null,
+            'square_kilometers' => $isArea ? round($value / 1000000, 6) : null,
+            'dunums' => $isArea ? round($value / 1000, 6) : null,
+        ]);
+    }
+
     public function buffer(Request $request, Dataset $dataset): JsonResponse
     {
         if (!$dataset->isSpatial()) {
