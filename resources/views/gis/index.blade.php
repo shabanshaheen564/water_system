@@ -146,6 +146,47 @@
             </div>
         @endcan
 
+        <div class="mt-3 rounded-md border border-border bg-surface-1 p-3">
+            <div class="flex items-center justify-between gap-2">
+                <div>
+                    <h3 class="text-xs font-semibold text-ink">التحليل المكاني</h3>
+                    <p class="mt-0.5 text-[11px] text-ink-secondary">تقاطع، احتواء، مناطق خدمة، كثافة ومناطق تأثير</p>
+                </div>
+                <button id="gis-analysis-clear" type="button" class="rounded-md border border-border-strong bg-white px-2 py-1 text-[11px] text-ink">مسح</button>
+            </div>
+            <div class="mt-3 space-y-2">
+                <select id="gis-analysis-operation" class="w-full rounded-md border border-border-strong bg-white px-2 py-2 text-xs">
+                    <option value="">اختر نوع التحليل</option>
+                    <option value="intersection">Spatial Intersection — تقاطع مكاني</option>
+                    <option value="within">Within — داخل</option>
+                    <option value="contains">Contains — يحتوي</option>
+                    <option value="service_area">Service Area — نطاق خدمة</option>
+                    <option value="affected_area">Affected Area — منطقة متأثرة</option>
+                    <option value="density">Density / Heatmap — كثافة</option>
+                    <option value="risk_zone">Risk Zone — منطقة خطورة</option>
+                </select>
+                <select id="gis-analysis-dataset" class="w-full rounded-md border border-border-strong bg-white px-2 py-2 text-xs">
+                    <option value="">اختر الطبقة المصدر</option>
+                    @foreach($spatialDatasets as $dataset)
+                        <option value="{{ $dataset->id }}">{{ $dataset->display_name }}</option>
+                    @endforeach
+                </select>
+                <select id="gis-analysis-target" class="hidden w-full rounded-md border border-border-strong bg-white px-2 py-2 text-xs">
+                    <option value="">اختر الطبقة المستهدفة</option>
+                    @foreach($spatialDatasets as $dataset)
+                        <option value="{{ $dataset->id }}">{{ $dataset->display_name }}</option>
+                    @endforeach
+                </select>
+                <input id="gis-analysis-distance" type="number" min="1" step="1" value="500" placeholder="مسافة التحليل بالمتر" class="hidden w-full rounded-md border border-border-strong bg-white px-3 py-2 text-xs">
+                <div id="gis-analysis-density-options" class="hidden grid grid-cols-2 gap-2">
+                    <input id="gis-analysis-cell-size" type="number" min="10" max="10000" step="10" value="250" placeholder="حجم الخلية بالمتر" class="rounded-md border border-border-strong bg-white px-3 py-2 text-xs">
+                    <input id="gis-analysis-min-count" type="number" min="1" step="1" value="2" placeholder="الحد الأدنى" class="rounded-md border border-border-strong bg-white px-3 py-2 text-xs">
+                </div>
+                <button id="gis-analysis-run" type="button" class="w-full rounded-md bg-brand-600 px-3 py-2 text-xs font-medium text-white">تشغيل التحليل</button>
+                <p id="gis-analysis-status" class="min-h-5 text-[11px] leading-5 text-ink-secondary"></p>
+            </div>
+        </div>
+
         <div id="map-filter" class="map-filter mt-3 border-y border-border py-3">
             <label class="mb-2 block text-xs font-medium text-ink-secondary">بحث</label>
             <input id="map-search" type="search" placeholder="رقم الشكوى، المهمة، العنوان..." class="w-full rounded-md border border-border-strong bg-white px-3 py-2 text-sm outline-none focus:border-brand-600">
