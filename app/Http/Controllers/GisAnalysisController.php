@@ -167,24 +167,26 @@ class GisAnalysisController extends Controller
             )
             SELECT ST_AsGeoJSON(
                        ST_Transform(
-                           ST_Envelope(ST_Collect(
-                               ST_Transform(cell, 4326)
-                           )), 4326
+                           ST_MakeEnvelope(
+                               ST_X(cell),
+                               ST_Y(cell),
+                               ST_X(cell) + ?,
+                               ST_Y(cell) + ?,
+                               3857
+                           ), 4326
                        )
                    ) AS geojson,
-                   feature_count,
-                   ST_AsGeoJSON(ST_Transform(ST_Centroid(cell), 4326)) AS center_geojson
+                   feature_count
             FROM cells
             WHERE feature_count >= ?
             LIMIT {$limit}",
-            [$dataset->id, $cellSize, $cellSize, $minCount]
+            [$dataset->id, $cellSize, $cellSize, $cellSize, $minCount]
         );
 
         $features = collect($rows)->map(function ($row) use ($dataset, $cellSize, $riskOnly) {
-            $center = json_decode($row->center_geojson, true);
             return [
                 'type' => 'Feature',
-                'geometry' => $center,
+                'geometry' => json_decode($row->geojson, true),
                 'properties' => [
                     'analysis' => $riskOnly ? 'risk_zone' : 'density',
                     'source_dataset_id' => $dataset->id,
