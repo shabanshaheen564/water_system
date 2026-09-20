@@ -33,6 +33,8 @@ class GisFeatureTest extends TestCase
         $this->admin->givePermissionTo($permission);
         $permission = Permission::where('name', 'datasets.update')->first();
         $this->admin->givePermissionTo($permission);
+        $permission = Permission::where('name', 'datasets.delete')->first();
+        $this->admin->givePermissionTo($permission);
 
         $this->adminToken = $this->admin->createToken('mobile-app')->plainTextToken;
 
@@ -943,6 +945,78 @@ GisFeature::create([
                 'geometry' => ['type' => 'Point', 'coordinates' => [34.4671, 31.5329]],
             ])
             ->assertForbidden();
+    }
+
+    public function test_web_editable_feature_can_be_deleted(): void
+    {
+        $dataset = $this->createSpatialDataset();
+        $record = $this->createRecord($dataset);
+        $feature = GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.4668,31.5326]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/datasets/{$dataset->id}/features/{$feature->id}")
+            ->assertOk()
+            ->assertJsonPath('message', 'GIS feature deleted successfully.');
+
+        $this->assertDatabaseMissing('gis_features', ['id' => $feature->id]);
+        $this->assertDatabaseHas('dataset_records', ['id' => $record->id]);
+    }
+
+    public function test_official_dataset_rejects_web_feature_delete(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'official_delete_test',
+            'display_name' => 'Official Delete Test',
+            'dataset_type' => 'official_layer',
+            'management_mode' => 'official',
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $record = $this->createRecord($dataset);
+        $feature = GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.4668,31.5326]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/datasets/{$dataset->id}/features/{$feature->id}")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('gis_features', ['id' => $feature->id]);
+    }
+
+    public function test_web_feature_delete_requires_dataset_delete_permission(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(Permission::where('name', 'datasets.view')->first());
+
+        $dataset = $this->createSpatialDataset();
+        $record = $this->createRecord($dataset);
+        $feature = GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.4668,31.5326]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $this->actingAs($user)
+            ->deleteJson("/datasets/{$dataset->id}/features/{$feature->id}")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('gis_features', ['id' => $feature->id]);
     }
 
     // Spatial Index Verification (metadata check)
