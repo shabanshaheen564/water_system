@@ -491,11 +491,87 @@ function initMapPage() {
             map.removeLayer(editing.pointMarker);
         }
 
+        if (editing.locationControl) {
+            map.removeControl(editing.locationControl);
+            editing.locationControl = null;
+        }
+
         if (editing.featureLayer && editing.originalStyle) {
             editing.featureLayer.setStyle(editing.originalStyle);
         }
 
         state.editingFeature = null;
+    };
+
+    const setFeatureLocationMode = (editing, enabled) => {
+        if (!editing || editing.geometryType !== 'Point') return;
+
+        if (enabled) {
+            if (!editing.pointMarker) {
+                const latLng = editing.featureLayer.getLatLng();
+                editing.pointMarker = L.marker(latLng, {
+                    draggable: true,
+                    title: 'اسحب النقطة إلى الموقع الجديد'
+                }).addTo(map);
+
+                editing.pointMarker.on('dragstart', () => {
+                    if (editing.locationStatus) {
+                        editing.locationStatus.textContent = 'اسحب النقطة إلى الموقع المطلوب، ثم اضغط إنهاء تعديل الموقع.';
+                    }
+                });
+
+                editing.pointMarker.on('dragend', () => {
+                    const point = editing.pointMarker.getLatLng();
+                    if (editing.locationStatus) {
+                        editing.locationStatus.textContent = 'تم تحديد موقع جديد: ' + point.lat.toFixed(6) + '، ' + point.lng.toFixed(6);
+                    }
+                });
+            }
+
+            editing.locationEditing = true;
+            editing.featureLayer.setStyle({ opacity: 0, fillOpacity: 0 });
+            attributeModal?.classList.add('hidden');
+            attributeModal?.classList.remove('flex');
+
+            editing.locationControl = L.control({ position: 'topright' });
+            editing.locationControl.onAdd = () => {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                container.style.background = '#fff';
+                container.style.padding = '10px';
+                container.style.minWidth = '230px';
+                container.style.direction = 'rtl';
+                container.innerHTML = `
+                    <div style="font-size:12px;font-weight:600;margin-bottom:6px;">📍 تعديل موقع المعلم</div>
+                    <div style="font-size:11px;color:#667085;margin-bottom:8px;">اسحب النقطة إلى الموقع الجديد.</div>
+                    <button type="button" data-gis-finish-location style="width:100%;padding:7px 10px;border-radius:6px;background:#175cd3;color:#fff;font-size:12px;font-weight:600;">إنهاء تعديل الموقع</button>
+                    <button type="button" data-gis-cancel-location style="width:100%;margin-top:5px;padding:7px 10px;border-radius:6px;border:1px solid #d0d5dd;background:#fff;color:#344054;font-size:12px;">إلغاء</button>
+                `;
+
+                L.DomEvent.disableClickPropagation(container);
+                L.DomEvent.on(container.querySelector('[data-gis-finish-location]'), 'click', () => setFeatureLocationMode(editing, false));
+                L.DomEvent.on(container.querySelector('[data-gis-cancel-location]'), 'click', () => {
+                    const originalPoint = editing.featureLayer.getLatLng();
+                    editing.pointMarker?.setLatLng(originalPoint);
+                    setFeatureLocationMode(editing, false);
+                });
+                return container;
+            };
+            editing.locationControl.addTo(map);
+
+            map.setView(editing.pointMarker.getLatLng(), Math.max(map.getZoom(), 17));
+            return;
+        }
+
+        editing.locationEditing = false;
+
+        if (editing.locationControl) {
+            map.removeControl(editing.locationControl);
+            editing.locationControl = null;
+        }
+
+        attributeModal?.classList.remove('hidden');
+        attributeModal?.classList.add('flex');
+        window.setTimeout(() => map.invalidateSize(), 80);
     };
 
     const openFeatureEdit = async (datasetId, feature, featureLayer) => {
@@ -533,10 +609,8 @@ function initMapPage() {
         state.editingFeature = editing;
 
         if (geometryType === 'Point') {
-            const latLng = featureLayer.getLatLng();
-            editing.pointMarker = L.marker(latLng, { draggable: true, title: 'تعديل موقع المعلم' }).addTo(map);
-            featureLayer.setStyle({ opacity: 0, fillOpacity: 0 });
-            editing.editLayer = editing.pointMarker;
+            editing.editLayer = featureLayer;
+            editing.locationEditing = false;
         } else if (featureLayer.editing?.enable) {
             featureLayer.editing.enable();
         } else {
@@ -555,6 +629,21 @@ function initMapPage() {
         }
         document.getElementById('gis-attribute-title')?.replaceChildren(document.createTextNode('تعديل المعلم'));
         if (attributeSave) attributeSave.textContent = 'حفظ التعديل';
+        const locationButton = document.getElementById('gis-edit-location');
+        const locationStatus = document.getElementById('gis-edit-location-status');
+        editing.locationStatus = locationStatus;
+        if (locationButton) {
+            locationButton.disabled = geometryType !== 'Point';
+            locationButton.textContent = geometryType === 'Point' ? '📍 تعديل الموقع' : '📍 تعديل الموقع (للنقاط فقط حالياً)';
+            locationButton.onclick = () => {
+                if (geometryType === 'Point') setFeatureLocationMode(editing, true);
+            };
+        }
+        if (locationStatus) {
+            locationStatus.textContent = geometryType === 'Point'
+                ? 'يمكنك تعديل الموقع من الزر أعلاه.'
+                : 'تحرير موقع الخط/المضلع سيُضاف في الخطوة التالية.';
+        }
         attributeModal?.classList.remove('hidden');
         attributeModal?.classList.add('flex');
 
