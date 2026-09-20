@@ -20,7 +20,7 @@
             @csrf
             <input type="hidden" name="token" value="{{ $token }}">
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div><label class="mb-1 block text-sm font-medium text-ink">اسم النظام</label><input name="name" required value="{{ old('name', IlluminateSupportStr::slug(pathinfo($info['shp'], PATHINFO_FILENAME), '_')) }}" class="input-institutional w-full px-3 py-2"><p class="mt-1 text-xs text-ink-muted">حروف إنجليزية وأرقام و _ فقط.</p></div>
+                <div><label class="mb-1 block text-sm font-medium text-ink">اسم النظام</label><input name="name" required value="{{ old('name', \Illuminate\Support\Str::slug(pathinfo($info['shp'], PATHINFO_FILENAME), '_')) }}" class="input-institutional w-full px-3 py-2"><p class="mt-1 text-xs text-ink-muted">حروف إنجليزية وأرقام و _ فقط.</p></div>
                 <div><label class="mb-1 block text-sm font-medium text-ink">اسم العرض</label><input name="display_name" required value="{{ old('display_name', pathinfo($info['shp'], PATHINFO_FILENAME)) }}" class="input-institutional w-full px-3 py-2"></div>
             </div>
             <div>
