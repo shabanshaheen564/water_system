@@ -17,12 +17,17 @@ class StoreGisFeatureRequest extends FormRequest
         $dataset = $this->route('dataset');
         $creatingRecord = !$this->filled('dataset_record_id');
 
+        $hasFields = $dataset->fields()->exists();
+
         $rules = [
             'dataset_record_id' => [
-                'required_without:values',
+                $hasFields ? 'required_without:values' : 'nullable',
                 Rule::exists('dataset_records', 'id')->where('dataset_id', $dataset->id),
             ],
-            'values' => ['required_without:dataset_record_id', 'array'],
+            'values' => [
+                $hasFields ? 'required_without:dataset_record_id' : 'nullable',
+                'array',
+            ],
             'geometry' => ['required', 'array'],
             'geometry.type' => [
                 'required',
