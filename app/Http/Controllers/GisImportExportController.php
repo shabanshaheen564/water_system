@@ -509,7 +509,7 @@ class GisImportExportController extends Controller
             str_starts_with($upper, 'MULTIPOINT') => new MultiPoint(),
             str_starts_with($upper, 'MULTILINESTRING') => new MultiLinestring(),
             str_starts_with($upper, 'MULTIPOLYGON') => new MultiPolygon(),
-            str_starts_with($upper, 'POINT') => new Point(0, 0),
+            str_starts_with($upper, 'POINT') => new Point(),
             str_starts_with($upper, 'LINESTRING') => new Linestring(),
             str_starts_with($upper, 'POLYGON') => new Polygon(),
             default => $this->geometryObjectForType($datasetGeometryType),
@@ -519,7 +519,7 @@ class GisImportExportController extends Controller
     private function geometryObjectForType(string $geometryType): object
     {
         return match ($geometryType) {
-            'Point' => new Point(0, 0),
+            'Point' => new Point(),
             'MultiPoint' => new MultiPoint(),
             'LineString' => new Linestring(),
             'MultiLineString' => new MultiLinestring(),
