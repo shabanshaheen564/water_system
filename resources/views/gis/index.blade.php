@@ -134,6 +134,7 @@
                         <input id="gis-radius" type="number" min="1" step="1" value="500" class="rounded-md border border-border-strong bg-white px-3 py-2 text-xs" placeholder="نصف القطر بالمتر">
                         <button id="gis-radius-pick" type="button" class="rounded-md border border-brand-600 bg-white px-3 py-2 text-xs font-medium text-brand-700">اختر نقطة</button>
                     </div>
+                    <button id="gis-radius-search" type="button" class="w-full rounded-md border border-border-strong bg-white px-2 py-2 text-xs font-medium text-ink">بحث ضمن نصف القطر</button>
 
                     <div class="grid grid-cols-2 gap-2">
                         <button id="gis-measure-distance" type="button" class="rounded-md border border-border-strong bg-white px-2 py-2 text-xs font-medium text-ink">قياس مسافة</button>
