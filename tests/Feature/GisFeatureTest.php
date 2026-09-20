@@ -1453,4 +1453,135 @@ GisFeature::create([
         $response->assertStatus(200);
         $this->assertCount(1, $response->json('features'));
     }
+
+    public function test_web_attribute_query_returns_matching_features(): void
+    {
+        $dataset = $this->createSpatialDataset();
+        $record = DatasetRecord::create([
+            'dataset_id' => $dataset->id,
+            'values' => ['well_name' => 'Wadi Al-Salqa', 'status' => 'Active'],
+            'identifier_value' => 'Wadi Al-Salqa',
+            'created_by' => $this->admin->id,
+        ]);
+
+        GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.368,31.417]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson("/datasets/{$dataset->id}/features/query?field=well_name&operator=contains&value=Wadi")
+            ->assertOk()
+            ->assertJsonCount(1, 'features')
+            ->assertJsonPath('features.0.properties.well_name', 'Wadi Al-Salqa');
+    }
+
+    public function test_web_nearest_query_returns_distance_in_meters(): void
+    {
+        $dataset = $this->createSpatialDataset();
+        $record = $this->createRecord($dataset);
+
+        GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.368,31.417]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson("/datasets/{$dataset->id}/features/nearest?lat=31.417&lng=34.368&limit=1")
+            ->assertOk()
+            ->assertJsonCount(1, 'features')
+            ->assertJsonPath('features.0.distance_m', 0);
+    }
+
+    public function test_web_nearest_query_respects_radius(): void
+    {
+        $dataset = $this->createSpatialDataset();
+        $record = $this->createRecord($dataset);
+
+        GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.368,31.417]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson("/datasets/{$dataset->id}/features/nearest?lat=31.417&lng=34.368&radius=1&limit=1")
+            ->assertOk()
+            ->assertJsonCount(1, 'features');
+
+        $this->actingAs($this->admin)
+            ->getJson("/datasets/{$dataset->id}/features/nearest?lat=31.5&lng=34.5&radius=1&limit=1")
+            ->assertOk()
+            ->assertJsonCount(0, 'features');
+    }
+
+    public function test_web_measurement_returns_meters_and_dunums(): void
+    {
+        $dataset = $this->createSpatialDataset();
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/datasets/{$dataset->id}/features/measure", [
+                'geometry' => [
+                    'type' => 'Polygon',
+                    'coordinates' => [[
+                        [34.368, 31.417],
+                        [34.369, 31.417],
+                        [34.369, 31.418],
+                        [34.368, 31.418],
+                        [34.368, 31.417],
+                    ]],
+                ],
+            ])
+            ->assertOk();
+
+        $response->assertJsonPath('measurement_type', 'area');
+        $this->assertGreaterThan(0, $response->json('square_meters'));
+        $this->assertGreaterThan(0, $response->json('dunums'));
+    }
+
+    public function test_web_buffer_returns_polygon_feature_in_wgs84(): void
+    {
+        $dataset = $this->createSpatialDataset();
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/datasets/{$dataset->id}/features/buffer", [
+                'geometry' => [
+                    'type' => 'Point',
+                    'coordinates' => [34.368, 31.417],
+                ],
+                'distance_m' => 100,
+            ])
+            ->assertOk();
+
+        $response->assertJsonPath('type', 'Feature');
+        $response->assertJsonPath('geometry.type', 'Polygon');
+        $response->assertJsonPath('properties.distance_m', 100);
+    }
+
+    public function test_web_gis_spatial_tools_require_dataset_view_permission(): void
+    {
+        $user = User::factory()->create();
+        $dataset = $this->createSpatialDataset();
+
+        $this->actingAs($user)
+            ->getJson("/datasets/{$dataset->id}/features/nearest?lat=31.417&lng=34.368")
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->postJson("/datasets/{$dataset->id}/features/buffer", [
+                'geometry' => ['type' => 'Point', 'coordinates' => [34.368, 31.417]],
+                'distance_m' => 100,
+            ])
+            ->assertForbidden();
+    }
+
+
 }
