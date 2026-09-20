@@ -998,6 +998,39 @@ function initMapPage() {
         }
     };
 
+    const runRadiusSearch = async () => {
+        const datasetId = gisToolsDataset?.value;
+        if (!datasetId) {
+            setGisToolsStatus('اختر الطبقة أولاً.');
+            return;
+        }
+
+        const radius = Number(gisRadius?.value);
+        if (!Number.isFinite(radius) || radius <= 0) {
+            setGisToolsStatus('أدخل نصف قطر صحيح بالمتر.');
+            return;
+        }
+
+        const point = getSpatialPoint();
+        const params = new URLSearchParams({
+            lat: point.lat,
+            lng: point.lng,
+            radius: radius,
+            per_page: '500',
+        });
+
+        setGisToolsStatus('جاري البحث ضمن نصف القطر...');
+        try {
+            const response = await fetch('/datasets/' + datasetId + '/features?' + params.toString());
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'تعذر تنفيذ البحث ضمن نصف القطر.');
+            renderAnalysisResults(data, false);
+            setGisToolsStatus('عدد النتائج ضمن ' + radius + ' متر: ' + (data.meta?.total ?? data.features?.length ?? 0));
+        } catch (error) {
+            setGisToolsStatus(error.message || 'تعذر تنفيذ البحث ضمن نصف القطر.');
+        }
+    };
+
     const runNearestSearch = async (withRadius = false) => {
         const datasetId = gisToolsDataset?.value;
         if (!datasetId) {
@@ -1113,7 +1146,7 @@ function initMapPage() {
     gisToolsValue?.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); runAttributeQuery(); } });
     gisBboxSearch?.addEventListener('click', runBboxSearch);
     gisNearestSearch?.addEventListener('click', () => runNearestSearch(false));
-    gisRadiusSearch?.addEventListener('click', () => runNearestSearch(true));
+    gisRadiusSearch?.addEventListener('click', runRadiusSearch);
     gisRadiusPick?.addEventListener('click', () => setSpatialPickMode(!state.spatialPick.active));
     gisMeasureDistance?.addEventListener('click', () => startMeasurement('distance'));
     gisMeasureArea?.addEventListener('click', () => startMeasurement('area'));
