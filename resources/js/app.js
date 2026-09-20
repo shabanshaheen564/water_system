@@ -366,7 +366,20 @@ function initMapPage() {
             ? value.map(convert)
             : [value.lng, value.lat];
 
-        return convert(layer.getLatLngs());
+        const coordinates = convert(layer.getLatLngs());
+
+        // Leaflet Draw does not always repeat the first vertex in getLatLngs().
+        // GeoJSON Polygon rings must be explicitly closed before sending them to PostGIS.
+        if (type === 'Polygon' && Array.isArray(coordinates?.[0]) && coordinates[0].length >= 3) {
+            const ring = coordinates[0];
+            const first = ring[0];
+            const last = ring[ring.length - 1];
+            if (first[0] !== last[0] || first[1] !== last[1]) {
+                ring.push([...first]);
+            }
+        }
+
+        return coordinates;
     };
 
     const closeAttributeModal = () => {
