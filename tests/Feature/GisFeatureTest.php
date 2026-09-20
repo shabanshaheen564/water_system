@@ -1457,6 +1457,16 @@ GisFeature::create([
     public function test_web_attribute_query_returns_matching_features(): void
     {
         $dataset = $this->createSpatialDataset();
+        DatasetField::create([
+            'dataset_id' => $dataset->id,
+            'name' => 'well_name',
+            'display_name' => 'Well Name',
+            'data_type' => 'string',
+            'is_required' => false,
+            'is_unique' => false,
+            'is_identifier' => false,
+            'sort_order' => 0,
+        ]);
         $record = DatasetRecord::create([
             'dataset_id' => $dataset->id,
             'values' => ['well_name' => 'Wadi Al-Salqa', 'status' => 'Active'],
