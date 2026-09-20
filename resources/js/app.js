@@ -483,7 +483,9 @@ function initMapPage() {
         const editing = state.editingFeature;
         if (!editing) return;
 
-        if (editing.editLayer && editing.editLayer.editing?.enabled?.()) {
+        if (editing.editHandler?.enabled?.()) {
+            editing.editHandler.disable();
+        } else if (editing.editLayer?.editing?.enabled?.()) {
             editing.editLayer.editing.disable();
         }
 
@@ -503,34 +505,54 @@ function initMapPage() {
         state.editingFeature = null;
     };
 
+    const cloneLatLngs = (latLngs) => Array.isArray(latLngs)
+        ? latLngs.map(item => Array.isArray(item) ? cloneLatLngs(item) : L.latLng(item.lat, item.lng))
+        : [];
+
     const setFeatureLocationMode = (editing, enabled) => {
-        if (!editing || editing.geometryType !== 'Point') return;
+        if (!editing) return;
 
         if (enabled) {
-            if (!editing.pointMarker) {
-                const latLng = editing.featureLayer.getLatLng();
-                editing.pointMarker = L.marker(latLng, {
-                    draggable: true,
-                    title: 'اسحب النقطة إلى الموقع الجديد'
-                }).addTo(map);
+            if (editing.geometryType === 'Point') {
+                if (!editing.pointMarker) {
+                    const latLng = editing.featureLayer.getLatLng();
+                    editing.pointMarker = L.marker(latLng, {
+                        draggable: true,
+                        title: 'اسحب النقطة إلى الموقع الجديد'
+                    }).addTo(map);
 
-                editing.pointMarker.on('dragstart', () => {
-                    if (editing.locationStatus) {
-                        editing.locationStatus.textContent = 'اسحب النقطة إلى الموقع المطلوب، ثم اضغط إنهاء تعديل الموقع.';
-                    }
-                });
+                    editing.pointMarker.on('dragstart', () => {
+                        if (editing.locationStatus) {
+                            editing.locationStatus.textContent = 'اسحب النقطة إلى الموقع المطلوب، ثم اضغط إنهاء تعديل الموقع.';
+                        }
+                    });
 
-                editing.pointMarker.on('dragend', () => {
-                    const point = editing.pointMarker.getLatLng();
-                    if (editing.locationStatus) {
-                        editing.locationStatus.textContent = 'تم تحديد موقع جديد: ' + point.lat.toFixed(6) + '، ' + point.lng.toFixed(6);
-                    }
-                });
+                    editing.pointMarker.on('dragend', () => {
+                        const point = editing.pointMarker.getLatLng();
+                        if (editing.locationStatus) {
+                            editing.locationStatus.textContent = 'تم تحديد موقع جديد: ' + point.lat.toFixed(6) + '، ' + point.lng.toFixed(6);
+                        }
+                    });
+                }
+
+                editing.originalLatLngs = L.latLng(editing.featureLayer.getLatLng());
+                editing.locationEditing = true;
+                editing.editLayer = editing.pointMarker;
+                editing.featureLayer.setStyle({ opacity: 0, fillOpacity: 0 });
+                map.setView(editing.pointMarker.getLatLng(), Math.max(map.getZoom(), 17));
+            } else if (['LineString', 'Polygon'].includes(editing.geometryType)) {
+                editing.originalLatLngs = cloneLatLngs(editing.featureLayer.getLatLngs());
+                editing.editHandler = new L.Edit.Poly(editing.featureLayer);
+                editing.editHandler.enable();
+                editing.locationEditing = true;
+                editing.editLayer = editing.featureLayer;
+                if (editing.locationStatus) {
+                    editing.locationStatus.textContent = 'حرّك نقاط الشكل إلى الموقع المطلوب، ثم اضغط إنهاء تعديل الموقع.';
+                }
+            } else {
+                return;
             }
 
-            editing.locationEditing = true;
-            editing.editLayer = editing.pointMarker;
-            editing.featureLayer.setStyle({ opacity: 0, fillOpacity: 0 });
             attributeModal?.classList.add('hidden');
             attributeModal?.classList.remove('flex');
 
@@ -541,9 +563,12 @@ function initMapPage() {
                 container.style.padding = '10px';
                 container.style.minWidth = '230px';
                 container.style.direction = 'rtl';
+                const locationText = editing.geometryType === 'Point'
+                    ? 'اسحب النقطة إلى الموقع الجديد.'
+                    : 'حرّك نقاط الشكل إلى الموقع الجديد.';
                 container.innerHTML = `
                     <div style="font-size:12px;font-weight:600;margin-bottom:6px;">تعديل موقع المعلم</div>
-                    <div style="font-size:11px;color:#667085;margin-bottom:8px;">اسحب النقطة إلى الموقع الجديد.</div>
+                    <div style="font-size:11px;color:#667085;margin-bottom:8px;">${locationText}</div>
                     <button type="button" data-gis-finish-location style="width:100%;padding:7px 10px;border-radius:6px;background:#175cd3;color:#fff;font-size:12px;font-weight:600;">إنهاء تعديل الموقع</button>
                     <button type="button" data-gis-cancel-location style="width:100%;margin-top:5px;padding:7px 10px;border-radius:6px;border:1px solid #d0d5dd;background:#fff;color:#344054;font-size:12px;">إلغاء</button>
                 `;
@@ -551,24 +576,34 @@ function initMapPage() {
                 L.DomEvent.disableClickPropagation(container);
                 L.DomEvent.on(container.querySelector('[data-gis-finish-location]'), 'click', () => setFeatureLocationMode(editing, false));
                 L.DomEvent.on(container.querySelector('[data-gis-cancel-location]'), 'click', () => {
-                    const originalPoint = editing.featureLayer.getLatLng();
-                    editing.pointMarker?.setLatLng(originalPoint);
+                    if (editing.geometryType === 'Point') {
+                        editing.pointMarker?.setLatLng(editing.originalLatLngs);
+                    } else if (editing.originalLatLngs) {
+                        editing.featureLayer.setLatLngs(cloneLatLngs(editing.originalLatLngs));
+                    }
                     setFeatureLocationMode(editing, false);
                 });
                 return container;
             };
             editing.locationControl.addTo(map);
-
-            map.setView(editing.pointMarker.getLatLng(), Math.max(map.getZoom(), 17));
             return;
         }
 
         editing.locationEditing = false;
         editing.editLayer = editing.pointMarker || editing.featureLayer;
 
+        if (editing.editHandler?.enabled?.()) {
+            editing.editHandler.disable();
+        }
+
         if (editing.locationControl) {
             map.removeControl(editing.locationControl);
             editing.locationControl = null;
+        }
+
+        if (editing.geometryType === 'Point') {
+            editing.featureLayer.setLatLng(editing.pointMarker.getLatLng());
+            editing.featureLayer.setStyle(editing.originalStyle);
         }
 
         attributeModal?.classList.remove('hidden');
@@ -635,16 +670,12 @@ function initMapPage() {
         const locationStatus = document.getElementById('gis-edit-location-status');
         editing.locationStatus = locationStatus;
         if (locationButton) {
-            locationButton.disabled = geometryType !== 'Point';
-            locationButton.textContent = geometryType === 'Point' ? '📍 تعديل الموقع' : '📍 تعديل الموقع (للنقاط فقط حالياً)';
-            locationButton.onclick = () => {
-                if (geometryType === 'Point') setFeatureLocationMode(editing, true);
-            };
+            locationButton.disabled = !['Point', 'LineString', 'Polygon'].includes(geometryType);
+            locationButton.textContent = 'تعديل الموقع';
+            locationButton.onclick = () => setFeatureLocationMode(editing, true);
         }
         if (locationStatus) {
-            locationStatus.textContent = geometryType === 'Point'
-                ? 'يمكنك تعديل الموقع من الزر أعلاه.'
-                : 'تحرير موقع الخط/المضلع سيُضاف في الخطوة التالية.';
+            locationStatus.textContent = 'يمكنك تعديل الموقع من الزر أعلاه.';
         }
         attributeModal?.classList.remove('hidden');
         attributeModal?.classList.add('flex');
@@ -955,18 +986,55 @@ function initMapPage() {
                         const canEdit = mapElement.dataset.canEditGis === '1'
                             && checkbox.dataset.managementMode === 'web_editable'
                             && feature.id;
+                        const canDelete = mapElement.dataset.canDeleteGis === '1'
+                            && checkbox.dataset.managementMode === 'web_editable'
+                            && feature.id;
 
                         const editAction = canEdit
                             ? '<button type="button" data-gis-edit-feature class="mt-3 w-full rounded-md bg-brand-600 px-3 py-2 text-xs font-medium text-white">تعديل المعلم</button>'
                             : '';
+                        const deleteAction = canDelete
+                            ? '<button type="button" data-gis-delete-feature class="mt-2 w-full rounded-md border border-danger-300 bg-white px-3 py-2 text-xs font-medium text-danger">حذف المعلم</button>'
+                            : '';
 
-                        featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${rows}${editAction}</div>`, { maxWidth: 380 });
+                        featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${rows}${editAction}${deleteAction}</div>`, { maxWidth: 380 });
 
-                        if (canEdit) {
+                        if (canEdit || canDelete) {
                             featureLayer.on('popupopen', event => {
-                                event.popup.getElement()?.querySelector('[data-gis-edit-feature]')?.addEventListener('click', () => {
+                                const popupElement = event.popup.getElement();
+                                popupElement?.querySelector('[data-gis-edit-feature]')?.addEventListener('click', () => {
                                     map.closePopup();
                                     openFeatureEdit(datasetId, feature, featureLayer);
+                                });
+                                popupElement?.querySelector('[data-gis-delete-feature]')?.addEventListener('click', async () => {
+                                    if (!window.confirm('هل أنت متأكد من حذف هذا المعلم؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+
+                                    const button = popupElement.querySelector('[data-gis-delete-feature]');
+                                    if (button) button.disabled = true;
+
+                                    try {
+                                        const response = await fetch('/datasets/' + datasetId + '/features/' + feature.id, {
+                                            method: 'DELETE',
+                                            headers: {
+                                                'Accept': 'application/json',
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                                            },
+                                        });
+
+                                        if (!response.ok) {
+                                            const data = await response.json().catch(() => ({}));
+                                            throw new Error(data.message || 'تعذر حذف المعلم.');
+                                        }
+
+                                        if (state.editingFeature?.featureId === feature.id) {
+                                            cleanupFeatureEdit();
+                                        }
+                                        layer.removeLayer(featureLayer);
+                                        map.closePopup();
+                                    } catch (error) {
+                                        if (button) button.disabled = false;
+                                        window.alert(error.message || 'تعذر حذف المعلم.');
+                                    }
                                 });
                             });
                         }
