@@ -1554,7 +1554,10 @@ GisFeature::create([
 
         $response->assertJsonPath('measurement_type', 'area');
         $this->assertGreaterThan(0, $response->json('square_meters'));
+        $this->assertGreaterThan(0, $response->json('square_kilometers'));
         $this->assertGreaterThan(0, $response->json('dunums'));
+        $this->assertNull($response->json('meters'));
+        $this->assertNull($response->json('kilometers'));
     }
 
     public function test_web_buffer_returns_polygon_feature_in_wgs84(): void
