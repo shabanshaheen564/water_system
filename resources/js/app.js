@@ -1084,13 +1084,6 @@ function initMapPage() {
         }
     };
 
-    map.on(L.Draw.Event.CREATED, event => {
-        if (state.measurement.active) {
-            handleMeasurementCreated(event);
-            return;
-        }
-    });
-
     map.on('click', event => {
         if (!state.spatialPick.active) return;
         state.spatialPick.lat = event.latlng.lat;
