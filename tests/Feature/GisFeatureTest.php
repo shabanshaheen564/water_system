@@ -837,6 +837,114 @@ GisFeature::create([
         $this->assertEquals('Wadi Al-Salqa', $response->json('properties.name'));
     }
 
+    public function test_web_editable_feature_updates_dynamic_attributes_and_geometry(): void
+    {
+        $dataset = $this->createSpatialDataset();
+
+        DatasetField::create([
+            'dataset_id' => $dataset->id,
+            'name' => 'name',
+            'display_name' => 'Name',
+            'data_type' => 'string',
+            'is_required' => true,
+            'is_unique' => false,
+            'is_identifier' => true,
+            'sort_order' => 1,
+        ]);
+
+        $record = DatasetRecord::create([
+            'dataset_id' => $dataset->id,
+            'values' => ['name' => 'Old Name'],
+            'identifier_value' => 'Old Name',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $feature = GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.4668,31.5326]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->putJson("/datasets/{$dataset->id}/features/{$feature->id}", [
+                'values' => ['name' => 'New Name'],
+                'geometry' => ['type' => 'Point', 'coordinates' => [34.4671, 31.5329]],
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('properties.name', 'New Name')
+            ->assertJsonPath('geometry.type', 'Point')
+            ->assertJsonPath('geometry.coordinates.0', 34.4671)
+            ->assertJsonPath('geometry.coordinates.1', 31.5329);
+
+        $record->refresh();
+        $this->assertEquals('New Name', $record->values['name']);
+        $this->assertEquals('New Name', $record->identifier_value);
+
+        $feature->refresh();
+        $this->assertEquals('Point', $feature->geometry_type);
+        $this->assertEquals(4326, $feature->srid);
+    }
+
+    public function test_official_dataset_rejects_web_feature_update(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'official_edit_test',
+            'display_name' => 'Official Edit Test',
+            'dataset_type' => 'official_layer',
+            'management_mode' => 'official',
+            'is_spatial' => true,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $record = DatasetRecord::create([
+            'dataset_id' => $dataset->id,
+            'values' => ['name' => 'Official'],
+            'identifier_value' => 'Official',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $feature = GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.4668,31.5326]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->putJson("/datasets/{$dataset->id}/features/{$feature->id}", [
+                'geometry' => ['type' => 'Point', 'coordinates' => [34.4671, 31.5329]],
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_web_feature_update_requires_dataset_update_permission(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(Permission::where('name', 'datasets.view')->first());
+
+        $dataset = $this->createSpatialDataset();
+        $record = $this->createRecord($dataset);
+        $feature = GisFeature::create([
+            'dataset_record_id' => $record->id,
+            'dataset_id' => $dataset->id,
+            'geometry' => DB::selectOne("SELECT ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[34.4668,31.5326]}'), 4326) as geometry")->geometry,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+        ]);
+
+        $this->actingAs($user)
+            ->putJson("/datasets/{$dataset->id}/features/{$feature->id}", [
+                'geometry' => ['type' => 'Point', 'coordinates' => [34.4671, 31.5329]],
+            ])
+            ->assertForbidden();
+    }
+
     // Spatial Index Verification (metadata check)
     public function test_spatial_index_exists(): void
     {
