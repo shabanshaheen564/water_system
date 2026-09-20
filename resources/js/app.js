@@ -648,12 +648,8 @@ function initMapPage() {
         if (geometryType === 'Point') {
             editing.editLayer = featureLayer;
             editing.locationEditing = false;
-        } else if (featureLayer.editing?.enable) {
-            featureLayer.editing.enable();
         } else {
-            cleanupFeatureEdit();
-            window.alert('تعذر تفعيل تحرير الشكل الهندسي.');
-            return;
+            editing.locationEditing = false;
         }
 
         const selected = [...document.querySelectorAll('.dataset-toggle')].find(item => item.dataset.datasetId === String(datasetId));
