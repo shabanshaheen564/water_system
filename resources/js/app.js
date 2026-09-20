@@ -317,7 +317,8 @@ function initMapPage() {
         taskLayer: L.layerGroup().addTo(map),
         datasetLayers: {},
         filtered: { complaints: [], tasks: [] },
-        drawing: { active: false, layer: null }
+        drawing: { active: false, layer: null },
+        editingFeature: null
     };
 
     const drawingStatus = document.getElementById('gis-drawing-status');
@@ -374,9 +375,9 @@ function initMapPage() {
         }
     };
 
-    const fieldInput = field => {
+    const fieldInput = (field, existingValue = undefined) => {
         const required = field.is_required ? 'required' : '';
-        const value = field.default_value ?? '';
+        const value = existingValue !== undefined ? existingValue : (field.default_value ?? '');
         const base = 'mt-1 w-full rounded-md border border-border-strong bg-white px-3 py-2 text-sm outline-none focus:border-brand-600';
         const label = '<label class="block text-xs font-medium text-ink">' + escapeHtml(field.display_name || field.name) + (field.is_required ? ' <span class="text-danger">*</span>' : '') + '</label>';
 
@@ -469,10 +470,182 @@ function initMapPage() {
         else if (event.key === 'Escape' && attributeModal && !attributeModal.classList.contains('hidden')) closeAttributeModal();
     });
 
-    document.getElementById('gis-attribute-close')?.addEventListener('click', closeAttributeModal);
-    document.getElementById('gis-attribute-cancel')?.addEventListener('click', closeAttributeModal);
+    document.getElementById('gis-attribute-close')?.addEventListener('click', () => {
+        if (state.editingFeature) cancelFeatureEdit();
+        else closeAttributeModal();
+    });
+    document.getElementById('gis-attribute-cancel')?.addEventListener('click', () => {
+        if (state.editingFeature) cancelFeatureEdit();
+        else closeAttributeModal();
+    });
+
+    const cleanupFeatureEdit = () => {
+        const editing = state.editingFeature;
+        if (!editing) return;
+
+        if (editing.editLayer && editing.editLayer.editing?.enabled?.()) {
+            editing.editLayer.editing.disable();
+        }
+
+        if (editing.pointMarker) {
+            map.removeLayer(editing.pointMarker);
+        }
+
+        if (editing.featureLayer && editing.originalStyle) {
+            editing.featureLayer.setStyle(editing.originalStyle);
+        }
+
+        state.editingFeature = null;
+    };
+
+    const openFeatureEdit = async (datasetId, feature, featureLayer) => {
+        if (mapElement.dataset.canEditGis !== '1') return;
+
+        const checkbox = document.querySelector('.dataset-toggle[data-dataset-id="' + datasetId + '"]');
+        if (!checkbox || checkbox.dataset.managementMode !== 'web_editable') return;
+
+        cleanupFeatureEdit();
+
+        const geometryType = feature.geometry?.type;
+        if (!['Point', 'LineString', 'Polygon'].includes(geometryType)) {
+            window.alert('هذا النوع من المعالم غير مدعوم للتحرير حالياً.');
+            return;
+        }
+
+        const editing = {
+            datasetId,
+            featureId: feature.id,
+            featureLayer,
+            geometryType,
+            editLayer: featureLayer,
+            pointMarker: null,
+            originalStyle: geometryType === 'Point'
+                ? {
+                    opacity: featureLayer.options.opacity ?? 1,
+                    fillOpacity: featureLayer.options.fillOpacity ?? 0.5
+                }
+                : {
+                    opacity: featureLayer.options.opacity ?? 1,
+                    fillOpacity: featureLayer.options.fillOpacity ?? 0.2
+                }
+        };
+
+        state.editingFeature = editing;
+
+        if (geometryType === 'Point') {
+            const latLng = featureLayer.getLatLng();
+            editing.pointMarker = L.marker(latLng, { draggable: true, title: 'تعديل موقع المعلم' }).addTo(map);
+            featureLayer.setStyle({ opacity: 0, fillOpacity: 0 });
+            editing.editLayer = editing.pointMarker;
+        } else if (featureLayer.editing?.enable) {
+            featureLayer.editing.enable();
+        } else {
+            cleanupFeatureEdit();
+            window.alert('تعذر تفعيل تحرير الشكل الهندسي.');
+            return;
+        }
+
+        const selected = [...document.querySelectorAll('.dataset-toggle')].find(item => item.dataset.datasetId === String(datasetId));
+        const datasetName = selected?.closest('label')?.querySelector('span')?.textContent?.trim() || 'الطبقة الجغرافية';
+        if (attributeDatasetName) attributeDatasetName.textContent = datasetName;
+        if (attributeFields) attributeFields.innerHTML = '<p class="text-xs text-ink-secondary">جاري تحميل الحقول...</p>';
+        if (attributeError) {
+            attributeError.textContent = '';
+            attributeError.classList.add('hidden');
+        }
+        document.getElementById('gis-attribute-title')?.replaceChildren(document.createTextNode('تعديل المعلم'));
+        if (attributeSave) attributeSave.textContent = 'حفظ التعديل';
+        attributeModal?.classList.remove('hidden');
+        attributeModal?.classList.add('flex');
+
+        try {
+            const response = await fetch('/datasets/' + datasetId + '/fields/data');
+            if (!response.ok) throw new Error('تعذر تحميل حقول الطبقة.');
+            const data = await response.json();
+            attributeFieldsData = data.data || [];
+            const existingValues = feature.properties || {};
+            attributeFields.innerHTML = attributeFieldsData.length
+                ? attributeFieldsData.map(field => fieldInput(field, existingValues[field.name])).join('')
+                : '<p class="text-xs text-ink-secondary">لا توجد حقول إضافية لهذا المعلم.</p>';
+        } catch (error) {
+            cleanupFeatureEdit();
+            closeAttributeModal();
+            if (attributeError) {
+                attributeError.textContent = error.message || 'تعذر تحميل حقول الطبقة.';
+                attributeError.classList.remove('hidden');
+            }
+        }
+    };
+
+    const cancelFeatureEdit = () => {
+        cleanupFeatureEdit();
+        closeAttributeModal();
+        document.getElementById('gis-attribute-title')?.replaceChildren(document.createTextNode('خصائص المعلم'));
+        if (attributeSave) attributeSave.textContent = 'حفظ المعلم';
+    };
 
     attributeSave?.addEventListener('click', async () => {
+        if (state.editingFeature) {
+            const editing = state.editingFeature;
+            const values = {};
+            attributeFieldsData.forEach(field => {
+                const input = attributeFields?.querySelector('[name="' + CSS.escape(field.name) + '"]');
+                if (!input) return;
+                values[field.name] = field.data_type === 'boolean' ? input.checked : input.value;
+            });
+
+            attributeSave.disabled = true;
+            if (attributeError) {
+                attributeError.textContent = '';
+                attributeError.classList.add('hidden');
+            }
+
+            try {
+                const response = await fetch('/datasets/' + editing.datasetId + '/features/' + editing.featureId, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    },
+                    body: JSON.stringify({
+                        values,
+                        geometry: {
+                            type: editing.geometryType,
+                            coordinates: geometryCoordinatesFromLayer(editing.editLayer, editing.geometryType),
+                        },
+                    }),
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    const messages = Object.values(data.errors || {}).flat();
+                    throw new Error(messages.join(' ') || data.message || 'تعذر حفظ التعديل.');
+                }
+
+                const datasetId = editing.datasetId;
+                const checkbox = document.querySelector('.dataset-toggle[data-dataset-id="' + datasetId + '"]');
+                cleanupFeatureEdit();
+                closeAttributeModal();
+                document.getElementById('gis-attribute-title')?.replaceChildren(document.createTextNode('خصائص المعلم'));
+                attributeSave.textContent = 'حفظ المعلم';
+
+                if (checkbox?.checked) {
+                    removeDataset(datasetId);
+                    loadDataset(datasetId, checkbox);
+                }
+            } catch (error) {
+                if (attributeError) {
+                    attributeError.textContent = error.message || 'تعذر حفظ التعديل.';
+                    attributeError.classList.remove('hidden');
+                }
+            } finally {
+                attributeSave.disabled = false;
+            }
+
+            return;
+        }
+
         const datasetId = drawingDataset?.value;
         const type = drawingGeometryType();
         const layer = state.drawing.layer;
@@ -687,7 +860,25 @@ function initMapPage() {
                             .filter(([, value]) => value !== null && value !== '')
                             .map(([key, value]) => `<div class="row"><span class="key">${escapeHtml(key)}</span><span class="value">${escapeHtml(typeof value === 'object' ? JSON.stringify(value) : String(value))}</span></div>`)
                             .join('');
-                        featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${rows}</div>`, { maxWidth: 380 });
+
+                        const canEdit = mapElement.dataset.canEditGis === '1'
+                            && checkbox.dataset.managementMode === 'web_editable'
+                            && feature.id;
+
+                        const editAction = canEdit
+                            ? '<button type="button" data-gis-edit-feature class="mt-3 w-full rounded-md bg-brand-600 px-3 py-2 text-xs font-medium text-white">تعديل المعلم</button>'
+                            : '';
+
+                        featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${rows}${editAction}</div>`, { maxWidth: 380 });
+
+                        if (canEdit) {
+                            featureLayer.on('popupopen', event => {
+                                event.popup.getElement()?.querySelector('[data-gis-edit-feature]')?.addEventListener('click', () => {
+                                    map.closePopup();
+                                    openFeatureEdit(datasetId, feature, featureLayer);
+                                });
+                            });
+                        }
                     }
                 }).addTo(map);
 
