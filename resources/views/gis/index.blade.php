@@ -183,7 +183,7 @@
                             <p class="text-xs font-semibold text-ink">موقع المعلم</p>
                             <p id="gis-edit-location-status" class="mt-1 text-[11px] text-ink-secondary">يمكنك تعديل الموقع من الزر.</p>
                         </div>
-                        <button id="gis-edit-location" type="button" class="shrink-0 rounded-md border border-brand-600 bg-white px-3 py-2 text-xs font-medium text-brand-700">📍 تعديل الموقع</button>
+                        <button id="gis-edit-location" type="button" class="shrink-0 rounded-md border border-brand-600 bg-white px-3 py-2 text-xs font-medium text-brand-700">تعديل الموقع</button>
                     </div>
                 </div>
             </div>
