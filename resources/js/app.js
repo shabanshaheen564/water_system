@@ -1290,12 +1290,15 @@ function initMapPage() {
                         const bufferAction = feature.id
                             ? '<button type="button" data-gis-buffer-feature class="mt-2 w-full rounded-md border border-brand-600 bg-white px-3 py-2 text-xs font-medium text-brand-700">إنشاء Buffer</button>'
                             : '';
+                        const recordAction = canEdit && feature.dataset_record_id
+                            ? '<a href="/datasets/' + datasetId + '/records/' + feature.dataset_record_id + '/edit" class="mt-2 block w-full rounded-md border border-border-strong bg-white px-3 py-2 text-center text-xs font-medium text-ink">فتح السجل المرتبط</a>'
+                            : '';
                         const identifyMeta = '<div class="row"><span class="key">Feature ID</span><span class="value">' + escapeHtml(String(feature.id ?? '—')) + '</span></div>'
                             + '<div class="row"><span class="key">Record ID</span><span class="value">' + escapeHtml(String(feature.dataset_record_id ?? '—')) + '</span></div>'
                             + '<div class="row"><span class="key">نوع الهندسة</span><span class="value">' + escapeHtml(feature.geometry_type || feature.geometry?.type || '—') + '</span></div>'
                             + '<div class="row"><span class="key">SRID</span><span class="value">' + escapeHtml(String(feature.srid ?? '—')) + '</span></div>';
 
-                        featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${identifyMeta}${rows}${bufferAction}${editAction}${deleteAction}</div>`, { maxWidth: 380 });
+                        featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${identifyMeta}${rows}${recordAction}${bufferAction}${editAction}${deleteAction}</div>`, { maxWidth: 380 });
 
                         if (canEdit || canDelete || feature.id) {
                             featureLayer.on('popupopen', event => {
