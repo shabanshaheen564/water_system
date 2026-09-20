@@ -474,8 +474,16 @@ function initMapPage() {
     drawingDataset?.addEventListener('change', () => { stopDrawing(); closeAttributeModal(); syncDrawingControls(); });
     drawingButton?.addEventListener('click', startDrawing);
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && state.drawing.active) stopDrawing();
-        else if (event.key === 'Escape' && attributeModal && !attributeModal.classList.contains('hidden')) closeAttributeModal();
+        if (event.key !== 'Escape') return;
+        if (state.measurement.active) {
+            state.measurement.active = false;
+            state.measurement.type = null;
+            setGisToolsStatus('تم إلغاء القياس.');
+        } else if (state.drawing.active) {
+            stopDrawing();
+        } else if (attributeModal && !attributeModal.classList.contains('hidden')) {
+            closeAttributeModal();
+        }
     });
 
     document.getElementById('gis-attribute-close')?.addEventListener('click', () => {
