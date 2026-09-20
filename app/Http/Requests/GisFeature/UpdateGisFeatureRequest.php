@@ -90,7 +90,7 @@ class UpdateGisFeatureRequest extends FormRequest
 
             $values = $this->input('values', []);
 
-            $knownFields = $fields = $dataset->fields()->get();
+            $fields = $dataset->fields()->get();
             $knownFieldNames = $fields->pluck('name')->toArray();
             $unknownFields = array_diff(array_keys($values), $knownFieldNames);
 
