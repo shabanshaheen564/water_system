@@ -22,6 +22,7 @@ use App\Http\Controllers\GisFeatureController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\MobileBootstrapController;
+use App\Http\Controllers\OperationalGisController;
 
 Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
 Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->get('/mobile/bootstrap', [MobileBootstrapController::class, 'show']);
@@ -90,6 +91,13 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports
     Route::get('/reports/work-orders/{workOrder}/pdf', [ReportController::class, 'workOrderPdf']);
 });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:gis.view|complaints.view|tasks.view'])->get('/map/operational', [\App\Http\Controllers\GisController::class, 'operationalData']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->get('/complaints/{complaint}/gis/context', [OperationalGisController::class, 'complaint']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update'])->post('/complaints/{complaint}/gis/features/{feature}', [OperationalGisController::class, 'linkComplaint']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update'])->delete('/complaints/{complaint}/gis/features/{feature}', [OperationalGisController::class, 'unlinkComplaint']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.view'])->get('/work-orders/{workOrder}/gis/context', [OperationalGisController::class, 'workOrder']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->post('/work-orders/{workOrder}/gis/features/{feature}', [OperationalGisController::class, 'linkWorkOrder']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->delete('/work-orders/{workOrder}/gis/features/{feature}', [OperationalGisController::class, 'unlinkWorkOrder']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:gis.view|complaints.view|tasks.view'])->get('/gis/nearest-assets', [OperationalGisController::class, 'nearest']);
 
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->group(function () {
     Route::get('/archive/complaints', [ArchiveController::class, 'complaints']);
