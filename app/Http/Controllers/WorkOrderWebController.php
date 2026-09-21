@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Complaint;
 use App\Models\WorkOrder;
 use App\Services\ArchiveService;
+use App\Services\OperationalGisService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -59,10 +60,11 @@ class WorkOrderWebController extends Controller
         return redirect()->route('work-orders.show', $workOrder)->with('success', 'تم إنشاء المهمة بنجاح.');
     }
 
-    public function show(WorkOrder $workOrder): View
+    public function show(WorkOrder $workOrder, OperationalGisService $gis): View
     {
-        $workOrder->load(['assignedTo:id,name,email', 'createdBy:id,name,email', 'complaints' => fn ($q) => $q->with('assignedTo:id,name')->orderByDesc('created_at')]);
-        return view('work-orders.show', ['workOrder' => $workOrder, 'users' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name'])]);
+        $workOrder->load(['assignedTo:id,name,email', 'createdBy:id,name,email', 'complaints' => fn ($q) => $q->with('assignedTo:id,name')->orderByDesc('created_at'), 'gisFeatures.dataset', 'gisFeatures.datasetRecord']);
+        $gisContext = $gis->workOrderContext($workOrder);
+        return view('work-orders.show', ['workOrder' => $workOrder, 'users' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']), 'gisContext' => $gisContext]);
     }
 
     public function convertToComplaint(Request $request, WorkOrder $workOrder): RedirectResponse
