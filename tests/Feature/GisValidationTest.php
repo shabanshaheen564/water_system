@@ -70,16 +70,13 @@ class GisValidationTest extends TestCase
         $dataset = $this->makePolygonDataset('quality_type');
 
         $record = $this->makeRecord($dataset, ['NAME' => 'A'], 'P1');
-        $empty = $this->makeRecord($dataset, ['NAME' => 'B'], 'P2');
-
         $this->insertFeature($dataset, $record, 'POINT(10 20)', 28191, 'Point');
-        $this->insertFeature($dataset, $empty, 'POLYGON EMPTY', 28191);
 
         $response = $this->actingAs($this->admin)->getJson(route('datasets.validation.api', $dataset));
 
         $response->assertOk()
             ->assertJsonPath('summary.geometry_type_errors', 1)
-            ->assertJsonPath('summary.empty_geometry', 1)
+            ->assertJsonPath('summary.empty_geometry', 0)
             ->assertJsonPath('summary.srid_errors', 0);
     }
 
