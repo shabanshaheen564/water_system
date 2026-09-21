@@ -77,8 +77,8 @@ class OperationalGisService
             $fallback = $workOrder->complaints()
                 ->whereNotNull('latitude')
                 ->whereNotNull('longitude')
-                ->orderByDesc('created_at')
-                ->first(['latitude', 'longitude']);
+                ->orderByDesc('complaints.created_at')
+                ->first(['complaints.latitude', 'complaints.longitude']);
             $latitude = $fallback?->latitude;
             $longitude = $fallback?->longitude;
         }
