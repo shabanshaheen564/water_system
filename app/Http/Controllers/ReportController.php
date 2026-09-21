@@ -8,12 +8,32 @@ use App\Services\OperationalReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Csv;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ReportController extends Controller
 {
+    public function index(Request $request, OperationalReportService $reports): View
+    {
+        return view('reports.index', [
+            'summary' => $reports->summary($request),
+            'filters' => $reports->filters(),
+            'requestFilters' => $request->only([
+                'date_from',
+                'date_to',
+                'complaint_status',
+                'complaint_priority',
+                'complaint_assigned_to',
+                'task_status',
+                'task_priority',
+                'task_assigned_to',
+                'search',
+            ]),
+        ]);
+    }
+
     public function summary(Request $request, OperationalReportService $reports): JsonResponse
     {
         return response()->json($reports->summary($request));
