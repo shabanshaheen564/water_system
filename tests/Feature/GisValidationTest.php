@@ -72,7 +72,7 @@ class GisValidationTest extends TestCase
         $record = $this->makeRecord($dataset, ['NAME' => 'A'], 'P1');
         $empty = $this->makeRecord($dataset, ['NAME' => 'B'], 'P2');
 
-        $this->insertFeature($dataset, $record, 'POINT(10 20)', 28191);
+        $this->insertFeature($dataset, $record, 'POINT(10 20)', 28191, 'Point');
         $this->insertFeature($dataset, $empty, 'POLYGON EMPTY', 28191);
 
         $response = $this->actingAs($this->admin)->getJson(route('datasets.validation.api', $dataset));
@@ -175,12 +175,12 @@ class GisValidationTest extends TestCase
         ]);
     }
 
-    private function insertFeature(Dataset $dataset, DatasetRecord $record, string $wkt, int $srid): void
+    private function insertFeature(Dataset $dataset, DatasetRecord $record, string $wkt, int $srid, string $geometryType = 'Polygon'): void
     {
         DB::insert(
             'INSERT INTO gis_features (dataset_record_id, dataset_id, geometry, geometry_type, srid, created_at, updated_at)
              VALUES (?, ?, ST_SetSRID(ST_GeomFromText(?), ?), ?, ?, NOW(), NOW())',
-            [$record->id, $dataset->id, $wkt, $srid, 'Polygon', $srid]
+            [$record->id, $dataset->id, $wkt, $srid, $geometryType, $srid]
         );
     }
 }
