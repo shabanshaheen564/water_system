@@ -17,6 +17,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\GisAnalysisController;
 use App\Http\Controllers\GisImportExportController;
+use App\Http\Controllers\OperationalGisController;
 
 Route::get('/', function () { return view('welcome'); })->name('home');
 Route::get('/login', [LoginController::class, 'create'])->name('login');
@@ -30,10 +31,14 @@ Route::middleware(['auth', 'active', 'permission:complaints.convert_to_task'])->
 Route::middleware(['auth', 'active', 'permission:complaints.update'])->group(function () { Route::get('/complaints/{complaint}/add-to-work-order', [ComplaintWebController::class, 'addToExistingWorkOrder'])->name('complaints.add-to-work-order'); Route::post('/complaints/{complaint}/add-to-work-order', [ComplaintWebController::class, 'storeExistingWorkOrder'])->name('complaints.add-to-work-order.store'); });
 Route::middleware(['auth', 'active', 'permission:complaints.delete'])->delete('/complaints/{complaint}', [ComplaintWebController::class, 'destroy'])->name('complaints.destroy');
 Route::middleware(['auth', 'active', 'permission:complaints.view'])->get('/complaints/{complaint}', [ComplaintWebController::class, 'show'])->name('complaints.show');
+Route::middleware(['auth', 'active', 'permission:complaints.update'])->post('/complaints/{complaint}/gis/features/{feature}', [OperationalGisController::class, 'linkComplaintWeb'])->name('complaints.gis.link');
+Route::middleware(['auth', 'active', 'permission:complaints.update'])->delete('/complaints/{complaint}/gis/features/{feature}', [OperationalGisController::class, 'unlinkComplaintWeb'])->name('complaints.gis.unlink');
 
 Route::middleware(['auth', 'active', 'permission:tasks.view'])->get('/work-orders', [WorkOrderWebController::class, 'index'])->name('work-orders.index');
 Route::middleware(['auth', 'active', 'permission:tasks.create'])->group(function () { Route::get('/work-orders/create', [WorkOrderWebController::class, 'create'])->name('work-orders.create'); Route::post('/work-orders', [WorkOrderWebController::class, 'store'])->name('work-orders.store'); });
 Route::middleware(['auth', 'active', 'permission:tasks.view'])->get('/work-orders/{workOrder}', [WorkOrderWebController::class, 'show'])->name('work-orders.show');
+Route::middleware(['auth', 'active', 'permission:tasks.update'])->post('/work-orders/{workOrder}/gis/features/{feature}', [OperationalGisController::class, 'linkWorkOrderWeb'])->name('work-orders.gis.link');
+Route::middleware(['auth', 'active', 'permission:tasks.update'])->delete('/work-orders/{workOrder}/gis/features/{feature}', [OperationalGisController::class, 'unlinkWorkOrderWeb'])->name('work-orders.gis.unlink');
 Route::middleware(['auth', 'active', 'permission:tasks.update|tasks.assign|tasks.transition'])->put('/work-orders/{workOrder}', [WorkOrderWebController::class, 'update'])->name('work-orders.update');
 Route::middleware(['auth', 'active', 'permission:tasks.update'])->post('/work-orders/{workOrder}/convert-to-complaint', [WorkOrderWebController::class, 'convertToComplaint'])->name('work-orders.convert-to-complaint');
 Route::middleware(['auth', 'active', 'permission:tasks.delete'])->delete('/work-orders/{workOrder}', [WorkOrderWebController::class, 'destroy'])->name('work-orders.destroy');
