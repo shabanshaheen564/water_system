@@ -5,38 +5,38 @@ namespace App\Http\Controllers;
 use App\Models\Dataset;
 use App\Models\DatasetRecord;
 use App\Models\GisFeature;
+use App\Services\OperationalReportService;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(Request $request, OperationalReportService $reports): View
     {
-        // Total datasets
+        // GIS data indicators
         $totalDatasets = Dataset::where('is_active', true)->count();
 
-        // Total records across all datasets
         $totalRecords = DatasetRecord::whereHas('dataset', function ($query) {
             $query->where('is_active', true);
         })->count();
 
-        // Spatial datasets
         $spatialDatasets = Dataset::where('is_active', true)
             ->where('is_spatial', true)
             ->count();
 
-        // GIS features
         $gisFeatures = GisFeature::whereHas('dataset', function ($query) {
             $query->where('is_active', true);
         })->count();
 
-        // Recent datasets (last 5)
         $recentDatasets = Dataset::where('is_active', true)
             ->withCount(['records', 'gisFeatures as features_count'])
             ->latest()
             ->take(5)
             ->get();
 
-        // System status
+        // Operational indicators for the main dashboard.
+        $operationalSummary = $reports->summary($request);
+
         $systemStatus = [
             'database' => 'online',
             'api' => 'online',
@@ -49,7 +49,8 @@ class DashboardController extends Controller
             'spatialDatasets',
             'gisFeatures',
             'recentDatasets',
-            'systemStatus'
+            'systemStatus',
+            'operationalSummary'
         ));
     }
 }
