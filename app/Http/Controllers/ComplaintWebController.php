@@ -8,6 +8,7 @@ use App\Models\Complaint;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Services\ArchiveService;
+use App\Services\OperationalGisService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -45,10 +46,11 @@ class ComplaintWebController extends Controller
         return redirect()->route('complaints.index')->with('success', 'تم تسجيل الشكوى بنجاح.');
     }
 
-    public function show(Complaint $complaint): View
+    public function show(Complaint $complaint, OperationalGisService $gis): View
     {
-        $complaint->load(['reportedBy:id,name,email', 'assignedTo:id,name,email', 'processedBy:id,name,email', 'workOrders.assignedTo:id,name,email', 'workOrders.createdBy:id,name,email', 'workOrders.complaints:id,complaint_number,title,status']);
-        return view('complaints.show', compact('complaint'));
+        $complaint->load(['reportedBy:id,name,email', 'assignedTo:id,name,email', 'processedBy:id,name,email', 'workOrders.assignedTo:id,name,email', 'workOrders.createdBy:id,name,email', 'workOrders.complaints:id,complaint_number,title,status', 'gisFeatures.dataset', 'gisFeatures.datasetRecord']);
+        $gisContext = $gis->complaintContext($complaint);
+        return view('complaints.show', compact('complaint', 'gisContext'));
     }
 
     public function edit(Complaint $complaint): View
