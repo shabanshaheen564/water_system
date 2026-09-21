@@ -43,6 +43,11 @@ class WorkOrder extends Model
         });
     }
 
+    public function gisFeatures(): BelongsToMany
+    {
+        return $this->belongsToMany(GisFeature::class, 'work_order_gis_feature')->withPivot('created_by')->withTimestamps();
+    }
+
     public function complaints(): BelongsToMany
     {
         return $this->belongsToMany(Complaint::class, 'complaint_work_order')->withTimestamps();
