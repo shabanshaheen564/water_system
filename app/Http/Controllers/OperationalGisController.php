@@ -8,6 +8,7 @@ use App\Models\WorkOrder;
 use App\Services\OperationalGisService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 
 class OperationalGisController extends Controller
 {
@@ -40,6 +41,30 @@ class OperationalGisController extends Controller
                 (int) ($validated['limit'] ?? 5)
             ),
         ]);
+    }
+
+    public function linkComplaintWeb(Request $request, Complaint $complaint, GisFeature $feature, OperationalGisService $gis): RedirectResponse
+    {
+        $gis->linkComplaint($complaint, $feature, $request->user()->id);
+        return back()->with('success', 'تم ربط الأصل المكاني بالشكوى بنجاح.');
+    }
+
+    public function unlinkComplaintWeb(Complaint $complaint, GisFeature $feature, OperationalGisService $gis): RedirectResponse
+    {
+        $gis->unlinkComplaint($complaint, $feature);
+        return back()->with('success', 'تم إلغاء ربط الأصل المكاني بالشكوى.');
+    }
+
+    public function linkWorkOrderWeb(Request $request, WorkOrder $workOrder, GisFeature $feature, OperationalGisService $gis): RedirectResponse
+    {
+        $gis->linkWorkOrder($workOrder, $feature, $request->user()->id);
+        return back()->with('success', 'تم ربط الأصل المكاني بالمهمة بنجاح.');
+    }
+
+    public function unlinkWorkOrderWeb(WorkOrder $workOrder, GisFeature $feature, OperationalGisService $gis): RedirectResponse
+    {
+        $gis->unlinkWorkOrder($workOrder, $feature);
+        return back()->with('success', 'تم إلغاء ربط الأصل المكاني بالمهمة.');
     }
 
     public function linkComplaint(Request $request, Complaint $complaint, GisFeature $feature, OperationalGisService $gis): JsonResponse
