@@ -161,7 +161,7 @@ class OperationalGisTest extends TestCase
         $nearId = DB::table('gis_features')->insertGetId([
             'dataset_record_id' => $nearRecord->id,
             'dataset_id' => $dataset->id,
-            'geometry' => DB::raw('ST_SetSRID(ST_GeomFromText('POINT(34.4501 31.5001)'), 4326)'),
+            'geometry' => DB::raw("ST_SetSRID(ST_GeomFromText('POINT(34.4501 31.5001)'), 4326)" ),
             'geometry_type' => 'Point',
             'srid' => 4326,
             'created_at' => now(),
@@ -171,7 +171,7 @@ class OperationalGisTest extends TestCase
         $farId = DB::table('gis_features')->insertGetId([
             'dataset_record_id' => $farRecord->id,
             'dataset_id' => $dataset->id,
-            'geometry' => DB::raw('ST_SetSRID(ST_GeomFromText('POINT(34.50 31.55)'), 4326)'),
+            'geometry' => DB::raw("ST_SetSRID(ST_GeomFromText('POINT(34.50 31.55)'), 4326)" ),
             'geometry_type' => 'Point',
             'srid' => 4326,
             'created_at' => now(),
