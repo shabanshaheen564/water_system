@@ -26,6 +26,11 @@ class Complaint extends Model
     public function assignedTo(): BelongsTo { return $this->belongsTo(User::class, 'assigned_to'); }
     public function processedBy(): BelongsTo { return $this->belongsTo(User::class, 'processed_by'); }
 
+    public function gisFeatures(): BelongsToMany
+    {
+        return $this->belongsToMany(GisFeature::class, 'complaint_gis_feature')->withPivot('created_by')->withTimestamps();
+    }
+
     public function workOrders(): BelongsToMany
     {
         return $this->belongsToMany(WorkOrder::class, 'complaint_work_order')->withTimestamps();
