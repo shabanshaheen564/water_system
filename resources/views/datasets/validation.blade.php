@@ -1,16 +1,18 @@
 @extends('layouts.app')
 
+@section('title', 'GIS Data Quality')
+
 @section('content')
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+    <div class="mb-6 flex items-center justify-between gap-4">
         <div>
-            <h2 class="mb-1">جودة بيانات GIS</h2>
-            <div class="text-muted">{{ $dataset['display_name'] }} ({{ $dataset['name'] }})</div>
+            <h2 class="text-xl font-semibold text-ink">جودة بيانات GIS</h2>
+            <p class="mt-1 text-sm text-ink-muted">{{ $dataset['display_name'] }} <span class="ltr-value">({{ $dataset['name'] }})</span></p>
         </div>
-        <a href="{{ route('datasets.show', $dataset['id']) }}" class="btn btn-outline-secondary">العودة للطبقة</a>
+        <a href="{{ route('datasets.show', $dataset['id']) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">العودة للطبقة</a>
     </div>
 
-    <div class="row g-3 mb-4">
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         @foreach([
             ['إجمالي السجلات', $summary['total_records']],
             ['Geometry صالح', $summary['valid_geometry']],
@@ -23,49 +25,45 @@
             ['تكرار Identifier', $summary['duplicate_identifiers']],
             ['تكرار Geometry', $summary['duplicate_geometries']],
         ] as $card)
-            <div class="col-md-3">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <div class="text-muted small">{{ $card[0] }}</div>
-                        <div class="fs-3 fw-bold">{{ $card[1] }}</div>
-                    </div>
-                </div>
+            <div class="card-institutional p-5">
+                <div class="text-xs font-medium text-ink-muted">{{ $card[0] }}</div>
+                <div class="mt-1 text-2xl font-semibold text-ink ltr-value">{{ $card[1] }}</div>
             </div>
         @endforeach
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-header fw-bold">تفاصيل أخطاء الجودة</div>
-        <div class="card-body p-0">
-            @if(count($details))
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Record</th>
-                                <th>Feature</th>
-                                <th>النوع</th>
-                                <th>الحقل</th>
-                                <th>التفاصيل</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        @foreach($details as $detail)
-                            <tr>
-                                <td>{{ $detail['record_id'] ?? '—' }}</td>
-                                <td>{{ $detail['feature_id'] ?? '—' }}</td>
-                                <td>{{ $detail['type'] }}</td>
-                                <td>{{ $detail['field'] ?? '—' }}</td>
-                                <td>{{ $detail['message'] }}</td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="p-4 text-success">لا توجد أخطاء جودة مكتشفة في البيانات.</div>
-            @endif
+    <section class="card-institutional overflow-hidden">
+        <div class="border-b border-border px-6 py-4">
+            <h3 class="text-base font-semibold text-ink">تفاصيل أخطاء الجودة</h3>
         </div>
-    </div>
+        @if(count($details))
+            <div class="overflow-x-auto">
+                <table class="table-institutional">
+                    <thead>
+                        <tr>
+                            <th>Record</th>
+                            <th>Feature</th>
+                            <th>النوع</th>
+                            <th>الحقل</th>
+                            <th>التفاصيل</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach($details as $detail)
+                        <tr class="hover:bg-surface-1">
+                            <td class="ltr-value">{{ $detail['record_id'] ?? '—' }}</td>
+                            <td class="ltr-value">{{ $detail['feature_id'] ?? '—' }}</td>
+                            <td><code class="ltr-value text-xs text-ink-secondary">{{ $detail['type'] }}</code></td>
+                            <td>{{ $detail['field'] ?? '—' }}</td>
+                            <td>{{ $detail['message'] }}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div class="p-8 text-center text-sm text-ink-muted">لا توجد أخطاء جودة مكتشفة في البيانات.</div>
+        @endif
+    </section>
 </div>
 @endsection
