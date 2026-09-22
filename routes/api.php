@@ -52,8 +52,8 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complai
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.view'])->group(function () { Route::get('/work-orders', [WorkOrderController::class, 'index']); Route::get('/work-orders/{workOrder}', [WorkOrderController::class, 'show']); });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.create'])->post('/work-orders', [WorkOrderController::class, 'store']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update|tasks.assign|tasks.transition'])->put('/work-orders/{workOrder}', [WorkOrderController::class, 'update']);
-Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->post('/work-orders/{workOrder}/complaints', [WorkOrderController::class, 'addComplaint']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->post('/work-orders/{workOrder}/convert-to-complaint', [WorkOrderController::class, 'convertToComplaint']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->post('/work-orders/{workOrder}/complaints', [WorkOrderController::class, 'addComplaint']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.delete'])->delete('/work-orders/{workOrder}', [WorkOrderController::class, 'destroy']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.view'])->group(function () { Route::get('/datasets', [DatasetController::class, 'index']); Route::get('/datasets/{dataset}', [DatasetController::class, 'show']); });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.create'])->post('/datasets', [DatasetController::class, 'store']);
@@ -98,7 +98,6 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.v
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->post('/work-orders/{workOrder}/gis/features/{feature}', [OperationalGisController::class, 'linkWorkOrder']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->delete('/work-orders/{workOrder}/gis/features/{feature}', [OperationalGisController::class, 'unlinkWorkOrder']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:gis.view|complaints.view|tasks.view'])->get('/gis/nearest-assets', [OperationalGisController::class, 'nearest']);
-
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->group(function () {
     Route::get('/archive/complaints', [ArchiveController::class, 'complaints']);
 });
@@ -106,3 +105,5 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.v
     Route::get('/archive/work-orders', [ArchiveController::class, 'workOrders']);
 });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports.view'])->get('/archive/summary', [ArchiveController::class, 'summary']);
+
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:audit_logs.view'])->get('/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index']);
