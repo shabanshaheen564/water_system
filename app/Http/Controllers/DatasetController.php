@@ -19,15 +19,17 @@ class DatasetController extends Controller
             $query->where('dataset_type', $request->dataset_type);
         }
 
+        if ($request->has('management_mode')) {
+            $query->where('management_mode', $request->management_mode);
+        }
+
         if ($request->has('is_active')) {
             $query->where('is_active', $request->boolean('is_active'));
         }
 
         $datasets = $query->orderBy('created_at', 'desc')->paginate();
 
-        $data = $datasets->getCollection()->map(function ($dataset) {
-            return $this->formatDataset($dataset);
-        });
+        $data = $datasets->getCollection()->map(fn ($dataset) => $this->formatDataset($dataset));
 
         return response()->json([
             'data' => $data,
@@ -59,12 +61,17 @@ class DatasetController extends Controller
                 'display_name' => $validated['display_name'],
                 'description' => $validated['description'] ?? null,
                 'dataset_type' => $validated['dataset_type'],
+                'management_mode' => $validated['management_mode'],
                 'source_name' => $validated['source_name'] ?? null,
                 'source_format' => $validated['source_format'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
                 'is_spatial' => $validated['is_spatial'] ?? false,
                 'geometry_type' => $validated['geometry_type'] ?? null,
                 'srid' => $validated['srid'] ?? null,
+                'map_order' => $validated['map_order'] ?? 0,
+                'default_visible' => $validated['default_visible'] ?? true,
+                'map_opacity' => $validated['map_opacity'] ?? 1,
+                'display_color' => $validated['display_color'] ?? '#475467',
                 'created_by' => $request->user()->id,
             ]);
 
@@ -106,31 +113,34 @@ class DatasetController extends Controller
             'display_name' => $dataset->display_name,
             'description' => $dataset->description,
             'dataset_type' => $dataset->dataset_type,
+            'management_mode' => $dataset->management_mode,
             'source_name' => $dataset->source_name,
             'source_format' => $dataset->source_format,
             'is_active' => $dataset->is_active,
             'is_spatial' => $dataset->is_spatial,
             'geometry_type' => $dataset->geometry_type,
             'srid' => $dataset->srid,
+            'map_order' => $dataset->map_order,
+            'default_visible' => $dataset->default_visible,
+            'map_opacity' => $dataset->map_opacity,
+            'display_color' => $dataset->display_color,
             'created_by' => $dataset->createdBy ? [
                 'id' => $dataset->createdBy->id,
                 'name' => $dataset->createdBy->name,
                 'email' => $dataset->createdBy->email,
             ] : null,
-            'fields' => $dataset->fields->map(function ($field) {
-                return [
-                    'id' => $field->id,
-                    'name' => $field->name,
-                    'display_name' => $field->display_name,
-                    'data_type' => $field->data_type,
-                    'is_required' => $field->is_required,
-                    'is_unique' => $field->is_unique,
-                    'is_identifier' => $field->is_identifier,
-                    'default_value' => $field->default_value,
-                    'sort_order' => $field->sort_order,
-                    'metadata' => $field->metadata,
-                ];
-            })->values(),
+            'fields' => $dataset->fields->map(fn ($field) => [
+                'id' => $field->id,
+                'name' => $field->name,
+                'display_name' => $field->display_name,
+                'data_type' => $field->data_type,
+                'is_required' => $field->is_required,
+                'is_unique' => $field->is_unique,
+                'is_identifier' => $field->is_identifier,
+                'default_value' => $field->default_value,
+                'sort_order' => $field->sort_order,
+                'metadata' => $field->metadata,
+            ])->values(),
             'created_at' => $dataset->created_at?->toISOString(),
             'updated_at' => $dataset->updated_at?->toISOString(),
         ];
@@ -138,7 +148,7 @@ class DatasetController extends Controller
 
     private function changesProtectedConfiguration(Dataset $dataset, array $values): bool
     {
-        foreach (['dataset_type', 'is_spatial', 'geometry_type', 'srid'] as $attribute) {
+        foreach (['dataset_type', 'management_mode', 'is_spatial', 'geometry_type', 'srid'] as $attribute) {
             if (array_key_exists($attribute, $values) && $values[$attribute] != $dataset->{$attribute}) {
                 return true;
             }

@@ -96,4 +96,20 @@ class RolePermissionManagementTest extends TestCase
         $this->actingAs($owner)->get(route('permissions.index'))->assertOk();
         $this->actingAs($admin)->get(route('permissions.index'))->assertOk();
     }
+
+    public function test_admin_cannot_escalate_role_permissions_to_unowned_permissions(): void
+    {
+        $admin = User::factory()->create(['is_active' => true]);
+        $admin->givePermissionTo('roles.update');
+
+        $role = Role::where('name', 'Engineer')->firstOrFail();
+        $permission = Permission::where('name', 'users.delete')->firstOrFail();
+
+        $response = $this->actingAs($admin)->put(route('roles.update', $role), [
+            'permissions' => [$permission->id],
+        ]);
+
+        $response->assertRedirect(route('roles.index'));
+        $this->assertFalse($role->fresh()->hasPermissionTo('users.delete'));
+    }
 }

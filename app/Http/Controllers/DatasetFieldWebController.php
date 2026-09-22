@@ -18,6 +18,27 @@ class DatasetFieldWebController extends Controller
         return view('dataset_fields.index', compact('dataset', 'fields'));
     }
 
+    public function data(Dataset $dataset): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'data' => $dataset->fields()->orderBy('sort_order')->get()->map(function (DatasetField $field) {
+                return [
+                    'id' => $field->id,
+                    'dataset_id' => $field->dataset_id,
+                    'name' => $field->name,
+                    'display_name' => $field->display_name,
+                    'data_type' => $field->data_type,
+                    'is_required' => $field->is_required,
+                    'is_unique' => $field->is_unique,
+                    'is_identifier' => $field->is_identifier,
+                    'default_value' => $field->default_value,
+                    'sort_order' => $field->sort_order,
+                    'metadata' => $field->metadata,
+                ];
+            })->values(),
+        ]);
+    }
+
     public function create(Dataset $dataset): \Illuminate\View\View
     {
         return view('dataset_fields.create', compact('dataset'));

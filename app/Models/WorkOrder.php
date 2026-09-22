@@ -4,44 +4,55 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class WorkOrder extends Model
 {
+    protected array $pendingComplaintIds = [];
+
     protected $fillable = [
-        'work_order_number',
-        'complaint_id',
-        'title',
-        'description',
-        'status',
-        'priority',
-        'assigned_to',
-        'created_by',
-        'started_at',
-        'completed_at',
-        'notes',
+        'work_order_number','title','description','status','priority','assigned_to','created_by',
+        'started_at','completed_at','notes','latitude','longitude',
     ];
 
     protected function casts(): array
     {
         return [
-            'started_at' => 'datetime',
-            'completed_at' => 'datetime',
+            'started_at' => 'datetime','completed_at' => 'datetime',
+            'latitude' => 'decimal:8','longitude' => 'decimal:8',
         ];
     }
 
-    public function complaint(): BelongsTo
+    public function fill(array $attributes)
     {
-        return $this->belongsTo(Complaint::class);
+        if (array_key_exists('complaint_id', $attributes)) {
+            $complaintId = $attributes['complaint_id'];
+            unset($attributes['complaint_id']);
+            if ($complaintId !== null && $complaintId !== '') $this->pendingComplaintIds[] = (int) $complaintId;
+        }
+        return parent::fill($attributes);
     }
 
-    public function assignedTo(): BelongsTo
+    protected static function booted(): void
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        static::created(function (WorkOrder $workOrder): void {
+            if ($workOrder->pendingComplaintIds !== []) {
+                $workOrder->complaints()->syncWithoutDetaching($workOrder->pendingComplaintIds);
+                $workOrder->pendingComplaintIds = [];
+            }
+        });
     }
 
-    public function createdBy(): BelongsTo
+    public function gisFeatures(): BelongsToMany
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsToMany(GisFeature::class, 'work_order_gis_feature')->withPivot('created_by')->withTimestamps();
     }
+
+    public function complaints(): BelongsToMany
+    {
+        return $this->belongsToMany(Complaint::class, 'complaint_work_order')->withTimestamps();
+    }
+
+    public function assignedTo(): BelongsTo { return $this->belongsTo(User::class, 'assigned_to'); }
+    public function createdBy(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
 }

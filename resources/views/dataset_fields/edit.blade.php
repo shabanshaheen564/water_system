@@ -8,7 +8,7 @@
             <h2 class="text-xl font-semibold leading-[1.5] text-ink">{{ __('Edit Field') }}</h2>
             <p class="mt-1 text-sm text-ink-secondary">{{ __('Update field configuration for') }} {{ $fieldModel->dataset->display_name }}</p>
         </div>
-        <div class="card-institutional overflow-hidden">
+        <div data-enter class="card-institutional overflow-hidden">
             <form method="POST" action="{{ route('datasets.fields.update', [$fieldModel->dataset_id, $fieldModel]) }}" class="space-y-6 p-6">
                 @csrf @method('PUT')
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -26,7 +26,7 @@
                     <div><label for="sort_order" class="mb-1 block text-sm font-medium text-ink">{{ __('Sort Order') }}</label><input type="number" name="sort_order" id="sort_order" value="{{ $fieldModel->sort_order }}" class="input-institutional mt-1 block w-full text-sm" dir="ltr"></div>
                 </div>
                 <div><label for="metadata" class="mb-1 block text-sm font-medium text-ink">{{ __('Metadata (JSON)') }}</label><textarea name="metadata" id="metadata" rows="4" class="input-institutional mt-1 block w-full text-sm" dir="ltr">{{ $fieldModel->metadata ? json_encode($fieldModel->metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '' }}</textarea><p class="mt-1 text-xs text-ink-muted">{{ __('Optional JSON metadata (e.g. units, precision, etc.)') }}</p></div>
-                <div class="flex justify-end gap-3 border-t border-border pt-6"><a href="{{ route('datasets.fields.index', $fieldModel->dataset_id) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Cancel') }}</a><button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Update Field') }}</button></div>
+                <div class="flex justify-end gap-3 border-t border-border pt-6"><a href="{{ route('datasets.fields.index', $fieldModel->dataset_id) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Cancel') }}</a><button type="submit" class="btn-motion rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Update Field') }}</button></div>
             </form>
         </div>
     </div>

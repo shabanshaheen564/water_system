@@ -101,6 +101,7 @@ class DatasetRecordRelationshipTest extends TestCase
             'name' => $name,
             'display_name' => $displayName,
             'dataset_type' => 'official_layer',
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 4326,
@@ -752,6 +753,7 @@ class DatasetRecordRelationshipTest extends TestCase
         // Add GIS feature to parent to prevent deletion
         // Need to make parent dataset spatial first
         $this->parentDataset->update([
+            'management_mode' => 'web_editable',
             'is_spatial' => true,
             'geometry_type' => 'Point',
             'srid' => 4326,

@@ -3,11 +3,11 @@
 @section('content')
 <div class="mx-auto flex min-h-[calc(100vh-57px)] max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
     <div class="w-full border border-border bg-white">
-        <div class="h-1 bg-brand-600"></div>
+        <div class="btn-motion h-1 bg-brand-600"></div>
         <div class="grid lg:grid-cols-[1.35fr_.65fr]">
             <section class="p-8 sm:p-12 lg:p-16">
                 <div class="mb-10 flex items-center gap-4">
-                    <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-brand-600 text-white" aria-hidden="true">
+                    <div class="btn-motion flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-brand-600 text-white" aria-hidden="true">
                         <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 20h18M5 20V9l7-5 7 5v11M9 20v-6h6v6M17 8V5l3 2v13" stroke-linejoin="round"/></svg>
                     </div>
                     <div>
@@ -35,7 +35,7 @@
                     </div>
                 </div>
 
-                <a href="{{ route('login') }}" class="mt-9 inline-flex items-center gap-2 rounded-md bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-100">
+                <a href="{{ route('login') }}" class="btn-motion mt-9 inline-flex items-center gap-2 rounded-md bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-100">
                     {{ __('messages.public.login') }}
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>

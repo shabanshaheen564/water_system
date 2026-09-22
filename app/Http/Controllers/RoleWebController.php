@@ -43,7 +43,14 @@ class RoleWebController extends Controller
         ]);
 
         $permissionIds = collect($validated['permissions'] ?? [])->map(fn ($id) => (int) $id)->unique()->values();
-        $permissions = Permission::whereIn('id', $permissionIds)->where('guard_name', 'web')->get();
+
+        if (auth()->user()->hasRole('System Owner')) {
+            $permissions = Permission::whereIn('id', $permissionIds)->where('guard_name', 'web')->get();
+        } else {
+            $userPermissionIds = auth()->user()->getAllPermissions()->pluck('id')->toArray();
+            $filteredIds = $permissionIds->filter(fn ($id) => in_array($id, $userPermissionIds))->values();
+            $permissions = Permission::whereIn('id', $filteredIds)->where('guard_name', 'web')->get();
+        }
 
         $role->syncPermissions($permissions);
 

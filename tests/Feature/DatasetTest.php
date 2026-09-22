@@ -95,6 +95,7 @@ class DatasetTest extends TestCase
             'display_name' => 'Wells',
             'description' => 'Water wells dataset',
             'dataset_type' => 'official_layer',
+            'management_mode' => 'official',
             'source_name' => 'Municipality GIS',
             'source_format' => 'Shapefile',
             'is_active' => true,

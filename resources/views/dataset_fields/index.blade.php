@@ -10,11 +10,11 @@
                 <p class="mt-1 truncate text-sm text-ink-muted ltr-value">{{ $dataset->name }}</p>
             </div>
             @can('datasets.create')
-                <a href="{{ route('datasets.fields.create', $dataset) }}" class="shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Add Field') }}</a>
+                <a href="{{ route('datasets.fields.create', $dataset) }}" class="btn-motion shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Add Field') }}</a>
             @endcan
         </div>
 
-        <div class="card-institutional overflow-hidden">
+        <div data-enter class="card-institutional overflow-hidden">
             @if($fields->count() > 0)
                 <div class="overflow-x-auto">
                     <table class="table-institutional">
@@ -53,7 +53,7 @@
             @else
                 <div class="p-12 text-center">
                     <p class="text-sm text-ink-muted">{{ __('No fields defined yet') }}</p>
-                    <a href="{{ route('datasets.fields.create', $dataset) }}" class="mt-4 inline-block rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Add First Field') }}</a>
+                    <a href="{{ route('datasets.fields.create', $dataset) }}" class="btn-motion mt-4 inline-block rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Add First Field') }}</a>
                 </div>
             @endif
         </div>

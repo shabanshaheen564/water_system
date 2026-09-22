@@ -8,7 +8,7 @@
             <h2 class="text-xl font-semibold leading-[1.5] text-ink">{{ __('Create Dataset') }}</h2>
             <p class="mt-1 text-sm text-ink-secondary">{{ __('Create a new dataset for managing spatial or tabular data') }}</p>
         </div>
-        <div class="card-institutional overflow-hidden">
+        <div data-enter class="card-institutional overflow-hidden">
             <form method="POST" action="{{ route('datasets.store') }}" class="space-y-6 p-6">
                 @csrf
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -37,6 +37,17 @@
                             <option value="additional_table" {{ old('dataset_type') === 'additional_table' ? 'selected' : '' }}>{{ __('Additional Table') }}</option>
                         </select>
                         @error('dataset_type')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label for="management_mode" class="mb-1 block text-sm font-medium text-ink">طريقة إدارة البيانات</label>
+                        <select name="management_mode" id="management_mode" required class="input-institutional mt-1 block w-full px-3 py-2 text-sm outline-none focus:border-brand-600">
+                            <option value="official" {{ old('management_mode', 'official') === 'official' ? 'selected' : '' }}>Official — بيانات رسمية من ArcGIS Pro</option>
+                            <option value="web_editable" {{ old('management_mode') === 'web_editable' ? 'selected' : '' }}>Web Editable — طبقة قابلة للرسم من الويب</option>
+                            <option value="operational" {{ old('management_mode') === 'operational' ? 'selected' : '' }}>Operational — بيانات تشغيلية</option>
+                            <option value="analytical" {{ old('management_mode') === 'analytical' ? 'selected' : '' }}>Analytical — طبقة ناتجة عن تحليل مكاني</option>
+                        </select>
+                        @error('management_mode')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
+                        <p class="mt-1 text-xs text-ink-muted">حدد مصدر وإمكانية تعديل الطبقة من الويب.</p>
                     </div>
                     <div>
                         <label for="source_name" class="mb-1 block text-sm font-medium text-ink">{{ __('Source Name') }}</label>
@@ -78,9 +89,31 @@
                         <p class="mt-1 text-xs text-ink-muted">{{ __('Spatial Reference System Identifier (e.g. 4326 for WGS84)') }}</p>
                     </div>
                 </div>
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-4">
+                    <div>
+                        <label for="map_order" class="mb-1 block text-sm font-medium text-ink">ترتيب الطبقة</label>
+                        <input type="number" name="map_order" id="map_order" value="{{ old('map_order', 0) }}" min="0" max="999999" class="input-institutional mt-1 block w-full px-3 py-2 text-sm" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-ink">الظهور الافتراضي</label>
+                        <div class="mt-2 flex items-center gap-2">
+                            <input type="hidden" name="default_visible" value="0">
+                            <input type="checkbox" name="default_visible" id="default_visible" value="1" {{ old('default_visible', true) ? 'checked' : '' }} class="h-4 w-4 rounded border-border-strong text-brand-600">
+                            <label for="default_visible" class="text-sm text-ink-secondary">إظهار على الخريطة</label>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="map_opacity" class="mb-1 block text-sm font-medium text-ink">شفافية الطبقة</label>
+                        <input type="number" name="map_opacity" id="map_opacity" value="{{ old('map_opacity', 1) }}" min="0" max="1" step="0.05" class="input-institutional mt-1 block w-full px-3 py-2 text-sm" dir="ltr">
+                    </div>
+                    <div>
+                        <label for="display_color" class="mb-1 block text-sm font-medium text-ink">لون الطبقة</label>
+                        <input type="color" name="display_color" id="display_color" value="{{ old('display_color', '#475467') }}" class="mt-1 h-10 w-full cursor-pointer rounded-md border border-border-strong bg-white p-1">
+                    </div>
+                </div>
                 <div class="flex justify-end gap-3 border-t border-border pt-6">
                     <a href="{{ route('datasets.index') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Cancel') }}</a>
-                    <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Create Dataset') }}</button>
+                    <button type="submit" class="btn-motion rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Create Dataset') }}</button>
                 </div>
             </form>
         </div>

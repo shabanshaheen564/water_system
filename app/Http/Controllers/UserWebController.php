@@ -41,7 +41,13 @@ class UserWebController extends Controller
         ]);
         $user->syncRoles($roles);
         if (! $user->hasRole('System Owner')) {
-            $user->syncPermissions(Permission::whereIn('id', $directPermissionIds)->where('guard_name', 'web')->get());
+            if (auth()->user()->hasRole('System Owner')) {
+                $user->syncPermissions(Permission::whereIn('id', $directPermissionIds)->where('guard_name', 'web')->get());
+            } else {
+                $currentUserPermissionIds = auth()->user()->getAllPermissions()->pluck('id')->toArray();
+                $filteredIds = $directPermissionIds->filter(fn ($id) => in_array($id, $currentUserPermissionIds))->values();
+                $user->syncPermissions(Permission::whereIn('id', $filteredIds)->where('guard_name', 'web')->get());
+            }
         }
 
         return redirect()->route('users.index')->with('success', __('User created successfully.'));
@@ -76,6 +82,12 @@ class UserWebController extends Controller
         $wasSystemOwner = $user->hasRole('System Owner');
         $willBeActive = (bool) $validated['is_active'];
 
+        if ($user->id === auth()->id() && ! auth()->user()->hasRole('System Owner')) {
+            if (array_key_exists('roles', $validated) || array_key_exists('permissions', $validated)) {
+                abort(403, __('You cannot modify roles or custom permissions of your account.'));
+            }
+        }
+
         if (! $this->canAssignRoles($roles)) abort(403, __('Insufficient permissions to assign one or more selected roles.'));
         if ($wasSystemOwner && ! auth()->user()->hasRole('System Owner')) abort(403, __('The System Owner account is protected.'));
 
@@ -90,7 +102,15 @@ class UserWebController extends Controller
 
         $user->update(['name' => $validated['name'], 'email' => $validated['email'], 'is_active' => $willBeActive]);
         $user->syncRoles($roles);
-        if (! $wasSystemOwner) $user->syncPermissions(Permission::whereIn('id', $directPermissionIds)->where('guard_name', 'web')->get());
+        if (! $wasSystemOwner) {
+            if (auth()->user()->hasRole('System Owner')) {
+                $user->syncPermissions(Permission::whereIn('id', $directPermissionIds)->where('guard_name', 'web')->get());
+            } else {
+                $currentUserPermissionIds = auth()->user()->getAllPermissions()->pluck('id')->toArray();
+                $filteredIds = $directPermissionIds->filter(fn ($id) => in_array($id, $currentUserPermissionIds))->values();
+                $user->syncPermissions(Permission::whereIn('id', $filteredIds)->where('guard_name', 'web')->get());
+            }
+        }
 
         return redirect()->route('users.index')->with('success', __('User updated successfully.'));
     }

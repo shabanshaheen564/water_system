@@ -74,6 +74,7 @@ class DatasetWebTest extends TestCase
                 'display_name' => 'Test Dataset',
                 'description' => 'A test dataset',
                 'dataset_type' => 'official_layer',
+                'management_mode' => 'official',
                 'source_name' => 'Test Source',
                 'source_format' => 'Shapefile',
                 'is_active' => true,
@@ -152,6 +153,7 @@ class DatasetWebTest extends TestCase
                 'name' => 'non_spatial_table',
                 'display_name' => 'Non-Spatial Table',
                 'dataset_type' => 'additional_table',
+                'management_mode' => 'operational',
                 'is_spatial' => false,
                 'is_active' => true,
             ]);
@@ -193,6 +195,7 @@ class DatasetWebTest extends TestCase
                     'name' => $name,
                     'display_name' => 'Test ' . $type,
                     'dataset_type' => 'official_layer',
+                    'management_mode' => 'official',
                     'is_spatial' => true,
                     'is_active' => true,
                     'geometry_type' => $type,

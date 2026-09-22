@@ -134,6 +134,7 @@
     "These permissions apply directly to this account in addition to its role permissions.": "هذه الصلاحيات تطبق مباشرة على هذا الحساب بالإضافة إلى الصلاحيات الموروثة من دوره.",
     "System Owner has protected full system permissions. Custom permissions are managed through the protected System Owner role.": "يمتلك مالك النظام كامل صلاحيات النظام بصورة محمية. تتم إدارة هذه الصلاحيات من خلال دور مالك النظام المحمي.",
     "The System Owner account is protected.": "حساب مالك النظام محمي.",
+    "You cannot modify roles or custom permissions of your account.": "لا يمكنك تعديل الأدوار أو الصلاحيات المخصصة لحسابك.",
     "You cannot delete your own account.": "لا يمكنك حذف حسابك بنفسك.",
     "Email": "البريد الإلكتروني",
     "Password": "كلمة المرور",

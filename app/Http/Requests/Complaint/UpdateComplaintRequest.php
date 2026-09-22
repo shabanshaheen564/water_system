@@ -17,6 +17,8 @@ class UpdateComplaintRequest extends FormRequest
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['sometimes', 'required', 'string'],
+            'processing_notes' => ['sometimes', 'nullable', 'string'],
+            'solution' => ['sometimes', 'nullable', 'string'],
             'status' => ['sometimes', Rule::in(['open', 'in_progress', 'resolved', 'closed', 'cancelled'])],
             'priority' => ['sometimes', Rule::in(['low', 'medium', 'high', 'urgent'])],
             'assigned_to' => ['sometimes', 'nullable', 'exists:users,id'],
@@ -25,6 +27,9 @@ class UpdateComplaintRequest extends FormRequest
             'address' => ['sometimes', 'nullable', 'string'],
             'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
+            // These fields are accepted so legacy clients receive the existing no-op behavior.
+            'complaint_number' => ['sometimes', 'nullable', 'string'],
+            'reported_by' => ['sometimes', 'nullable', 'integer'],
         ];
     }
 }

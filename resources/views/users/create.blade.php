@@ -1,17 +1,224 @@
 @extends('layouts.app')
+
 @section('title', __('Create User'))
+
 @section('content')
-<div class="mx-auto max-w-5xl p-4 sm:p-6 lg:p-8"><div class="mb-6"><h2 class="text-xl font-semibold text-ink">{{ __('Create User') }}</h2><p class="mt-1 text-sm text-ink-secondary">{{ __('Create a new system user and assign roles and custom permissions') }}</p></div>
-<form method="POST" action="{{ route('users.store') }}" class="card-institutional space-y-6 p-6">@csrf
-<div class="grid gap-6 sm:grid-cols-2"><div><label for="name" class="mb-1 block text-sm font-medium text-ink">{{ __('Name') }}</label><input id="name" name="name" value="{{ old('name') }}" required class="input-institutional w-full text-sm">@error('name')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror</div><div><label for="email" class="mb-1 block text-sm font-medium text-ink">{{ __('Email') }}</label><input id="email" type="email" name="email" value="{{ old('email') }}" required class="input-institutional w-full text-sm" dir="ltr">@error('email')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror</div></div>
-<div class="grid gap-6 sm:grid-cols-2"><div><label for="password" class="mb-1 block text-sm font-medium text-ink">{{ __('Password') }}</label><input id="password" type="password" name="password" required class="input-institutional w-full text-sm" dir="ltr">@error('password')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror</div><div><label for="password_confirmation" class="mb-1 block text-sm font-medium text-ink">{{ __('Confirm Password') }}</label><input id="password_confirmation" type="password" name="password_confirmation" required class="input-institutional w-full text-sm" dir="ltr"></div></div>
-<div><label class="mb-2 block text-sm font-medium text-ink">{{ __('Roles') }}</label><div class="grid gap-2 sm:grid-cols-2">@foreach($roles as $role)<label class="flex items-center gap-2 border border-border p-3"><input type="checkbox" name="roles[]" value="{{ $role->name }}" @checked(in_array($role->name, old('roles', []), true)) class="h-4 w-4 rounded border-border-strong text-brand-600"><span class="text-sm text-ink">{{ __('messages.roles.'.$role->name) }}</span></label>@endforeach</div>@error('roles')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror</div>
+    <div class="mx-auto max-w-5xl p-4 sm:p-6 lg:p-8">
 
-@php($selectedPermissions = old('permissions', []))
-@php($permissionGroups = $permissions->groupBy(fn ($permission) => str_contains($permission->name, '.') ? str($permission->name)->before('.')->toString() : 'general'))
-<div><div class="mb-2"><h3 class="text-sm font-semibold text-ink">{{ __('Custom Account Permissions') }}</h3><p class="mt-1 text-xs text-ink-muted">{{ __('These permissions apply directly to this account in addition to its role permissions.') }}</p></div><div class="grid gap-4 md:grid-cols-2">@foreach($permissionGroups as $group => $groupPermissions)<section class="rounded-md border border-border bg-surface-1 p-4"><h4 class="mb-3 text-sm font-semibold text-ink">{{ $group === 'general' ? __('General') : __('messages.permission_groups.' . $group) }}</h4><div class="space-y-2">@foreach($groupPermissions as $permission)<label class="flex items-start gap-3 rounded-md border border-border bg-white p-3"><input type="checkbox" name="permissions[]" value="{{ $permission->id }}" @checked(in_array($permission->id, $selectedPermissions)) class="mt-0.5 h-4 w-4 rounded border-border-strong text-brand-600"><span><span class="block text-sm font-medium text-ink">{{ __('messages.permissions.' . $permission->name) }}</span><code class="ltr-value text-xs text-ink-muted">{{ $permission->name }}</code></span></label>@endforeach</div></section>@endforeach</div>@error('permissions')<p class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror</div>
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-ink">
+                {{ __('Create User') }}
+            </h2>
 
-<label class="flex items-center gap-2"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', true)) class="h-4 w-4 rounded border-border-strong text-brand-600"><span class="text-sm text-ink-secondary">{{ __('Active') }}</span></label>
-<div class="flex justify-end gap-3 border-t border-border pt-5"><a href="{{ route('users.index') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Cancel') }}</a><button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('Create User') }}</button></div>
-</form></div>
+            <p class="mt-1 text-sm text-ink-secondary">
+                {{ __('Create a new system user and assign roles and custom permissions') }}
+            </p>
+        </div>
+
+        <form
+            method="POST"
+            action="{{ route('users.store') }}"
+            data-enter
+            class="card-institutional space-y-6 p-6"
+        >
+            @csrf
+
+            <div class="grid gap-6 sm:grid-cols-2">
+                <div>
+                    <label for="name" class="mb-1 block text-sm font-medium text-ink">
+                        {{ __('Name') }}
+                    </label>
+
+                    <input
+                        id="name"
+                        name="name"
+                        value="{{ old('name') }}"
+                        required
+                        class="input-institutional w-full text-sm"
+                    >
+
+                    @error('name')
+                        <p class="mt-1 text-sm text-danger">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="email" class="mb-1 block text-sm font-medium text-ink">
+                        {{ __('Email') }}
+                    </label>
+
+                    <input
+                        id="email"
+                        type="email"
+                        name="email"
+                        value="{{ old('email') }}"
+                        required
+                        class="input-institutional w-full text-sm"
+                        dir="ltr"
+                    >
+
+                    @error('email')
+                        <p class="mt-1 text-sm text-danger">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="grid gap-6 sm:grid-cols-2">
+                <div>
+                    <label for="password" class="mb-1 block text-sm font-medium text-ink">
+                        {{ __('Password') }}
+                    </label>
+
+                    <input
+                        id="password"
+                        type="password"
+                        name="password"
+                        required
+                        class="input-institutional w-full text-sm"
+                        dir="ltr"
+                    >
+
+                    @error('password')
+                        <p class="mt-1 text-sm text-danger">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="password_confirmation" class="mb-1 block text-sm font-medium text-ink">
+                        {{ __('Confirm Password') }}
+                    </label>
+
+                    <input
+                        id="password_confirmation"
+                        type="password"
+                        name="password_confirmation"
+                        required
+                        class="input-institutional w-full text-sm"
+                        dir="ltr"
+                    >
+                </div>
+            </div>
+
+            <div>
+                <label class="mb-2 block text-sm font-medium text-ink">
+                    {{ __('Roles') }}
+                </label>
+
+                <div class="grid gap-2 sm:grid-cols-2">
+                    @foreach($roles as $role)
+                        <label class="flex items-center gap-2 border border-border p-3">
+                            <input
+                                type="checkbox"
+                                name="roles[]"
+                                value="{{ $role->name }}"
+                                @checked(in_array($role->name, old('roles', []), true))
+                                class="h-4 w-4 rounded border-border-strong text-brand-600"
+                            >
+
+                            <span class="text-sm text-ink">
+                                {{ __('messages.roles.' . $role->name) }}
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+
+                @error('roles')
+                    <p class="mt-1 text-sm text-danger">{{ $message }}</p>
+                @enderror
+            </div>
+
+            @php
+                $selectedPermissions = old('permissions', []);
+
+                $permissionGroups = $permissions->groupBy(
+                    fn ($permission) =>
+                        str_contains($permission->name, '.')
+                            ? str($permission->name)->before('.')->toString()
+                            : 'general'
+                );
+            @endphp
+
+            <div>
+                <div class="mb-2">
+                    <h3 class="text-sm font-semibold text-ink">
+                        {{ __('Custom Account Permissions') }}
+                    </h3>
+
+                    <p class="mt-1 text-xs text-ink-muted">
+                        {{ __('These permissions apply directly to this account in addition to its role permissions.') }}
+                    </p>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    @foreach($permissionGroups as $group => $groupPermissions)
+                        <section class="rounded-md border border-border bg-surface-1 p-4">
+                            <h4 class="mb-3 text-sm font-semibold text-ink">
+                                {{ $group === 'general'
+                                    ? __('General')
+                                    : __('messages.permission_groups.' . $group) }}
+                            </h4>
+
+                            <div class="space-y-2">
+                                @foreach($groupPermissions as $permission)
+                                    <label class="flex items-start gap-3 rounded-md border border-border bg-white p-3">
+                                        <input
+                                            type="checkbox"
+                                            name="permissions[]"
+                                            value="{{ $permission->id }}"
+                                            @checked(in_array($permission->id, $selectedPermissions))
+                                            class="mt-0.5 h-4 w-4 rounded border-border-strong text-brand-600"
+                                        >
+
+                                        <span>
+                                            <span class="block text-sm font-medium text-ink">
+                                                {{ __('messages.permissions.' . $permission->name) }}
+                                            </span>
+
+                                            <code class="ltr-value text-xs text-ink-muted">
+                                                {{ $permission->name }}
+                                            </code>
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </section>
+                    @endforeach
+                </div>
+
+                @error('permissions')
+                    <p class="mt-2 text-sm text-danger">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <label class="flex items-center gap-2">
+                <input
+                    type="checkbox"
+                    name="is_active"
+                    value="1"
+                    @checked(old('is_active', true))
+                    class="h-4 w-4 rounded border-border-strong text-brand-600"
+                >
+
+                <span class="text-sm text-ink-secondary">
+                    {{ __('Active') }}
+                </span>
+            </label>
+
+            <div class="flex justify-end gap-3 border-t border-border pt-5">
+                <a
+                    href="{{ route('users.index') }}"
+                    class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1"
+                >
+                    {{ __('Cancel') }}
+                </a>
+
+                <button
+                    type="submit"
+                    class="btn-motion rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                >
+                    {{ __('Create User') }}
+                </button>
+            </div>
+        </form>
+    </div>
 @endsection

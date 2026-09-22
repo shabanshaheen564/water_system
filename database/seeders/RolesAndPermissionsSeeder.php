@@ -12,88 +12,32 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         $permissions = [
             // Users
-            'users.view',
-            'users.create',
-            'users.update',
-            'users.delete',
-
+            'users.view', 'users.create', 'users.update', 'users.delete',
             // Roles & Permissions
-            'roles.view',
-            'roles.create',
-            'roles.update',
-            'roles.delete',
-            'permissions.view',
-
+            'roles.view', 'roles.create', 'roles.update', 'roles.delete', 'permissions.view',
             // Complaints
-            'complaints.view',
-            'complaints.create',
-            'complaints.update',
-            'complaints.delete',
-            'complaints.transition',
-            'complaints.convert_to_task',
-
+            'complaints.view', 'complaints.create', 'complaints.update', 'complaints.delete', 'complaints.transition', 'complaints.convert_to_task', 'complaints.import', 'complaints.export',
             // Tasks
-            'tasks.view',
-            'tasks.create',
-            'tasks.update',
-            'tasks.delete',
-            'tasks.assign',
-            'tasks.transition',
-            'tasks.update_status',
-            'tasks.view_updates',
-            'tasks.create_update',
-
+            'tasks.view', 'tasks.create', 'tasks.update', 'tasks.delete', 'tasks.export', 'tasks.assign', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
             // GIS
-            'gis.view',
-            'gis.layers.create',
-            'gis.layers.update',
-            'gis.layers.delete',
-            'gis.fields.view',
-            'gis.features.create',
-            'gis.features.update',
-            'gis.features.delete',
-            'gis.import',
-
+            'gis.view', 'gis.layers.create', 'gis.layers.update', 'gis.layers.delete', 'gis.fields.view', 'gis.features.create', 'gis.features.update', 'gis.features.delete', 'gis.import',
             // Assets
-            'assets.view',
-            'assets.create',
-            'assets.update',
-            'assets.delete',
-
+            'assets.view', 'assets.create', 'assets.update', 'assets.delete',
             // Reports
-            'reports.view',
-            'reports.export',
-
+            'reports.view', 'reports.export',
             // Audit Logs
             'audit_logs.view',
-
             // Datasets
-            'datasets.view',
-            'datasets.create',
-            'datasets.update',
-            'datasets.delete',
+            'datasets.view', 'datasets.create', 'datasets.update', 'datasets.delete',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::firstOrCreate([
-                'name' => $permission,
-                'guard_name' => 'web',
-            ]);
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
         $roles = [
             'System Owner' => $permissions,
-            'Admin' => [
-                'users.view', 'users.create', 'users.update', 'users.delete',
-                'roles.view', 'roles.create', 'roles.update', 'roles.delete', 'permissions.view',
-                'complaints.view', 'complaints.create', 'complaints.update', 'complaints.delete', 'complaints.transition', 'complaints.convert_to_task',
-                'tasks.view', 'tasks.create', 'tasks.update', 'tasks.delete', 'tasks.assign', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
-                'gis.view', 'gis.layers.create', 'gis.layers.update', 'gis.layers.delete', 'gis.fields.view', 'gis.features.create', 'gis.features.update', 'gis.features.delete', 'gis.import',
-                'assets.view', 'assets.create', 'assets.update', 'assets.delete',
-                'reports.view', 'reports.export',
-                'audit_logs.view',
-                'datasets.view', 'datasets.create', 'datasets.update', 'datasets.delete',
-            ],
+            'Admin' => $permissions,
             'GIS Admin' => [
                 'gis.view', 'gis.layers.create', 'gis.layers.update', 'gis.layers.delete', 'gis.fields.view', 'gis.features.create', 'gis.features.update', 'gis.features.delete', 'gis.import',
                 'assets.view', 'assets.create', 'assets.update',
@@ -101,16 +45,18 @@ class RolesAndPermissionsSeeder extends Seeder
                 'datasets.view', 'datasets.create', 'datasets.update', 'datasets.delete',
             ],
             'Engineer' => [
-                'complaints.view', 'complaints.create', 'complaints.update', 'complaints.transition', 'complaints.convert_to_task',
-                'tasks.view', 'tasks.create', 'tasks.update', 'tasks.assign', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
-                'assets.view',
+                'complaints.view', 'complaints.create', 'complaints.update', 'complaints.transition', 'complaints.convert_to_task', 'complaints.export',
+                'tasks.view', 'tasks.create', 'tasks.update', 'tasks.assign', 'tasks.transition', 'tasks.export', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
+                'assets.view', 'assets.create', 'assets.update',
                 'reports.view', 'reports.export',
                 'gis.view',
                 'datasets.view', 'datasets.create', 'datasets.update',
             ],
             'Field Worker' => [
-                'tasks.view', 'tasks.update', 'tasks.transition', 'tasks.update_status', 'tasks.view_updates', 'tasks.create_update',
-                'assets.view',
+                'complaints.view', 'complaints.update', 'complaints.transition',
+                'tasks.view', 'tasks.update', 'tasks.transition', 'tasks.update_status', 'tasks.export', 'tasks.view_updates', 'tasks.create_update',
+                'assets.view', 'assets.create', 'assets.update',
+                'reports.view',
                 'gis.view',
                 'datasets.view',
             ],
@@ -125,10 +71,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($roles as $roleName => $rolePermissions) {
-            $role = Role::firstOrCreate([
-                'name' => $roleName,
-                'guard_name' => 'web',
-            ]);
+            $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
             $role->syncPermissions($rolePermissions);
         }
     }

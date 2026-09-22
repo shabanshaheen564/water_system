@@ -28,17 +28,22 @@ class DatasetWebController extends Controller
     {
         $validated = $request->validated();
 
-        $dataset = Dataset::create([
+        Dataset::create([
             'name' => $validated['name'],
             'display_name' => $validated['display_name'],
             'description' => $validated['description'] ?? null,
             'dataset_type' => $validated['dataset_type'],
+            'management_mode' => $validated['management_mode'],
             'source_name' => $validated['source_name'] ?? null,
             'source_format' => $validated['source_format'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
             'is_spatial' => $validated['is_spatial'] ?? false,
             'geometry_type' => $validated['geometry_type'] ?? null,
             'srid' => $validated['srid'] ?? null,
+            'map_order' => $validated['map_order'] ?? 0,
+            'default_visible' => $validated['default_visible'] ?? true,
+            'map_opacity' => $validated['map_opacity'] ?? 1,
+            'display_color' => $validated['display_color'] ?? '#475467',
             'created_by' => auth()->id(),
         ]);
 
@@ -60,7 +65,7 @@ class DatasetWebController extends Controller
         return view('datasets.edit', compact('dataset'));
     }
 
-    public function update(UpdateDatasetRequest $request, Dataset $dataset): \Illuminate\Http\RedirectResponse
+    public function update(UpdateDatasetRequest $request, Dataset $dataset): RedirectResponse
     {
         $validated = $request->validated();
 
@@ -78,7 +83,7 @@ class DatasetWebController extends Controller
 
     private function changesProtectedConfiguration(Dataset $dataset, array $values): bool
     {
-        foreach (['dataset_type', 'is_spatial', 'geometry_type', 'srid'] as $attribute) {
+        foreach (['dataset_type', 'management_mode', 'is_spatial', 'geometry_type', 'srid'] as $attribute) {
             if (array_key_exists($attribute, $values) && $values[$attribute] != $dataset->{$attribute}) {
                 return true;
             }

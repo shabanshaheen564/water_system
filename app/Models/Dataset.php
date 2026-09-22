@@ -13,12 +13,17 @@ class Dataset extends Model
         'display_name',
         'description',
         'dataset_type',
+        'management_mode',
         'source_name',
         'source_format',
         'is_active',
         'is_spatial',
         'geometry_type',
         'srid',
+        'map_order',
+        'default_visible',
+        'map_opacity',
+        'display_color',
         'created_by',
     ];
 
@@ -27,6 +32,10 @@ class Dataset extends Model
         return [
             'is_active' => 'boolean',
             'is_spatial' => 'boolean',
+            'default_visible' => 'boolean',
+            'map_opacity' => 'float',
+            'map_order' => 'integer',
+            'srid' => 'integer',
         ];
     }
 
@@ -75,8 +84,13 @@ class Dataset extends Model
         return $this->is_spatial;
     }
 
+    public function isWebEditable(): bool
+    {
+        return $this->management_mode === 'web_editable';
+    }
+
     public function getSupportedGeometryTypes(): array
     {
-        return ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'];
+        return config('gis.geometry_types');
     }
 }

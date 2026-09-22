@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -20,48 +19,91 @@ use App\Http\Controllers\DatasetRecordRelationshipController;
 use App\Http\Controllers\DatasetRelationshipController;
 use App\Http\Controllers\DatasetImportController;
 use App\Http\Controllers\GisFeatureController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ArchiveController;
+use App\Http\Controllers\MobileBootstrapController;
+use App\Http\Controllers\OperationalGisController;
 
-Route::post('/login', [LoginController::class, 'login']);
-Route::middleware(['auth:sanctum', 'active'])->group(function () {
+Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
+Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->get('/mobile/bootstrap', [MobileBootstrapController::class, 'show']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function () {
     Route::post('/logout', [LogoutController::class, 'logout']);
     Route::get('/user', [CurrentUserController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::put('/profile/password', [ChangePasswordController::class, 'update']);
 });
-Route::middleware(['auth:sanctum', 'permission:users.view'])->group(function () { Route::get('/users', [UserController::class, 'index']); Route::get('/users/{user}', [UserController::class, 'show']); });
-Route::middleware(['auth:sanctum', 'permission:users.create'])->group(function () { Route::post('/users', [UserController::class, 'store']); Route::post('/register', [RegisterController::class, 'register']); });
-Route::middleware(['auth:sanctum', 'permission:users.update'])->group(function () { Route::put('/users/{user}', [UserController::class, 'update']); Route::put('/users/{user}/roles', [UserController::class, 'syncRoles']); Route::put('/users/{user}/status', [UserController::class, 'updateStatus']); });
-Route::middleware(['auth:sanctum', 'permission:users.delete'])->delete('/users/{user}', [UserController::class, 'destroy']);
-Route::middleware(['auth:sanctum', 'permission:roles.view'])->group(function () { Route::get('/roles', [RoleController::class, 'index']); Route::get('/roles/{role}', [RoleController::class, 'show']); });
-Route::middleware(['auth:sanctum', 'permission:roles.create'])->post('/roles', [RoleController::class, 'store']);
-Route::middleware(['auth:sanctum', 'permission:roles.update'])->group(function () { Route::put('/roles/{role}', [RoleController::class, 'update']); Route::put('/roles/{role}/permissions', [RoleController::class, 'syncPermissions']); });
-Route::middleware(['auth:sanctum', 'permission:permissions.view'])->group(function () { Route::get('/permissions', [PermissionController::class, 'index']); Route::get('/permissions/{permission}', [PermissionController::class, 'show']); });
-Route::middleware(['auth:sanctum', 'permission:complaints.view'])->group(function () { Route::get('/complaints', [ComplaintController::class, 'index']); Route::get('/complaints/{complaint}', [ComplaintController::class, 'show']); });
-Route::middleware(['auth:sanctum', 'permission:complaints.create'])->post('/complaints', [ComplaintController::class, 'store']);
-Route::middleware(['auth:sanctum', 'permission:complaints.update'])->put('/complaints/{complaint}', [ComplaintController::class, 'update']);
-Route::middleware(['auth:sanctum', 'permission:tasks.view'])->group(function () { Route::get('/work-orders', [WorkOrderController::class, 'index']); Route::get('/work-orders/{workOrder}', [WorkOrderController::class, 'show']); });
-Route::middleware(['auth:sanctum', 'permission:tasks.create'])->post('/work-orders', [WorkOrderController::class, 'store']);
-Route::middleware(['auth:sanctum', 'permission:tasks.update'])->put('/work-orders/{workOrder}', [WorkOrderController::class, 'update']);
-Route::middleware(['auth:sanctum', 'permission:datasets.view'])->group(function () { Route::get('/datasets', [DatasetController::class, 'index']); Route::get('/datasets/{dataset}', [DatasetController::class, 'show']); });
-Route::middleware(['auth:sanctum', 'permission:datasets.create'])->post('/datasets', [DatasetController::class, 'store']);
-Route::middleware(['auth:sanctum', 'permission:datasets.update'])->put('/datasets/{dataset}', [DatasetController::class, 'update']);
-Route::middleware(['auth:sanctum', 'permission:datasets.view'])->get('/datasets/{dataset}/fields', [DatasetFieldController::class, 'index']);
-Route::middleware(['auth:sanctum', 'permission:datasets.create'])->post('/datasets/{dataset}/fields', [DatasetFieldController::class, 'store']);
-Route::middleware(['auth:sanctum', 'permission:datasets.update'])->put('/dataset-fields/{field}', [DatasetFieldController::class, 'update']);
-Route::middleware(['auth:sanctum', 'permission:datasets.view'])->group(function () { Route::get('/datasets/{dataset}/records', [DatasetRecordController::class, 'index']); Route::get('/datasets/{dataset}/records/{record}', [DatasetRecordController::class, 'show']); });
-Route::middleware(['auth:sanctum', 'permission:datasets.create'])->post('/datasets/{dataset}/records', [DatasetRecordController::class, 'store']);
-Route::middleware(['auth:sanctum', 'permission:datasets.update'])->put('/datasets/{dataset}/records/{record}', [DatasetRecordController::class, 'update']);
-Route::middleware(['auth:sanctum', 'permission:datasets.delete'])->delete('/datasets/{dataset}/records/{record}', [DatasetRecordController::class, 'destroy']);
-Route::middleware(['auth:sanctum', 'permission:datasets.view'])->get('/datasets/{dataset}/records/{record}/children', [DatasetRecordRelationshipController::class, 'children']);
-Route::middleware(['auth:sanctum', 'permission:datasets.view'])->get('/datasets/{dataset}/records/{record}/parent', [DatasetRecordRelationshipController::class, 'parent']);
-Route::middleware(['auth:sanctum', 'permission:datasets.view'])->get('/datasets/{dataset}/relationships', [DatasetRelationshipController::class, 'index']);
-Route::middleware(['auth:sanctum', 'permission:datasets.view'])->get('/datasets/{dataset}/relationships/{relationship}', [DatasetRelationshipController::class, 'show']);
-Route::middleware(['auth:sanctum', 'permission:datasets.create'])->post('/datasets/{dataset}/relationships', [DatasetRelationshipController::class, 'store']);
-Route::middleware(['auth:sanctum', 'permission:datasets.update'])->put('/datasets/{dataset}/relationships/{relationship}', [DatasetRelationshipController::class, 'update']);
-Route::middleware(['auth:sanctum', 'permission:datasets.delete'])->delete('/datasets/{dataset}/relationships/{relationship}', [DatasetRelationshipController::class, 'destroy']);
-Route::middleware(['auth:sanctum', 'permission:datasets.view'])->group(function () { Route::get('/datasets/{dataset}/imports', [DatasetImportController::class, 'index']); Route::get('/datasets/{dataset}/imports/{import}', [DatasetImportController::class, 'show']); });
-Route::middleware(['auth:sanctum', 'permission:datasets.create'])->post('/datasets/{dataset}/imports', [DatasetImportController::class, 'store']);
-Route::middleware(['auth:sanctum', 'permission:datasets.view'])->group(function () { Route::get('/datasets/{dataset}/features', [GisFeatureController::class, 'index']); Route::get('/datasets/{dataset}/features/{feature}', [GisFeatureController::class, 'show']); });
-Route::middleware(['auth:sanctum', 'permission:datasets.create'])->post('/datasets/{dataset}/features', [GisFeatureController::class, 'store']);
-Route::middleware(['auth:sanctum', 'permission:datasets.update'])->put('/datasets/{dataset}/features/{feature}', [GisFeatureController::class, 'update']);
-Route::middleware(['auth:sanctum', 'permission:datasets.delete'])->delete('/datasets/{dataset}/features/{feature}', [GisFeatureController::class, 'destroy']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:users.view'])->group(function () { Route::get('/users', [UserController::class, 'index']); Route::get('/users/{user}', [UserController::class, 'show']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:users.create'])->group(function () { Route::post('/users', [UserController::class, 'store']); Route::post('/register', [RegisterController::class, 'register']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:users.update'])->group(function () { Route::put('/users/{user}', [UserController::class, 'update']); Route::put('/users/{user}/roles', [UserController::class, 'syncRoles']); Route::put('/users/{user}/status', [UserController::class, 'updateStatus']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:users.delete'])->delete('/users/{user}', [UserController::class, 'destroy']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:roles.view'])->group(function () { Route::get('/roles', [RoleController::class, 'index']); Route::get('/roles/{role}', [RoleController::class, 'show']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:roles.create'])->post('/roles', [RoleController::class, 'store']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:roles.update'])->group(function () { Route::put('/roles/{role}', [RoleController::class, 'update']); Route::put('/roles/{role}/permissions', [RoleController::class, 'syncPermissions']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:permissions.view'])->group(function () { Route::get('/permissions', [PermissionController::class, 'index']); Route::get('/permissions/{permission}', [PermissionController::class, 'show']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.import'])->group(function () { Route::post('/complaints/import/preview', [\App\Http\Controllers\ComplaintImportController::class, 'preview']); Route::post('/complaints/import/finalize', [\App\Http\Controllers\ComplaintImportController::class, 'finalize']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->get('/complaints/filters', [ReportController::class, 'filters']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->group(function () { Route::get('/complaints', [ComplaintController::class, 'index']); Route::get('/complaints/{complaint}', [ComplaintController::class, 'show']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.view'])->get('/work-orders/filters', [ReportController::class, 'filters']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.create'])->post('/complaints', [ComplaintController::class, 'store']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update|complaints.transition'])->put('/complaints/{complaint}', [ComplaintController::class, 'update']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.delete'])->delete('/complaints/{complaint}', [ComplaintController::class, 'destroy']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.convert_to_task'])->post('/complaints/{complaint}/convert-to-work-order', [ComplaintController::class, 'convertToWorkOrder']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update'])->post('/complaints/{complaint}/add-to-work-order', [ComplaintController::class, 'addToExistingWorkOrder']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.view'])->group(function () { Route::get('/work-orders', [WorkOrderController::class, 'index']); Route::get('/work-orders/{workOrder}', [WorkOrderController::class, 'show']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.create'])->post('/work-orders', [WorkOrderController::class, 'store']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update|tasks.assign|tasks.transition'])->put('/work-orders/{workOrder}', [WorkOrderController::class, 'update']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->post('/work-orders/{workOrder}/convert-to-complaint', [WorkOrderController::class, 'convertToComplaint']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->post('/work-orders/{workOrder}/complaints', [WorkOrderController::class, 'addComplaint']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.delete'])->delete('/work-orders/{workOrder}', [WorkOrderController::class, 'destroy']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.view'])->group(function () { Route::get('/datasets', [DatasetController::class, 'index']); Route::get('/datasets/{dataset}', [DatasetController::class, 'show']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.create'])->post('/datasets', [DatasetController::class, 'store']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.update'])->put('/datasets/{dataset}', [DatasetController::class, 'update']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.view'])->get('/datasets/{dataset}/fields', [DatasetFieldController::class, 'index']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.create'])->post('/datasets/{dataset}/fields', [DatasetFieldController::class, 'store']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.update'])->put('/dataset-fields/{field}', [DatasetFieldController::class, 'update']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.view'])->group(function () { Route::get('/datasets/{dataset}/records', [DatasetRecordController::class, 'index']); Route::get('/datasets/{dataset}/records/{record}', [DatasetRecordController::class, 'show']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.create'])->post('/datasets/{dataset}/records', [DatasetRecordController::class, 'store']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.update'])->put('/datasets/{dataset}/records/{record}', [DatasetRecordController::class, 'update']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.delete'])->delete('/datasets/{dataset}/records/{record}', [DatasetRecordController::class, 'destroy']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.view'])->get('/datasets/{dataset}/records/{record}/children', [DatasetRecordRelationshipController::class, 'children']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.view'])->get('/datasets/{dataset}/records/{record}/parent', [DatasetRecordRelationshipController::class, 'parent']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.view'])->group(function () { Route::get('/datasets/{dataset}/relationships', [DatasetRelationshipController::class, 'index']); Route::get('/datasets/{dataset}/relationships/{relationship}', [DatasetRelationshipController::class, 'show']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.create'])->post('/datasets/{dataset}/relationships', [DatasetRelationshipController::class, 'store']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.update'])->put('/datasets/{dataset}/relationships/{relationship}', [DatasetRelationshipController::class, 'update']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.delete'])->delete('/datasets/{dataset}/relationships/{relationship}', [DatasetRelationshipController::class, 'destroy']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.view'])->group(function () { Route::get('/datasets/{dataset}/imports', [DatasetImportController::class, 'index']); Route::get('/datasets/{dataset}/imports/{import}', [DatasetImportController::class, 'show']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.create'])->post('/datasets/{dataset}/imports', [DatasetImportController::class, 'store']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.view'])->group(function () { Route::get('/datasets/{dataset}/validation', [\App\Http\Controllers\GisValidationController::class, 'api'])->name('datasets.validation.api'); Route::get('/datasets/{dataset}/features', [GisFeatureController::class, 'index']); Route::get('/datasets/{dataset}/features/{feature}', [GisFeatureController::class, 'show']); });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.create'])->post('/datasets/{dataset}/features', [GisFeatureController::class, 'store']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.update'])->put('/datasets/{dataset}/features/{feature}', [GisFeatureController::class, 'update']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:datasets.delete'])->delete('/datasets/{dataset}/features/{feature}', [GisFeatureController::class, 'destroy']);
+
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports.view'])->group(function () {
+    Route::get('/reports/summary', [ReportController::class, 'summary']);
+    Route::get('/reports/filters', [ReportController::class, 'filters']);
+});
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports.export|complaints.export'])->group(function () {
+    Route::get('/reports/complaints/export', [ReportController::class, 'exportComplaints']);
+    Route::get('/reports/complaints/{complaint}/pdf', [ReportController::class, 'complaintPdf']);
+});
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports.export|tasks.export'])->group(function () {
+    Route::get('/reports/work-orders/export', [ReportController::class, 'exportWorkOrders']);
+    Route::get('/reports/work-orders/{workOrder}/pdf', [ReportController::class, 'workOrderPdf']);
+});
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:gis.view|complaints.view|tasks.view'])->get('/map/operational', [\App\Http\Controllers\GisController::class, 'operationalData']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->get('/complaints/{complaint}/gis/context', [OperationalGisController::class, 'complaint']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update'])->post('/complaints/{complaint}/gis/features/{feature}', [OperationalGisController::class, 'linkComplaint']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update'])->delete('/complaints/{complaint}/gis/features/{feature}', [OperationalGisController::class, 'unlinkComplaint']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.view'])->get('/work-orders/{workOrder}/gis/context', [OperationalGisController::class, 'workOrder']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->post('/work-orders/{workOrder}/gis/features/{feature}', [OperationalGisController::class, 'linkWorkOrder']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->delete('/work-orders/{workOrder}/gis/features/{feature}', [OperationalGisController::class, 'unlinkWorkOrder']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:gis.view|complaints.view|tasks.view'])->get('/gis/nearest-assets', [OperationalGisController::class, 'nearest']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->group(function () {
+    Route::get('/archive/complaints', [ArchiveController::class, 'complaints']);
+});
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.view'])->group(function () {
+    Route::get('/archive/work-orders', [ArchiveController::class, 'workOrders']);
+});
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports.view'])->get('/archive/summary', [ArchiveController::class, 'summary']);
+
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:audit_logs.view'])->get('/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index']);
