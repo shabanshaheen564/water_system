@@ -15,6 +15,7 @@ class StoreWorkOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'idempotency_key' => ['sometimes', 'nullable', 'uuid'],
             'complaint_id' => ['sometimes', 'nullable', 'exists:complaints,id'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
