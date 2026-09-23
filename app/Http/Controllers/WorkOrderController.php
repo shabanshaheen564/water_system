@@ -62,7 +62,7 @@ class WorkOrderController extends Controller
             $this->validateUserActive($validated['assigned_to']);
         }
         return DB::transaction(function () use ($validated, $request) {
-            $workOrder = WorkOrder::create(['work_order_number' => $this->generateWorkOrderNumber(), 'title' => $validated['title'], 'description' => $validated['description'], 'status' => $validated['status'] ?? 'pending', 'priority' => $validated['priority'] ?? 'medium', 'assigned_to' => $validated['assigned_to'] ?? null, 'created_by' => $request->user()->id, 'notes' => $validated['notes'] ?? null]);
+            $workOrder = WorkOrder::create(['work_order_number' => $this->generateWorkOrderNumber(), 'idempotency_key' => $idempotencyKey, 'title' => $validated['title'], 'description' => $validated['description'], 'status' => $validated['status'] ?? 'pending', 'priority' => $validated['priority'] ?? 'medium', 'assigned_to' => $validated['assigned_to'] ?? null, 'created_by' => $request->user()->id, 'notes' => $validated['notes'] ?? null]);
             if (!empty($validated['complaint_id'])) $workOrder->complaints()->syncWithoutDetaching([$validated['complaint_id']]);
             if ($workOrder->status === 'in_progress' && ! $workOrder->started_at) $workOrder->update(['started_at' => now()]);
             $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
