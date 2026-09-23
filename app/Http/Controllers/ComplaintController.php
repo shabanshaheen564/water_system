@@ -68,7 +68,8 @@ class ComplaintController extends Controller
         }
         return DB::transaction(function () use ($validated, $reportedBy) {
             $complaint = Complaint::create([
-                'complaint_number' => $this->generateComplaintNumber(), 'title' => $validated['title'], 'description' => $validated['description'],
+                'complaint_number' => $this->generateComplaintNumber(), 'idempotency_key' => $idempotencyKey,
+                'title' => $validated['title'], 'description' => $validated['description'],
                 'status' => 'open', 'priority' => $validated['priority'] ?? 'medium', 'reported_by' => $reportedBy,
                 'assigned_to' => $validated['assigned_to'] ?? null, 'contact_name' => $validated['contact_name'] ?? null,
                 'contact_phone' => $validated['contact_phone'] ?? null, 'address' => $validated['address'] ?? null,
