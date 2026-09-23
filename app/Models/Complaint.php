@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Complaint extends Model
 {
     protected $fillable = [
-        'complaint_number','title','description','processing_notes','solution','status','priority',
+        'complaint_number','idempotency_key','title','description','processing_notes','solution','status','priority',
         'reported_by','assigned_to','processed_by','contact_name','contact_phone','address',
         'latitude','longitude','resolved_at','processed_at','first_response_at',
     ];
