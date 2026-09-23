@@ -48,6 +48,20 @@ class ComplaintController extends Controller
     {
         $validated = $request->validated();
         $reportedBy = $request->user()->id;
+        $idempotencyKey = $validated['idempotency_key'] ?? null;
+
+        if ($idempotencyKey !== null) {
+            $existing = Complaint::query()
+                ->where('idempotency_key', $idempotencyKey)
+                ->where('reported_by', $reportedBy)
+                ->first();
+
+            if ($existing) {
+                $existing->load(['reportedBy:id,name,email', 'assignedTo:id,name,email']);
+                return response()->json($this->formatComplaint($existing), 200);
+            }
+        }
+
         if (array_key_exists('assigned_to', $validated) && $validated['assigned_to'] !== null) {
             abort_unless($request->user()->can('complaints.update'), 403);
             $this->validateUserActive($validated['assigned_to']);
