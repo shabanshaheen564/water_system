@@ -309,4 +309,28 @@ class ComplaintTest extends TestCase
         $this->assertCount(10, array_unique($numbers)); sort($numbers);
         for ($i = 1; $i < count($numbers); $i++) { $prev = (int) Str::after($numbers[$i - 1], 'CMP-'); $curr = (int) Str::after($numbers[$i], 'CMP-'); $this->assertEquals($prev + 1, $curr, 'Complaint numbers should be sequential'); }
     }
+
+    public function test_mobile_idempotency_key_does_not_create_duplicate_complaint(): void
+    {
+        $payload = [
+            'idempotency_key' => (string) Str::uuid(),
+            'title' => 'Offline Complaint',
+            'description' => 'Created while offline',
+            'priority' => 'high',
+        ];
+
+        $first = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->postJson('/api/complaints', $payload);
+
+        $second = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->postJson('/api/complaints', $payload);
+
+        $first->assertStatus(201);
+        $second->assertStatus(200);
+        $this->assertSame($first->json('id'), $second->json('id'));
+        $this->assertDatabaseCount('complaints', 1);
+    }
+
 }
