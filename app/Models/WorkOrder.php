@@ -11,7 +11,7 @@ class WorkOrder extends Model
     protected array $pendingComplaintIds = [];
 
     protected $fillable = [
-        'work_order_number','title','description','status','priority','assigned_to','created_by',
+        'work_order_number','idempotency_key','title','description','status','priority','assigned_to','created_by',
         'started_at','completed_at','notes','latitude','longitude',
     ];
 
