@@ -43,6 +43,20 @@ class WorkOrderController extends Controller
     public function store(StoreWorkOrderRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $idempotencyKey = $validated['idempotency_key'] ?? null;
+
+        if ($idempotencyKey !== null) {
+            $existing = WorkOrder::query()
+                ->where('idempotency_key', $idempotencyKey)
+                ->where('created_by', $request->user()->id)
+                ->first();
+
+            if ($existing) {
+                $existing->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
+                return response()->json($this->formatWorkOrder($existing), 200);
+            }
+        }
+
         if (array_key_exists('assigned_to', $validated) && $validated['assigned_to'] !== null) {
             abort_unless($request->user()->can('tasks.assign'), 403);
             $this->validateUserActive($validated['assigned_to']);
