@@ -225,4 +225,28 @@ class WorkOrderTest extends TestCase
         for($i=0;$i<10;$i++){ $response=$this->withHeaders(['Authorization'=>'Bearer '.$this->adminToken])->postJson('/api/work-orders',['title'=>"Concurrent Work Order $i",'description'=>"Description $i",'complaint_id'=>$complaint->id]); $response->assertStatus(201); $numbers[]=$response->json('work_order_number'); }
         $this->assertCount(10,array_unique($numbers)); sort($numbers); for($i=1;$i<count($numbers);$i++){ $prev=(int)Str::after($numbers[$i-1],'WO-'); $curr=(int)Str::after($numbers[$i],'WO-'); $this->assertEquals($prev+1,$curr,'Work order numbers should be sequential'); }
     }
+
+    public function test_mobile_idempotency_key_does_not_create_duplicate_work_order(): void
+    {
+        $payload = [
+            'idempotency_key' => (string) Str::uuid(),
+            'title' => 'Offline Work Order',
+            'description' => 'Created while offline',
+            'priority' => 'high',
+        ];
+
+        $first = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->postJson('/api/work-orders', $payload);
+
+        $second = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->postJson('/api/work-orders', $payload);
+
+        $first->assertStatus(201);
+        $second->assertStatus(200);
+        $this->assertSame($first->json('id'), $second->json('id'));
+        $this->assertDatabaseCount('work_orders', 1);
+    }
+
 }
