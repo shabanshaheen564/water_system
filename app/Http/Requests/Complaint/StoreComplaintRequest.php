@@ -14,6 +14,7 @@ class StoreComplaintRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'idempotency_key' => ['sometimes', 'nullable', 'uuid'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'status' => ['sometimes', 'prohibited'],
