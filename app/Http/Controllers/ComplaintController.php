@@ -66,7 +66,7 @@ class ComplaintController extends Controller
             abort_unless($request->user()->can('complaints.update'), 403);
             $this->validateUserActive($validated['assigned_to']);
         }
-        return DB::transaction(function () use ($validated, $reportedBy) {
+        return DB::transaction(function () use ($validated, $reportedBy, $idempotencyKey) {
             $complaint = Complaint::create([
                 'complaint_number' => $this->generateComplaintNumber(), 'idempotency_key' => $idempotencyKey,
                 'title' => $validated['title'], 'description' => $validated['description'],
