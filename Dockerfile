@@ -9,8 +9,6 @@ RUN npm ci
 COPY resources ./resources
 COPY public ./public
 COPY vite.config.js ./
-COPY tailwind.config.* ./
-COPY postcss.config.* ./
 
 RUN npm run build
 
@@ -25,8 +23,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libpq-dev \
         libzip-dev \
+        libpng-dev \
+        libjpeg62-turbo-dev \
+        libfreetype6-dev \
         unzip \
-    && docker-php-ext-install pdo_pgsql pgsql zip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_pgsql pgsql zip gd \
     && a2enmod rewrite \
     && sed -ri "s!/var/www/html!\${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf \
     && sed -ri "s!/var/www/!\${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
