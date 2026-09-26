@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Models\AuditLog;
 use App\Models\Complaint;
 use App\Models\Dataset;
 use App\Models\DatasetRecord;
@@ -10,6 +9,7 @@ use App\Models\GisFeature;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Observers\AuditObserver;
+use App\Observers\OperationalNotificationObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
@@ -52,5 +52,8 @@ class AppServiceProvider extends ServiceProvider
         ] as $model) {
             $model::observe(AuditObserver::class);
         }
+
+        Complaint::observe(OperationalNotificationObserver::class);
+        WorkOrder::observe(OperationalNotificationObserver::class);
     }
 }
