@@ -101,7 +101,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.u
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->delete('/work-orders/{workOrder}/gis/features/{feature}', [OperationalGisController::class, 'unlinkWorkOrder']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:gis.view|complaints.view|tasks.view'])->get('/gis/nearest-assets', [OperationalGisController::class, 'nearest']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->group(function () {
-    Route::get('/archive/complaints', [ArchiveService::class, 'complaints']);
+    Route::get('/archive/complaints', [ArchiveController::class, 'complaints']);
 });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.view'])->group(function () {
     Route::get('/archive/work-orders', [ArchiveController::class, 'workOrders']);
