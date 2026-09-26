@@ -12,6 +12,7 @@ use App\Http\Controllers\UserWebController;
 use App\Http\Controllers\RoleWebController;
 use App\Http\Controllers\PermissionWebController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\ComplaintImportWebController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ArchiveController;
@@ -22,6 +23,10 @@ use App\Http\Controllers\OperationalGisController;
 Route::get('/', function () { return view('welcome'); })->name('home');
 Route::get('/login', [LoginController::class, 'create'])->name('login');
 Route::post('/login', [LoginController::class, 'webLogin'])->middleware('throttle:login');
+Route::get('/forgot-password', [PasswordResetController::class, 'create'])->middleware('guest')->name('password.request');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->middleware(['guest', 'throttle:login'])->name('password.email');
+Route::get('/reset-password/{token}', [PasswordResetController::class, 'createResetForm'])->middleware('guest')->name('password.reset');
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware(['guest', 'throttle:login'])->name('password.update');
 
 Route::middleware(['auth', 'active', 'permission:complaints.view'])->get('/complaints', [ComplaintWebController::class, 'index'])->name('complaints.index');
 Route::middleware(['auth', 'active', 'permission:complaints.import'])->group(function () { Route::get('/complaints/import', [ComplaintImportWebController::class, 'create'])->name('complaints.import'); Route::post('/complaints/import/preview', [ComplaintImportWebController::class, 'preview'])->name('complaints.import.preview'); Route::get('/complaints/import/mapping/{token}', [ComplaintImportWebController::class, 'mapping'])->name('complaints.import.mapping'); Route::post('/complaints/import/review', [ComplaintImportWebController::class, 'review'])->name('complaints.import.review'); Route::get('/complaints/import/review/{token}', [ComplaintImportWebController::class, 'showReview'])->name('complaints.import.review.get'); Route::post('/complaints/import', [ComplaintImportWebController::class, 'store'])->name('complaints.import.store'); });
