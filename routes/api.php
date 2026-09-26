@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\CurrentUserController;
 use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\Auth\ChangePasswordController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Auth\RoleController;
 use App\Http\Controllers\Auth\PermissionController;
@@ -25,6 +26,8 @@ use App\Http\Controllers\MobileBootstrapController;
 use App\Http\Controllers\OperationalGisController;
 
 Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkApi'])->middleware('throttle:login');
+Route::post('/reset-password', [PasswordResetController::class, 'resetApi'])->middleware('throttle:login');
 Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->get('/mobile/bootstrap', [MobileBootstrapController::class, 'show']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function () {
     Route::post('/logout', [LogoutController::class, 'logout']);
