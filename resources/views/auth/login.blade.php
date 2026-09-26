@@ -33,11 +33,15 @@
                     @error('password')<p class="mt-2 text-sm text-danger" role="alert">{{ $message }}</p>@enderror
                 </div>
                 @if(session('error'))<div class="border border-danger bg-danger-surface p-3 text-sm text-danger" role="alert">{{ session('error') }}</div>@endif
+                @if(session('status'))<div class="border border-green-200 bg-green-50 p-3 text-sm text-green-700" role="status">{{ session('status') }}</div>@endif
                 <button id="login-button" type="submit" class="btn-motion w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60">
                     <span id="button-text">{{ __('messages.public.login_short') }}</span>
                     <span id="button-spinner" class="hidden">{{ __('messages.public.logging_in') }}</span>
                 </button>
             </form>
+            <div class="mt-4 text-center">
+                <a href="{{ route('password.request') }}" class="text-sm font-medium text-brand-600 hover:text-brand-700">نسيت كلمة المرور؟</a>
+            </div>
             <div class="mt-6 border-t border-border pt-5 text-center text-xs text-ink-muted">{{ __('messages.app.department') }} — {{ __('messages.app.municipality') }}</div>
         </div>
         <div class="mt-5 text-center"><a href="{{ route('home') }}" class="text-sm font-medium text-ink-secondary hover:text-brand-600">{{ __('messages.public.back_home') }}</a></div>
