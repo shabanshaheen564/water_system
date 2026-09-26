@@ -31,6 +31,8 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
     Route::get('/user', [CurrentUserController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::put('/profile/password', [ChangePasswordController::class, 'update']);
+    Route::post('/device/fcm-token', [\App\Http\Controllers\FcmTokenController::class, 'store']);
+    Route::delete('/device/fcm-token', [\App\Http\Controllers\FcmTokenController::class, 'destroy']);
 });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:users.view'])->group(function () { Route::get('/users', [UserController::class, 'index']); Route::get('/users/{user}', [UserController::class, 'show']); });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:users.create'])->group(function () { Route::post('/users', [UserController::class, 'store']); Route::post('/register', [RegisterController::class, 'register']); });
@@ -99,7 +101,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.u
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.update'])->delete('/work-orders/{workOrder}/gis/features/{feature}', [OperationalGisController::class, 'unlinkWorkOrder']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:gis.view|complaints.view|tasks.view'])->get('/gis/nearest-assets', [OperationalGisController::class, 'nearest']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->group(function () {
-    Route::get('/archive/complaints', [ArchiveController::class, 'complaints']);
+    Route::get('/archive/complaints', [ArchiveService::class, 'complaints']);
 });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:tasks.view'])->group(function () {
     Route::get('/archive/work-orders', [ArchiveController::class, 'workOrders']);
