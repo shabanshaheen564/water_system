@@ -17,9 +17,9 @@
             <form id="login-form" method="POST" action="{{ route('login') }}" class="space-y-5">
                 @csrf
                 <div>
-                    <label for="email" class="mb-2 block text-sm font-medium text-ink">{{ __('messages.public.email') }}</label>
-                    <input id="email" name="email" type="email" autocomplete="email" required value="{{ old('email') }}" class="input-institutional block w-full px-4 py-3 text-ink outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100" placeholder="{{ __('messages.public.email_placeholder') }}">
-                    @error('email')<p class="mt-2 text-sm text-danger" role="alert">{{ $message }}</p>@enderror
+                    <label for="login" class="mb-2 block text-sm font-medium text-ink">اسم المستخدم أو البريد الإلكتروني</label>
+                    <input id="login" name="login" type="text" autocomplete="username" required value="{{ old('login') }}" class="input-institutional block w-full px-4 py-3 text-ink outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100" placeholder="اسم المستخدم أو البريد الإلكتروني">
+                    @error('login')<p class="mt-2 text-sm text-danger" role="alert">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label for="password" class="mb-2 block text-sm font-medium text-ink">{{ __('messages.public.password') }}</label>
