@@ -24,6 +24,7 @@
             @csrf
 
             <div class="grid gap-6 sm:grid-cols-2">
+                
                 <div>
                     <label for="name" class="mb-1 block text-sm font-medium text-ink">
                         {{ __('Name') }}
@@ -43,9 +44,13 @@
                 </div>
 
                 <div>
+                    <label for="username" class="mb-1 block text-sm font-medium text-ink">اسم المستخدم</label>
+                    <input id="username" name="username" value="{{ old('username', $user->username ?? '') }}" required class="input-institutional w-full text-sm" dir="ltr" autocomplete="username" placeholder="مثال: shaban.shaheen">
+                    @error('username')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
                     <label for="email" class="mb-1 block text-sm font-medium text-ink">
-                        {{ __('Email') }}
-                    </label>
 
                     <input
                         id="email"
