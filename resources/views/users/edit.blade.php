@@ -74,6 +74,8 @@
 
                 <div>
                     <label for="email" class="mb-1 block text-sm font-medium text-ink">
+                        {{ __('Email') }}
+                    </label>
 
                     <input
                         id="email"
