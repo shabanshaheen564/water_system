@@ -6,6 +6,7 @@ use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
@@ -37,7 +38,7 @@ class UserWebController extends Controller
         if (! $this->canAssignRoles($roles)) abort(403, __('Insufficient permissions to assign one or more selected roles.'));
 
         $user = User::create([
-            'name' => $validated['name'], 'email' => $validated['email'], 'password' => Hash::make($validated['password']), 'is_active' => $validated['is_active'] ?? true,
+            'name' => $validated['name'], 'username' => $validated['username'], 'email' => $validated['email'], 'password' => Hash::make($validated['password']), 'is_active' => $validated['is_active'] ?? true,
         ]);
         $user->syncRoles($roles);
         if (! $user->hasRole('System Owner')) {
@@ -100,7 +101,7 @@ class UserWebController extends Controller
             if ($activeSystemOwners === 0) return back()->withErrors(['is_active' => __('Cannot deactivate the last active System Owner.')])->withInput();
         }
 
-        $user->update(['name' => $validated['name'], 'email' => $validated['email'], 'is_active' => $willBeActive]);
+        $user->update(['name' => $validated['name'], 'username' => $validated['username'], 'email' => $validated['email'], 'is_active' => $willBeActive]);
         $user->syncRoles($roles);
         if (! $wasSystemOwner) {
             if (auth()->user()->hasRole('System Owner')) {
@@ -113,6 +114,27 @@ class UserWebController extends Controller
         }
 
         return redirect()->route('users.index')->with('success', __('User updated successfully.'));
+    }
+
+    public function resetPassword(Request $request, User $user): RedirectResponse
+    {
+        if ($user->hasRole('System Owner') && ! auth()->user()->hasRole('System Owner')) {
+            abort(403, __('The System Owner account is protected.'));
+        }
+
+        $data = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user->forceFill([
+            'password' => $data['password'],
+            'remember_token' => null,
+        ])->save();
+
+        $user->tokens()->delete();
+
+        return redirect()->route('users.edit', $user)
+            ->with('success', 'تمت إعادة تعيين كلمة المرور بنجاح. يجب على المستخدم تسجيل الدخول بكلمة المرور الجديدة.');
     }
 
     public function destroy(User $user): RedirectResponse
