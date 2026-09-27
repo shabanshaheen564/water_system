@@ -128,8 +128,11 @@ class ComplaintWebController extends Controller
 
     public function destroy(Complaint $complaint): RedirectResponse
     {
-        if ($complaint->workOrders()->exists()) return back()->withErrors(['delete' => 'لا يمكن حذف شكوى مرتبطة بمهمة.']);
-        $complaint->delete();
+        DB::transaction(function () use ($complaint): void {
+            $complaint->workOrders()->detach();
+            $complaint->delete();
+        });
+
         return redirect()->route('complaints.index')->with('success', 'تم حذف الشكوى بنجاح.');
     }
 
