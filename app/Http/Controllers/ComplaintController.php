@@ -129,8 +129,11 @@ class ComplaintController extends Controller
 
     public function destroy(Complaint $complaint): JsonResponse
     {
-        if ($complaint->workOrders()->exists()) return response()->json(['message' => 'Cannot delete a complaint that is linked to a work order.'], 422);
-        $complaint->delete();
+        DB::transaction(function () use ($complaint): void {
+            $complaint->workOrders()->detach();
+            $complaint->delete();
+        });
+
         return response()->json(['message' => 'Complaint deleted successfully.']);
     }
 
