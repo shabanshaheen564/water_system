@@ -21,6 +21,22 @@
             </div>
         @endif
 
+                @if(session('success'))
+            <div class="mb-5 rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-700">{{ session('success') }}</div>
+        @endif
+
+        <div class="mb-5 rounded-md border border-border bg-surface-1 p-4">
+            <h3 class="text-sm font-semibold text-ink">إعادة تعيين كلمة المرور</h3>
+            <p class="mt-1 text-xs text-ink-muted">الأدمن لا يرى كلمة المرور الحالية؛ يحدد كلمة مرور جديدة للمستخدم عند الحاجة.</p>
+            <form method="POST" action="{{ route('users.reset-password', $user) }}" class="mt-4 grid gap-3 sm:grid-cols-3">
+                @csrf
+                <input type="password" name="password" required minlength="8" class="input-institutional text-sm" placeholder="كلمة المرور الجديدة">
+                <input type="password" name="password_confirmation" required minlength="8" class="input-institutional text-sm" placeholder="تأكيد كلمة المرور">
+                <button type="submit" class="rounded-md border border-brand-600 bg-white px-4 py-2 text-sm font-medium text-brand-700 hover:bg-surface-1">إعادة التعيين</button>
+            </form>
+            @error('password')<p class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
+        </div>
+
         <form
             method="POST"
             action="{{ route('users.update', $user) }}"
@@ -31,6 +47,7 @@
             @method('PUT')
 
             <div class="grid gap-6 sm:grid-cols-2">
+                
                 <div>
                     <label for="name" class="mb-1 block text-sm font-medium text-ink">
                         {{ __('Name') }}
@@ -50,9 +67,13 @@
                 </div>
 
                 <div>
+                    <label for="username" class="mb-1 block text-sm font-medium text-ink">اسم المستخدم</label>
+                    <input id="username" name="username" value="{{ old('username', $user->username ?? '') }}" required class="input-institutional w-full text-sm" dir="ltr" autocomplete="username" placeholder="مثال: shaban.shaheen">
+                    @error('username')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
                     <label for="email" class="mb-1 block text-sm font-medium text-ink">
-                        {{ __('Email') }}
-                    </label>
 
                     <input
                         id="email"
