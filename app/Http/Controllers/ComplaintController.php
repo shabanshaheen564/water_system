@@ -8,6 +8,7 @@ use App\Models\Complaint;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Services\ArchiveService;
+use App\Services\FcmService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,7 @@ class ComplaintController extends Controller
         ]);
     }
 
-    public function store(StoreComplaintRequest $request): JsonResponse
+    public function store(StoreComplaintRequest $request, FcmService $fcm): JsonResponse
     {
         $validated = $request->validated();
         $reportedBy = $request->user()->id;
@@ -76,6 +77,14 @@ class ComplaintController extends Controller
                 'latitude' => $validated['latitude'] ?? null, 'longitude' => $validated['longitude'] ?? null,
             ]);
             $complaint->load(['reportedBy:id,name,email', 'assignedTo:id,name,email']);
+            if ($complaint->assigned_to) {
+                $fcm->sendToUser(
+                    (int) $complaint->assigned_to,
+                    'شكوى جديدة',
+                    "تم إسناد الشكوى {$complaint->complaint_number} إليك.",
+                    ['type' => 'complaint', 'complaint_id' => $complaint->id]
+                );
+            }
             return response()->json($this->formatComplaint($complaint), 201);
         });
     }
@@ -86,10 +95,12 @@ class ComplaintController extends Controller
         return response()->json($this->formatComplaint($complaint, true));
     }
 
-    public function update(UpdateComplaintRequest $request, Complaint $complaint, ArchiveService $archive): JsonResponse
+    public function update(UpdateComplaintRequest $request, Complaint $complaint, ArchiveService $archive, FcmService $fcm): JsonResponse
     {
         $validated = $request->validated();
         abort_unless($validated !== [], 422);
+        $oldAssignedTo = $complaint->assigned_to;
+        $oldStatus = $complaint->status;
 
         // These are immutable server-managed fields. They are intentionally ignored rather than updated.
         unset($validated['complaint_number'], $validated['reported_by'], $validated['resolved_at']);
@@ -124,6 +135,23 @@ class ComplaintController extends Controller
         $complaint->load(['reportedBy:id,name,email', 'assignedTo:id,name,email', 'processedBy:id,name,email']);
         $payload = $this->formatComplaint($complaint);
         if ($complaint->status === 'closed') $archive->archiveEligibleForComplaint($complaint);
+        $newAssignedTo = $complaint->assigned_to;
+        if ($newAssignedTo && $newAssignedTo !== $oldAssignedTo) {
+            $fcm->sendToUser(
+                (int) $newAssignedTo,
+                'شكوى جديدة',
+                "تم إسناد الشكوى {$complaint->complaint_number} إليك.",
+                ['type' => 'complaint', 'complaint_id' => $complaint->id]
+            );
+        } elseif ($newAssignedTo && isset($validated['status']) && $validated['status'] !== $oldStatus) {
+            $fcm->sendToUser(
+                (int) $newAssignedTo,
+                'تحديث شكوى',
+                "تم تحديث حالة الشكوى {$complaint->complaint_number} إلى {$complaint->status}.",
+                ['type' => 'complaint', 'complaint_id' => $complaint->id]
+            );
+        }
+
         return response()->json($payload);
     }
 
