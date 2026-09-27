@@ -8,6 +8,7 @@ use App\Models\Complaint;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Services\ArchiveService;
+use App\Services\FcmService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +41,7 @@ class WorkOrderController extends Controller
         return response()->json(['data' => $data, 'links' => ['first' => $workOrders->url(1), 'last' => $workOrders->url($workOrders->lastPage()), 'prev' => $workOrders->previousPageUrl(), 'next' => $workOrders->nextPageUrl()], 'meta' => ['current_page' => $workOrders->currentPage(), 'from' => $workOrders->firstItem(), 'last_page' => $workOrders->lastPage(), 'path' => $workOrders->path(), 'per_page' => $workOrders->perPage(), 'to' => $workOrders->lastItem(), 'total' => $workOrders->total()]]);
     }
 
-    public function store(StoreWorkOrderRequest $request): JsonResponse
+    public function store(StoreWorkOrderRequest $request, FcmService $fcm): JsonResponse
     {
         $validated = $request->validated();
         $idempotencyKey = $validated['idempotency_key'] ?? null;
@@ -66,7 +67,16 @@ class WorkOrderController extends Controller
             if (!empty($validated['complaint_id'])) $workOrder->complaints()->syncWithoutDetaching([$validated['complaint_id']]);
             if ($workOrder->status === 'in_progress' && ! $workOrder->started_at) $workOrder->update(['started_at' => now()]);
             $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
-            return response()->json($this->formatWorkOrder($workOrder), 201);
+            $payload = $this->formatWorkOrder($workOrder);
+            if ($workOrder->assigned_to) {
+                $fcm->sendToUser(
+                    (int) $workOrder->assigned_to,
+                    'مهمة جديدة',
+                    "تم إسناد المهمة {$workOrder->work_order_number} إليك.",
+                    ['type' => 'work_order', 'work_order_id' => $workOrder->id]
+                );
+            }
+            return response()->json($payload, 201);
         });
     }
 
@@ -76,7 +86,7 @@ class WorkOrderController extends Controller
         return response()->json($this->formatWorkOrder($workOrder));
     }
 
-    public function update(UpdateWorkOrderRequest $request, WorkOrder $workOrder, ArchiveService $archive): JsonResponse
+    public function update(UpdateWorkOrderRequest $request, WorkOrder $workOrder, ArchiveService $archive, FcmService $fcm): JsonResponse
     {
         $validated = $request->validated();
         abort_unless($validated !== [], 422);
@@ -88,6 +98,7 @@ class WorkOrderController extends Controller
         if (array_key_exists('status', $validated)) abort_unless($request->user()->can('tasks.transition'), 403);
         foreach (['title', 'description', 'priority', 'notes', 'latitude', 'longitude'] as $field) if (array_key_exists($field, $validated)) abort_unless($request->user()->can('tasks.update'), 403);
         $oldStatus = $workOrder->status;
+        $oldAssignedTo = $workOrder->assigned_to;
         $payload = DB::transaction(function () use ($validated, $workOrder, $oldStatus, $request) {
             $workOrder->update($validated);
             if (isset($validated['status']) && $validated['status'] !== $oldStatus) $this->handleStatusTransition($workOrder, $oldStatus, $validated['status'], $request->user()->id);
@@ -103,6 +114,23 @@ class WorkOrderController extends Controller
                 $complaint = Complaint::find($complaintId);
                 if ($complaint?->status === 'closed') $archive->archiveClosedComplaint($complaint);
             }
+        }
+
+        $newAssignedTo = $workOrder->assigned_to;
+        if ($newAssignedTo && $newAssignedTo !== $oldAssignedTo) {
+            $fcm->sendToUser(
+                (int) $newAssignedTo,
+                'مهمة جديدة',
+                "تم إسناد المهمة {$workOrder->work_order_number} إليك.",
+                ['type' => 'work_order', 'work_order_id' => $workOrder->id]
+            );
+        } elseif ($newAssignedTo && isset($validated['status']) && $validated['status'] !== $oldStatus) {
+            $fcm->sendToUser(
+                (int) $newAssignedTo,
+                'تحديث مهمة',
+                "تم تحديث حالة المهمة {$workOrder->work_order_number} إلى {$workOrder->status}.",
+                ['type' => 'work_order', 'work_order_id' => $workOrder->id]
+            );
         }
 
         return response()->json($payload);
