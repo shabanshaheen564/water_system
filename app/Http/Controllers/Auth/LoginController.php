@@ -14,35 +14,23 @@ use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
-    public function create(): \Illuminate\View\View
-    {
-        return view('auth.login');
-    }
+    public function create(): \Illuminate\View\View { return view('auth.login'); }
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->only('email', 'password');
-
-        $user = User::where('email', $request->email)->first();
+        $login = trim($request->login);
+        $user = User::where('email', $login)->orWhere('username', $login)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'message' => 'Invalid credentials',
-            ], 401);
+            return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
         if (! $user->is_active) {
-            return response()->json([
-                'message' => 'Account is deactivated',
-            ], 403);
+            return response()->json(['message' => 'Account is deactivated'], 403);
         }
 
         $token = $user->createToken('mobile-app')->plainTextToken;
-
-        $user->update([
-            'last_login_at' => now(),
-        ]);
-
+        $user->update(['last_login_at' => now()]);
         $user->refresh();
 
         return response()->json([
@@ -52,6 +40,7 @@ class LoginController extends Controller
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
+                'username' => $user->username,
                 'email' => $user->email,
                 'is_active' => $user->is_active,
                 'last_login_at' => $user->last_login_at?->toISOString(),
@@ -62,32 +51,26 @@ class LoginController extends Controller
     public function webLogin(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
+            'login' => ['required', 'string', 'max:255'],
             'password' => ['required'],
             'remember' => ['sometimes', 'boolean'],
         ]);
 
-        $user = User::where('email', $credentials['email'])->first();
+        $user = User::where('email', trim($credentials['login']))
+            ->orWhere('username', trim($credentials['login']))
+            ->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => __('The provided credentials do not match our records.'),
-            ]);
+            throw ValidationException::withMessages(['login' => __('The provided credentials do not match our records.')]);
         }
 
         if (! $user->is_active) {
-            throw ValidationException::withMessages([
-                'email' => __('Your account is deactivated.'),
-            ]);
+            throw ValidationException::withMessages(['login' => __('Your account is deactivated.')]);
         }
 
         Auth::login($user, $request->boolean('remember'));
-
         $request->session()->regenerate();
-
-        $user->update([
-            'last_login_at' => now(),
-        ]);
+        $user->update(['last_login_at' => now()]);
 
         return redirect()->intended(route('gis.index'));
     }
@@ -95,10 +78,8 @@ class LoginController extends Controller
     public function webLogout(Request $request): RedirectResponse
     {
         Auth::logout();
-
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
         return redirect('/');
     }
 }
