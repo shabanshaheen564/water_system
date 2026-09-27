@@ -110,8 +110,11 @@ class WorkOrderController extends Controller
 
     public function destroy(WorkOrder $workOrder): JsonResponse
     {
-        if ($workOrder->complaints()->exists()) return response()->json(['message' => 'Cannot delete a work order that has linked complaints.'], 422);
-        $workOrder->delete();
+        DB::transaction(function () use ($workOrder): void {
+            $workOrder->complaints()->detach();
+            $workOrder->delete();
+        });
+
         return response()->json(['message' => 'Work order deleted successfully.']);
     }
 
