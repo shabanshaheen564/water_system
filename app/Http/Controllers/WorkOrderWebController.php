@@ -156,8 +156,11 @@ class WorkOrderWebController extends Controller
 
     public function destroy(WorkOrder $workOrder): RedirectResponse
     {
-        if ($workOrder->complaints()->exists()) return back()->withErrors(['delete' => 'لا يمكن حذف مهمة مرتبطة بشكوى.']);
-        $workOrder->delete();
+        DB::transaction(function () use ($workOrder): void {
+            $workOrder->complaints()->detach();
+            $workOrder->delete();
+        });
+
         return redirect()->route('work-orders.index')->with('success', 'تم حذف المهمة بنجاح.');
     }
 
