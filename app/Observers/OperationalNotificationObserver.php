@@ -6,6 +6,7 @@ use App\Models\Complaint;
 use App\Models\WorkOrder;
 use App\Services\FcmService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class OperationalNotificationObserver
 {
@@ -67,10 +68,21 @@ class OperationalNotificationObserver
     private function sendAfterCommit(int $userId, string $title, string $body, string $type, int $entityId): void
     {
         DB::afterCommit(function () use ($userId, $title, $body, $type, $entityId): void {
-            app(FcmService::class)->sendToUser($userId, $title, $body, [
-                'type' => $type,
-                'entity_id' => (string) $entityId,
-            ]);
+            try {
+                app(FcmService::class)->sendToUser($userId, $title, $body, [
+                    'type' => $type,
+                    'entity_id' => (string) $entityId,
+                ]);
+            } catch (\Throwable $e) {
+                // Notification delivery is best-effort and must never turn a
+                // successful complaint/work-order update into an HTTP 500.
+                Log::warning('Operational FCM notification failed.', [
+                    'user_id' => $userId,
+                    'type' => $type,
+                    'entity_id' => $entityId,
+                    'message' => $e->getMessage(),
+                ]);
+            }
         });
     }
 }
