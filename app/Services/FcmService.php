@@ -13,6 +13,12 @@ class FcmService
     private const TOKEN_SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
     private const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
+    private function validNotificationText(string $value): bool
+    {
+        $value = trim($value);
+        return $value !== '' && $value !== '0$';
+    }
+
     public function registerToken(User $user, string $token, string $platform = 'android'): void
     {
         DB::table('fcm_tokens')->updateOrInsert(
@@ -32,6 +38,10 @@ class FcmService
         string $body,
         array $data = []
     ): int {
+        if (!$this->validNotificationText($title) || !$this->validNotificationText($body)) {
+            return 0;
+        }
+
         $tokens = DB::table('fcm_tokens')
             ->where('user_id', $userId)
             ->pluck('token')
@@ -53,6 +63,10 @@ class FcmService
         string $body,
         array $data = []
     ): bool {
+        if (!$this->validNotificationText($title) || !$this->validNotificationText($body)) {
+            return false;
+        }
+
         try {
             $serviceAccount = $this->serviceAccount();
             if ($serviceAccount === null) {
