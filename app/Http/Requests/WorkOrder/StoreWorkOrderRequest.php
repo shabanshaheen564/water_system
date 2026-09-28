@@ -23,6 +23,8 @@ class StoreWorkOrderRequest extends FormRequest
             'priority' => ['sometimes', Rule::in(['low', 'medium', 'high', 'urgent'])],
             'assigned_to' => ['sometimes', 'nullable', 'exists:users,id'],
             'notes' => ['sometimes', 'nullable', 'string'],
+            'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
         ];
     }
 }
