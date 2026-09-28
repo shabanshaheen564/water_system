@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Complaint;
 use App\Models\User;
 use App\Models\WorkOrder;
+use App\Services\ArchiveService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -70,6 +71,39 @@ class WorkOrderWebTest extends TestCase
         }
         $this->assertDatabaseMissing('work_orders', ['id' => $workOrder->id]);
         $this->assertDatabaseHas('archived_work_orders', ['work_order_number' => $workOrder->work_order_number, 'status' => 'completed']);
+    }
+
+    public function test_work_order_web_update_does_not_fail_when_archive_throws(): void
+    {
+        $workOrder = WorkOrder::create([
+            'work_order_number' => 'WO-990002',
+            'title' => 'اختبار فشل الأرشيف',
+            'description' => 'وصف',
+            'status' => 'assigned',
+            'priority' => 'medium',
+            'assigned_to' => $this->user->id,
+            'created_by' => $this->user->id,
+        ]);
+
+        $this->mock(ArchiveService::class, function ($mock): void {
+            $mock->shouldReceive('archiveCompletedWorkOrder')
+                ->once()
+                ->andThrow(new \RuntimeException('simulated archive failure'));
+        });
+
+        $this->actingAs($this->user)
+            ->put("/work-orders/{$workOrder->id}", [
+                'status' => 'completed',
+                'assigned_to' => $this->user->id,
+                'priority' => 'medium',
+            ])
+            ->assertRedirect("/work-orders/{$workOrder->id}")
+            ->assertSessionHas('warning');
+
+        $this->assertDatabaseHas('work_orders', [
+            'id' => $workOrder->id,
+            'status' => 'completed',
+        ]);
     }
 
     public function test_assigned_work_order_can_be_completed_directly(): void
