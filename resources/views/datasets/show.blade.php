@@ -14,6 +14,9 @@
                     <a href="{{ route('datasets.edit', $dataset) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Edit') }}</a>
                 @endcan
                 <a href="{{ route('datasets.validation', $dataset) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">GIS Quality</a>
+                @can('datasets.update')
+                    <a href="{{ route('datasets.relationships.index', $dataset) }}" class="rounded-md border border-emerald-600 bg-white px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50">علاقات البيانات</a>
+                @endcan
                 @if($dataset->is_spatial && $dataset->is_active)
                     <a href="{{ route('map.index') }}?dataset={{ $dataset->id }}" class="btn-motion rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('View on Map') }}</a>
                 @endif
@@ -53,6 +56,67 @@
                 </div>
             @endif
         </div>
+
+
+
+        @php
+            $parentRelationships = $dataset->parentRelationships()->with(['childDataset', 'parentField', 'childField'])->get();
+            $childRelationships = $dataset->childRelationships()->with(['parentDataset', 'parentField', 'childField'])->get();
+        @endphp
+
+        @if($parentRelationships->count() || $childRelationships->count())
+            <section data-enter class="card-institutional mt-6 overflow-hidden">
+                <div class="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
+                    <div>
+                        <h3 class="text-base font-semibold text-ink">علاقات البيانات</h3>
+                        <p class="mt-1 text-xs text-ink-muted">الجداول التشغيلية المرتبطة بهذه البيانات.</p>
+                    </div>
+                    @can('datasets.update')
+                        <a href="{{ route('datasets.relationships.index', $dataset) }}" class="text-sm font-medium text-brand-600">إدارة العلاقات</a>
+                    @endcan
+                </div>
+                <div class="divide-y divide-border">
+                    @foreach($parentRelationships as $relationship)
+                        <div class="flex flex-col gap-2 px-6 py-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <div class="text-sm font-medium text-ink">{{ $relationship->childDataset->display_name }}</div>
+                                <div class="mt-1 text-xs text-ink-muted">
+                                    {{ $relationship->parentField->display_name }} ← {{ $relationship->childField->display_name }}
+                                    · One-to-Many
+                                </div>
+                            </div>
+                            <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">جدول تابع</span>
+                        </div>
+                    @endforeach
+                    @foreach($childRelationships as $relationship)
+                        <div class="flex flex-col gap-2 px-6 py-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <div class="text-sm font-medium text-ink">{{ $relationship->parentDataset->display_name }}</div>
+                                <div class="mt-1 text-xs text-ink-muted">
+                                    {{ $relationship->parentField->display_name }} ← {{ $relationship->childField->display_name }}
+                                    · One-to-Many
+                                </div>
+                            </div>
+                            <span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">بيانات أساسية</span>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @else
+            @if($dataset->dataset_type === 'official_layer')
+                <section class="card-institutional mt-6 p-6">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h3 class="text-base font-semibold text-ink">البيانات التشغيلية التابعة</h3>
+                            <p class="mt-1 text-sm text-ink-secondary">أضف جداول Excel مثل TDS أو جودة المياه واربطها بحقل البئر المشترك.</p>
+                        </div>
+                        @can('datasets.update')
+                            <a href="{{ route('datasets.relationships.index', $dataset) }}" class="rounded-md border border-emerald-600 bg-white px-4 py-2 text-sm font-medium text-emerald-700">إنشاء علاقة</a>
+                        @endcan
+                    </div>
+                </section>
+            @endif
+        @endif
 
         @if($dataset->is_spatial && $featuresCount > 0)
             <section data-enter class="card-institutional mt-6 overflow-hidden">
