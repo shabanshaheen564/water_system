@@ -252,6 +252,31 @@ class FcmService
         return $result;
     }
 
+    public function sendDiagnosticToUser(User $user): array
+    {
+        $tokens = DB::table('fcm_tokens')
+            ->where('user_id', $user->id)
+            ->pluck('token')
+            ->all();
+
+        $sent = 0;
+        foreach ($tokens as $token) {
+            if ($this->sendToToken(
+                $token,
+                'اختبار إشعارات النظام',
+                'هذه رسالة اختبار من نظام إدارة مياه بلدية دير البلح.',
+                ['type' => 'diagnostic']
+            )) {
+                $sent++;
+            }
+        }
+
+        return [
+            'token_count' => count($tokens),
+            'sent_count' => $sent,
+        ];
+    }
+
     private function base64UrlEncode(string $value): string
     {
         return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
