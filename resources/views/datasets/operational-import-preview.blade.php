@@ -24,7 +24,7 @@
             <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
                 <div>
                     <label class="mb-1 block text-sm font-medium text-ink">اسم النظام</label>
-                    <input name="name" required value="{{ old('name', \\Illuminate\\Support\\Str::snake(pathinfo($state['original_filename'] ?? 'operational_table', PATHINFO_FILENAME))) }}" class="input-institutional w-full px-3 py-2" dir="ltr">
+                    <input name="name" required value="{{ old('name', \Illuminate\Support\Str::snake(pathinfo($state['original_filename'] ?? 'operational_table', PATHINFO_FILENAME))) }}" class="input-institutional w-full px-3 py-2" dir="ltr">
                     @error('name')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
                 </div>
                 <div>
@@ -63,7 +63,7 @@
                             </td>
                             <td class="max-w-md text-xs text-ink-secondary">
                                 @foreach(array_slice($preview['sample_rows'], 0, 3) as $row)
-                                    <span class="me-2 inline-block rounded bg-surface-1 px-2 py-1" dir="ltr">{{ \\Illuminate\\Support\\Str::limit((string)($row[$header] ?? '—'), 35) }}</span>
+                                    <span class="me-2 inline-block rounded bg-surface-1 px-2 py-1" dir="ltr">{{ \Illuminate\Support\Str::limit((string)($row[$header] ?? '—'), 35) }}</span>
                                 @endforeach
                             </td>
                         </tr>
@@ -123,7 +123,7 @@
                     <thead><tr>@foreach($preview['headers'] as $header)<th dir="ltr">{{ $header }}</th>@endforeach</tr></thead>
                     <tbody>
                     @forelse($preview['sample_rows'] as $row)
-                        <tr>@foreach($preview['headers'] as $header)<td dir="ltr" class="text-xs">{{ \\Illuminate\\Support\\Str::limit((string)($row[$header] ?? ''), 50) }}</td>@endforeach</tr>
+                        <tr>@foreach($preview['headers'] as $header)<td dir="ltr" class="text-xs">{{ \Illuminate\Support\Str::limit((string)($row[$header] ?? ''), 50) }}</td>@endforeach</tr>
                     @empty
                         <tr><td colspan="{{ count($preview['headers']) }}" class="py-8 text-center">لا توجد صفوف بيانات.</td></tr>
                     @endforelse
