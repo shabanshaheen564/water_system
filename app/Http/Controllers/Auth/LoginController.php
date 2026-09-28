@@ -51,21 +51,21 @@ class LoginController extends Controller
     public function webLogin(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'login' => ['required', 'string', 'max:255'],
+            'login' => ['nullable', 'string', 'max:255', 'required_without:email'],
+            'email' => ['nullable', 'email', 'max:255'],
             'password' => ['required'],
             'remember' => ['sometimes', 'boolean'],
         ]);
 
-        $user = User::where('email', trim($credentials['login']))
-            ->orWhere('username', trim($credentials['login']))
-            ->first();
+        $login = trim((string) ($credentials['login'] ?? $credentials['email'] ?? ''));
+        $user = User::where('email', $login)->orWhere('username', $login)->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
-            throw ValidationException::withMessages(['login' => __('The provided credentials do not match our records.')]);
+            throw ValidationException::withMessages(['email' => __('The provided credentials do not match our records.')]);
         }
 
         if (! $user->is_active) {
-            throw ValidationException::withMessages(['login' => __('Your account is deactivated.')]);
+            throw ValidationException::withMessages(['email' => __('Your account is deactivated.')]);
         }
 
         Auth::login($user, $request->boolean('remember'));
