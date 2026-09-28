@@ -101,7 +101,7 @@ class WebLoginTest extends TestCase
         ]);
 
         $response->assertRedirect('/login');
-        $response->assertSessionHasErrors('email');
+        $response->assertSessionHasErrors('login');
     }
 
     public function test_web_login_validation_password_required(): void
