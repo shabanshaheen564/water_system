@@ -12,6 +12,7 @@ use App\Services\OperationalGisService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class ComplaintWebController extends Controller
@@ -78,10 +79,23 @@ class ComplaintWebController extends Controller
         if (array_key_exists('processing_notes', $validated) || array_key_exists('solution', $validated) || in_array($validated['status'] ?? null, ['in_progress', 'resolved'], true)) { $validated['processed_by'] = $request->user()->id; $validated['processed_at'] = now(); if (!$complaint->first_response_at) $validated['first_response_at'] = now(); }
         if (($validated['status'] ?? null) === 'resolved' && !$complaint->resolved_at) { $validated['resolved_at'] = now(); $validated['processed_by'] ??= $request->user()->id; $validated['processed_at'] ??= now(); }
         $complaint->update($validated);
+
         if ($complaint->status === 'closed') {
-            $archive->archiveClosedComplaint($complaint);
-            return redirect()->route('complaints.index')->with('success', 'تم إغلاق الشكوى وأرشفتها مع بيانات الاستجابة والحل.');
+            try {
+                $archive->archiveClosedComplaint($complaint);
+                return redirect()->route('complaints.index')->with('success', 'تم إغلاق الشكوى وأرشفتها مع بيانات الاستجابة والحل.');
+            } catch (\Throwable $e) {
+                Log::error('Complaint web update succeeded but archiving failed.', [
+                    'complaint_id' => $complaint->id,
+                    'complaint_number' => $complaint->complaint_number,
+                    'message' => $e->getMessage(),
+                ]);
+
+                return redirect()->route('complaints.show', $complaint)
+                    ->with('warning', 'تم تحديث وإغلاق الشكوى بنجاح، لكن تعذر نقلها إلى الأرشيف. بقيت في السجل التشغيلي ولم تضِع البيانات.');
+            }
         }
+
         return redirect()->route('complaints.show', $complaint)->with('success', 'تم تحديث الشكوى بنجاح.');
     }
 
