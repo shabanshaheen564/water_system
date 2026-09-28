@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class RegisterController extends Controller
@@ -27,8 +28,11 @@ class RegisterController extends Controller
         }
 
         return DB::transaction(function () use ($validated, $targetRole) {
+            $username = $validated['username'] ?? $this->generateUsername($validated['email'], $validated['name']);
+
             $user = User::create([
                 'name' => $validated['name'],
+                'username' => $username,
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'is_active' => true,
@@ -43,6 +47,7 @@ class RegisterController extends Controller
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
+                    'username' => $user->username,
                     'email' => $user->email,
                     'is_active' => $user->is_active,
                     'last_login_at' => $user->last_login_at,
@@ -66,5 +71,34 @@ class RegisterController extends Controller
         }
 
         return false;
+    }
+
+    private function generateUsername(string $email, string $name): string
+    {
+        $base = Str::of(Str::before($email, '@'))
+            ->lower()
+            ->replaceMatches('/[^a-z0-9._-]+/', '-')
+            ->trim('-._')
+            ->toString();
+
+        if ($base === '') {
+            $base = Str::of($name)
+                ->lower()
+                ->replaceMatches('/[^a-z0-9]+/', '-')
+                ->trim('-')
+                ->toString();
+        }
+
+        if ($base === '') {
+            $base = 'user';
+        }
+
+        $candidate = $base;
+        $suffix = 1;
+        while (User::where('username', $candidate)->exists()) {
+            $candidate = $base . '-' . $suffix++;
+        }
+
+        return $candidate;
     }
 }
