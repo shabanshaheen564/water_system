@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Complaint;
+use App\Services\ArchiveService;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -144,6 +145,39 @@ class WorkOrderTest extends TestCase
         $response=$this->withHeaders(['Authorization'=>'Bearer '.$this->adminToken])->putJson("/api/work-orders/{$workOrder->id}",['status'=>'assigned']); $response->assertStatus(200); $this->assertEquals('assigned',$response->json('status'));
         $response=$this->withHeaders(['Authorization'=>'Bearer '.$this->adminToken])->putJson("/api/work-orders/{$workOrder->id}",['status'=>'in_progress']); $response->assertStatus(200); $this->assertEquals('in_progress',$response->json('status')); $this->assertNotNull($response->json('started_at'));
         $response=$this->withHeaders(['Authorization'=>'Bearer '.$this->adminToken])->putJson("/api/work-orders/{$workOrder->id}",['status'=>'completed']); $response->assertStatus(200); $this->assertEquals('completed',$response->json('status')); $this->assertNotNull($response->json('completed_at'));
+    }
+
+    public function test_work_order_update_returns_success_when_archive_fails_after_persistence(): void
+    {
+        $workOrder = $this->admin->createdWorkOrders()->create([
+            'work_order_number' => 'WO-990001',
+            'title' => 'Archive failure test',
+            'description' => 'Original description',
+            'status' => 'assigned',
+            'priority' => 'medium',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $this->mock(ArchiveService::class, function ($mock): void {
+            $mock->shouldReceive('archiveCompletedWorkOrder')
+                ->once()
+                ->andThrow(new \RuntimeException('simulated archive failure'));
+        });
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->putJson("/api/work-orders/{$workOrder->id}", [
+            'status' => 'completed',
+            'priority' => 'medium',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'completed');
+
+        $this->assertDatabaseHas('work_orders', [
+            'id' => $workOrder->id,
+            'status' => 'completed',
+        ]);
     }
 
     public function test_assigned_work_order_can_be_completed_directly(): void
