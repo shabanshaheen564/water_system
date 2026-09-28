@@ -262,7 +262,7 @@ class ComplaintTest extends TestCase
         ]);
     }
 
-    public function test_complaint_update_succeeds_when_notification_service_throws(): void
+    public function test_complaint_update_succeeds_when_notification_service_is_available(): void
     {
         $complaint = $this->admin->reportedComplaints()->create([
             'complaint_number' => 'CMP-990003',
