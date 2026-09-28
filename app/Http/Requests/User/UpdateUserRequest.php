@@ -9,6 +9,18 @@ class UpdateUserRequest extends FormRequest
 {
     public function authorize(): bool { return true; }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('username')) {
+            return;
+        }
+
+        $user = $this->route('user');
+        if ($user) {
+            $this->merge(['username' => $user->username]);
+        }
+    }
+
     public function rules(): array
     {
         $user = $this->route('user');
