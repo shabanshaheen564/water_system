@@ -12,6 +12,7 @@ use App\Services\FcmService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ComplaintController extends Controller
 {
@@ -70,7 +71,7 @@ class ComplaintController extends Controller
             abort_unless($request->user()->can('complaints.update'), 403);
             $this->validateUserActive($validated['assigned_to']);
         }
-        return DB::transaction(function () use ($validated, $reportedBy, $idempotencyKey) {
+        $complaint = DB::transaction(function () use ($validated, $reportedBy, $idempotencyKey) {
             $complaint = Complaint::create([
                 'complaint_number' => $this->generateComplaintNumber(), 'idempotency_key' => $idempotencyKey,
                 'title' => $validated['title'], 'description' => $validated['description'],
@@ -80,16 +81,12 @@ class ComplaintController extends Controller
                 'latitude' => $validated['latitude'] ?? null, 'longitude' => $validated['longitude'] ?? null,
             ]);
             $complaint->load(['reportedBy:id,name,email', 'assignedTo:id,name,email']);
-            if ($complaint->assigned_to) {
-                $fcm->sendToUser(
-                    (int) $complaint->assigned_to,
-                    'شكوى جديدة',
-                    "تم إسناد الشكوى {$complaint->complaint_number} إليك.",
-                    ['type' => 'complaint', 'complaint_id' => $complaint->id]
-                );
-            }
-            return response()->json($this->formatComplaint($complaint), 201);
+            return $complaint;
         });
+
+        $this->sendAssignmentNotificationSafely($fcm, $complaint);
+
+        return response()->json($this->formatComplaint($complaint), 201);
     }
 
     public function show(Complaint $complaint): JsonResponse
@@ -138,17 +135,23 @@ class ComplaintController extends Controller
         $complaint->update($validated);
         $complaint->load(['reportedBy:id,name,email', 'assignedTo:id,name,email', 'processedBy:id,name,email']);
         $payload = $this->formatComplaint($complaint);
-        if ($complaint->status === 'closed') $archive->archiveEligibleForComplaint($complaint);
+
+        if ($complaint->status === 'closed') {
+            $this->archiveComplaintSafely($archive, $complaint);
+        }
+
         $newAssignedTo = $complaint->assigned_to;
         if ($newAssignedTo && $newAssignedTo !== $oldAssignedTo) {
-            $fcm->sendToUser(
+            $this->sendNotificationSafely(
+                $fcm,
                 (int) $newAssignedTo,
                 'شكوى جديدة',
                 "تم إسناد الشكوى {$complaint->complaint_number} إليك.",
                 ['type' => 'complaint', 'complaint_id' => $complaint->id]
             );
         } elseif ($newAssignedTo && isset($validated['status']) && $validated['status'] !== $oldStatus) {
-            $fcm->sendToUser(
+            $this->sendNotificationSafely(
+                $fcm,
                 (int) $newAssignedTo,
                 'تحديث شكوى',
                 "تم تحديث حالة الشكوى {$complaint->complaint_number} إلى {$complaint->status}.",
@@ -197,6 +200,47 @@ class ComplaintController extends Controller
             $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
             return response()->json(['message' => 'Complaint added to work order successfully.', 'work_order_id' => $workOrder->id, 'work_order_number' => $workOrder->work_order_number, 'complaints' => $workOrder->complaints->map(fn ($item) => ['id' => $item->id, 'complaint_number' => $item->complaint_number, 'title' => $item->title, 'status' => $item->status])->values()]);
         });
+    }
+
+    private function sendAssignmentNotificationSafely(FcmService $fcm, Complaint $complaint): void
+    {
+        if ($complaint->assigned_to === null) {
+            return;
+        }
+
+        $this->sendNotificationSafely(
+            $fcm,
+            (int) $complaint->assigned_to,
+            'شكوى جديدة',
+            "تم إسناد الشكوى {$complaint->complaint_number} إليك.",
+            ['type' => 'complaint', 'complaint_id' => $complaint->id]
+        );
+    }
+
+    private function sendNotificationSafely(FcmService $fcm, int $userId, string $title, string $body, array $data): void
+    {
+        try {
+            $fcm->sendToUser($userId, $title, $body, $data);
+        } catch (\Throwable $e) {
+            Log::warning('Complaint notification failed after the primary operation succeeded.', [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function archiveComplaintSafely(ArchiveService $archive, Complaint $complaint): void
+    {
+        try {
+            $archive->archiveEligibleForComplaint($complaint);
+        } catch (\Throwable $e) {
+            Log::error('Complaint update succeeded but archiving failed.', [
+                'complaint_id' => $complaint->id,
+                'complaint_number' => $complaint->complaint_number,
+                'status' => $complaint->status,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function generateComplaintNumber(): string
