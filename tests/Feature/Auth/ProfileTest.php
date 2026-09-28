@@ -32,6 +32,7 @@ class ProfileTest extends TestCase
             'Authorization' => 'Bearer ' . $token,
         ])->putJson('/api/profile', [
             'name' => 'Updated Name',
+            'username' => $user->username,
             'email' => 'updated@example.com',
         ]);
 
@@ -71,6 +72,7 @@ class ProfileTest extends TestCase
             'Authorization' => 'Bearer ' . $token,
         ])->putJson('/api/profile', [
             'name' => 'Updated Name',
+            'username' => $user->username,
             'email' => 'same@example.com',
         ]);
 
