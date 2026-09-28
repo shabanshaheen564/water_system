@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Complaint;
 use App\Services\ArchiveService;
+use App\Services\FcmService;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -177,6 +178,40 @@ class WorkOrderTest extends TestCase
         $this->assertDatabaseHas('work_orders', [
             'id' => $workOrder->id,
             'status' => 'completed',
+        ]);
+    }
+
+    public function test_work_order_update_succeeds_when_notification_service_throws(): void
+    {
+        $workOrder = $this->admin->createdWorkOrders()->create([
+            'work_order_number' => 'WO-990003',
+            'title' => 'Notification failure test',
+            'description' => 'Original description',
+            'status' => 'assigned',
+            'priority' => 'medium',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $assignee = User::factory()->create(['is_active' => true]);
+
+        $this->mock(FcmService::class, function ($mock): void {
+            $mock->shouldReceive('sendToUser')
+                ->once()
+                ->andThrow(new \RuntimeException('simulated FCM failure'));
+        });
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->putJson("/api/work-orders/{$workOrder->id}", [
+            'assigned_to' => $assignee->id,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('assigned_to.id', $assignee->id);
+
+        $this->assertDatabaseHas('work_orders', [
+            'id' => $workOrder->id,
+            'assigned_to' => $assignee->id,
         ]);
     }
 
