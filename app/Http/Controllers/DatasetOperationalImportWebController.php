@@ -45,11 +45,12 @@ class DatasetOperationalImportWebController extends Controller
         $relativePath = 'dataset-imports/'.$token.'.'.$file->getClientOriginalExtension();
         $file->storeAs('dataset-imports', basename($relativePath), 'local');
 
-        session()->put("dataset_imports.{$token}", [
+        $state = [
             'path' => $relativePath,
             'original_filename' => $file->getClientOriginalName(),
             'source_format' => strtolower($file->getClientOriginalExtension()),
-        ]);
+        ];
+        session()->put("dataset_imports.{$token}", $state);
 
         $datasets = Dataset::with('fields')
             ->where('is_active', true)
