@@ -57,7 +57,7 @@ class DatasetOperationalImportWebController extends Controller
             ->orderBy('display_name')
             ->get();
 
-        return view('datasets.operational-import-preview', compact('preview', 'token', 'datasets'));
+        return view('datasets.operational-import-preview', compact('preview', 'token', 'datasets', 'state'));
     }
 
     public function confirm(Request $request): RedirectResponse
