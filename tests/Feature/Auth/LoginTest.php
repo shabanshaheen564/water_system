@@ -110,25 +110,25 @@ class LoginTest extends TestCase
         $this->assertEquals($originalLastLoginAt, $user->last_login_at);
     }
 
-    public function test_validation_email_required(): void
+    public function test_validation_login_required(): void
     {
         $response = $this->postJson('/api/login', [
             'password' => 'password123',
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+            ->assertJsonValidationErrors(['login']);
     }
 
-    public function test_validation_email_format(): void
+    public function test_invalid_login_identifier_returns_401(): void
     {
         $response = $this->postJson('/api/login', [
             'email' => 'invalid-email',
             'password' => 'password123',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+        $response->assertStatus(401)
+            ->assertJson(['message' => 'Invalid credentials']);
     }
 
     public function test_validation_password_required(): void
