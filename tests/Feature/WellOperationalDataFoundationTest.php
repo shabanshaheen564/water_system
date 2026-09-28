@@ -96,6 +96,18 @@ class WellOperationalDataFoundationTest extends TestCase
         $this->assertNotNull($relationship);
         $this->assertSame($wellId->id, $relationship->parent_field_id);
         $this->assertSame('Well_id', $child->fields()->where('display_name', 'Well_id')->value('name'));
+
+        $this->actingAs($user)
+            ->get(route('datasets.relationships.index', $wellDataset))
+            ->assertOk();
+
+        $wellRecord = DatasetRecord::where('dataset_id', $wellDataset->id)
+            ->where('identifier_value', 'W_01')
+            ->firstOrFail();
+
+        $this->actingAs($user)
+            ->get(route('datasets.records.related', [$wellDataset, $wellRecord]))
+            ->assertOk();
     }
 
     public function test_identifier_action_rejects_duplicate_values(): void
