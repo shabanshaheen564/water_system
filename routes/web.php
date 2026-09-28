@@ -77,6 +77,3 @@ Route::middleware(['auth', 'active', 'permission:reports.export|tasks.export'])-
 Route::middleware(['auth', 'active', 'permission:reports.export|tasks.export'])->get('/reports/work-orders/{workOrder}/pdf', [ReportController::class, 'workOrderPdf'])->name('reports.work-orders.pdf');
 Route::middleware(['auth', 'active', 'permission:complaints.view|tasks.view'])->get('/archive', [ArchiveController::class, 'index'])->name('archive.index');
 
-Route::middleware(['auth', 'active'])->get('/fcm-diagnostic', function (\App\Services\FcmService $fcm) { return response()->json($fcm->diagnostic()); });
-
-Route::middleware(['auth', 'active'])->get('/fcm-diagnostic/send-test', function (\Illuminate\Http\Request $request, \App\Services\FcmService $fcm) { return response()->json($fcm->sendDiagnosticToUser($request->user())); });
