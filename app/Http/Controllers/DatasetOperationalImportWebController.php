@@ -95,6 +95,7 @@ class DatasetOperationalImportWebController extends Controller
 
         $headers = $preview['headers'];
         $fieldTypes = $validated['field_types'];
+        $fieldMap = $this->buildFieldMap($headers);
 
         foreach ($headers as $header) {
             if (!isset($fieldTypes[$header])) {
@@ -144,7 +145,7 @@ class DatasetOperationalImportWebController extends Controller
                 ]);
 
                 foreach ($headers as $sort => $header) {
-                    $fieldName = $this->fieldName($header);
+                    $fieldName = $fieldMap[$header];
                     DatasetField::create([
                         'dataset_id' => $dataset->id,
                         'name' => $fieldName,
@@ -160,7 +161,7 @@ class DatasetOperationalImportWebController extends Controller
 
                 $mapping = [];
                 foreach ($headers as $header) {
-                    $mapping[$header] = $this->fieldName($header);
+                    $mapping[$header] = $fieldMap[$header];
                 }
 
                 $import = DatasetImport::create([
@@ -199,7 +200,7 @@ class DatasetOperationalImportWebController extends Controller
             $parentDataset = Dataset::findOrFail($validated['parent_dataset_id']);
             $parentField = DatasetField::findOrFail($validated['parent_field_id']);
             $childField = $dataset->fields()->where('display_name', $validated['child_field'])->first()
-                ?? $dataset->fields()->where('name', $this->fieldName($validated['child_field']))->first();
+                ?? $dataset->fields()->where('name', $fieldMap[$validated['child_field']] ?? '')->first();
 
             $coverage = $this->validateRelationshipCoverage($parentDataset, $parentField, $dataset, $childField);
 
@@ -253,10 +254,25 @@ class DatasetOperationalImportWebController extends Controller
         return ['unmatched' => $unmatched];
     }
 
-    private function fieldName(string $header): string
+    private function buildFieldMap(array $headers): array
     {
-        $name = preg_replace('/[^A-Za-z0-9_]+/', '_', trim($header));
-        $name = trim($name, '_') ?: 'field';
-        return strtolower($name);
+        $map = [];
+        $used = [];
+
+        foreach ($headers as $header) {
+            $base = preg_replace('/[^A-Za-z0-9_]+/', '_', trim($header));
+            $base = strtolower(trim($base, '_') ?: 'field');
+            $candidate = $base;
+            $suffix = 2;
+
+            while (isset($used[$candidate])) {
+                $candidate = $base.'_'.$suffix++;
+            }
+
+            $used[$candidate] = true;
+            $map[$header] = $candidate;
+        }
+
+        return $map;
     }
 }
