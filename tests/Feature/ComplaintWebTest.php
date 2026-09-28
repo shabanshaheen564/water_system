@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Complaint;
+use App\Services\ArchiveService;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
@@ -79,6 +80,38 @@ class ComplaintWebTest extends TestCase
         $this->assertSame('تم إصلاح العطل وإعادة ضخ المياه.', $fresh->solution);
         $this->assertSame($this->user->id, $fresh->processed_by);
         $this->assertNotNull($fresh->processed_at);
+    }
+
+    public function test_complaint_web_update_does_not_fail_when_archive_throws(): void
+    {
+        $complaint = Complaint::create([
+            'complaint_number' => 'CMP-990002',
+            'title' => 'اختبار فشل الأرشيف',
+            'description' => 'وصف',
+            'status' => 'resolved',
+            'priority' => 'medium',
+            'reported_by' => $this->user->id,
+        ]);
+
+        $this->mock(ArchiveService::class, function ($mock): void {
+            $mock->shouldReceive('archiveClosedComplaint')
+                ->once()
+                ->andThrow(new \RuntimeException('simulated archive failure'));
+        });
+
+        $this->actingAs($this->user)
+            ->put("/complaints/{$complaint->id}", [
+                'status' => 'closed',
+                'solution' => 'تم الإغلاق.',
+            ])
+            ->assertRedirect("/complaints/{$complaint->id}")
+            ->assertSessionHas('warning');
+
+        $this->assertDatabaseHas('complaints', [
+            'id' => $complaint->id,
+            'status' => 'closed',
+            'solution' => 'تم الإغلاق.',
+        ]);
     }
 
     public function test_processing_can_resolve_complaint_and_sets_resolution_time(): void
