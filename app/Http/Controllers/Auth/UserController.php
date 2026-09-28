@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -33,7 +34,8 @@ class UserController extends Controller
         return DB::transaction(function() use($request){
             $roles=$request->input('roles',[]);
             if(!$this->canAssignRoles($roles)) return response()->json(['message'=>'Insufficient permissions to assign one or more selected roles.'],403);
-            $user=User::create(['name'=>$request->name,'username'=>$request->username,'email'=>$request->email,'password'=>Hash::make($request->password),'is_active'=>$request->boolean('is_active',true)]);
+            $username = $request->input('username') ?: $this->generateUsername($request->email, $request->name);
+            $user=User::create(['name'=>$request->name,'username'=>$username,'email'=>$request->email,'password'=>Hash::make($request->password),'is_active'=>$request->boolean('is_active',true)]);
             $user->syncRoles($roles);
             $user->load('roles');
             return response()->json(['id'=>$user->id,'name'=>$user->name,'username'=>$user->username,'email'=>$user->email,'is_active'=>$user->is_active,'last_login_at'=>$user->last_login_at?->toISOString(),'created_at'=>$user->created_at?->toISOString(),'updated_at'=>$user->updated_at?->toISOString(),'roles'=>$user->roles->map(fn($role)=>['id'=>$role->id,'name'=>$role->name])->values()],201);
@@ -98,5 +100,34 @@ class UserController extends Controller
         if($currentUser->hasRole('System Owner')) return true;
         if(in_array('System Owner',$roles,true)) return false;
         return $currentUser->hasAnyPermission(['users.create','users.update']);
+    }
+
+    private function generateUsername(string $email, string $name): string
+    {
+        $base = Str::of(Str::before($email, '@'))
+            ->lower()
+            ->replaceMatches('/[^a-z0-9._-]+/', '-')
+            ->trim('-._')
+            ->toString();
+
+        if ($base === '') {
+            $base = Str::of($name)
+                ->lower()
+                ->replaceMatches('/[^a-z0-9]+/', '-')
+                ->trim('-')
+                ->toString();
+        }
+
+        if ($base === '') {
+            $base = 'user';
+        }
+
+        $candidate = $base;
+        $suffix = 1;
+        while (User::where('username', $candidate)->exists()) {
+            $candidate = $base . '-' . $suffix++;
+        }
+
+        return $candidate;
     }
 }
