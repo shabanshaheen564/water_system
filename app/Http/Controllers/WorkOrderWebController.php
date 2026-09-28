@@ -10,6 +10,7 @@ use App\Services\OperationalGisService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class WorkOrderWebController extends Controller
@@ -133,25 +134,51 @@ class WorkOrderWebController extends Controller
         });
 
         $archivedWorkOrder = null;
+        $archiveWarning = null;
+
         if ($new === 'completed') {
-            $workOrder->load('complaints');
-            $complaintIds = $workOrder->complaints->pluck('id')->all();
-            $archivedWorkOrder = $archive->archiveCompletedWorkOrder($workOrder);
-            foreach ($complaintIds as $complaintId) {
-                $complaint = Complaint::find($complaintId);
-                if ($complaint?->status === 'closed') $archive->archiveClosedComplaint($complaint);
+            try {
+                $workOrder->load('complaints');
+                $complaintIds = $workOrder->complaints->pluck('id')->all();
+                $archivedWorkOrder = $archive->archiveCompletedWorkOrder($workOrder);
+
+                foreach ($complaintIds as $complaintId) {
+                    $complaint = Complaint::find($complaintId);
+                    if ($complaint?->status === 'closed') {
+                        try {
+                            $archive->archiveClosedComplaint($complaint);
+                        } catch (\Throwable $e) {
+                            Log::error('Work order was archived but a related complaint could not be archived from web.', [
+                                'work_order_id' => $workOrder->id,
+                                'complaint_id' => $complaintId,
+                                'message' => $e->getMessage(),
+                            ]);
+                            $archiveWarning = true;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::error('Work order web update succeeded but archiving failed.', [
+                    'work_order_id' => $workOrder->id,
+                    'work_order_number' => $workOrder->work_order_number,
+                    'message' => $e->getMessage(),
+                ]);
+                $archiveWarning = true;
             }
         }
 
-        if ($archivedWorkOrder) {
+        if ($archivedWorkOrder && !$archiveWarning) {
             return redirect()->route('work-orders.index')
                 ->with('success', 'تم إكمال المهمة وأرشفتها مع بيانات زمن التنفيذ والاستجابة.');
         }
 
+        if ($new === 'completed' && $archiveWarning) {
+            return redirect()->route('work-orders.show', ['workOrder' => $workOrder->id])
+                ->with('warning', 'تم إكمال المهمة بنجاح، لكن تعذر إكمال عملية الأرشفة بالكامل. لم يتم فقدان التعديل، وتفاصيل العملية مسجلة في النظام.');
+        }
+
         return redirect()->route('work-orders.show', ['workOrder' => $workOrder->id])
-            ->with('success', $new === 'completed'
-                ? 'تم إكمال المهمة. بقيت المهمة في السجل التشغيلي لأن بعض الشكاوى المرتبطة بها لم تصبح مؤهلة للأرشفة.'
-                : 'تم تحديث المهمة بنجاح.');
+            ->with('success', 'تم تحديث المهمة بنجاح.');
     }
 
     public function destroy(WorkOrder $workOrder): RedirectResponse
