@@ -16,6 +16,10 @@
                    class="btn-motion shrink-0 rounded-md border border-brand-600 bg-white px-4 py-2 text-sm font-medium text-brand-600">
                     استيراد GIS
                 </a>
+                <a href="{{ route('datasets.operational-import') }}"
+                   class="btn-motion shrink-0 rounded-md border border-emerald-600 bg-white px-4 py-2 text-sm font-medium text-emerald-700">
+                    إضافة جدول تشغيلي
+                </a>
                 <a href="{{ route('datasets.create') }}"
                    class="btn-motion shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white">
                     إضافة بيانات جغرافية
