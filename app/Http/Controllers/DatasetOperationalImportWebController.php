@@ -130,7 +130,7 @@ class DatasetOperationalImportWebController extends Controller
 
         $dataset = null;
         try {
-            DB::transaction(function () use (&$dataset, $validated, $headers, $fieldTypes, $state, $path) {
+            $dataset = DB::transaction(function () use ($validated, $headers, $fieldTypes, $state) {
                 $dataset = Dataset::create([
                     'name' => $validated['name'],
                     'display_name' => $validated['display_name'],
@@ -144,11 +144,11 @@ class DatasetOperationalImportWebController extends Controller
                     'created_by' => auth()->id(),
                 ]);
 
+                $fieldMap = $this->buildFieldMap($headers);
                 foreach ($headers as $sort => $header) {
-                    $fieldName = $fieldMap[$header];
                     DatasetField::create([
                         'dataset_id' => $dataset->id,
-                        'name' => $fieldName,
+                        'name' => $fieldMap[$header],
                         'display_name' => $header,
                         'data_type' => $fieldTypes[$header],
                         'is_required' => false,
@@ -159,33 +159,36 @@ class DatasetOperationalImportWebController extends Controller
                     ]);
                 }
 
-                $mapping = [];
-                foreach ($headers as $header) {
-                    $mapping[$header] = $fieldMap[$header];
-                }
-
-                $import = DatasetImport::create([
-                    'dataset_id' => $dataset->id,
-                    'original_filename' => $state['original_filename'],
-                    'source_format' => $state['source_format'],
-                    'imported_by' => auth()->id(),
-                    'started_at' => now(),
-                    'status' => 'processing',
-                    'total_rows' => 0,
-                    'successful_rows' => 0,
-                    'failed_rows' => 0,
-                ]);
-
-                $uploaded = new \Illuminate\Http\UploadedFile(
-                    $path,
-                    $state['original_filename'],
-                    null,
-                    null,
-                    true
-                );
-
-                $this->importService->import($import, $uploaded, $mapping, $dataset);
+                return $dataset;
             });
+
+            $fieldMap = $this->buildFieldMap($headers);
+            $mapping = [];
+            foreach ($headers as $header) {
+                $mapping[$header] = $fieldMap[$header];
+            }
+
+            $import = DatasetImport::create([
+                'dataset_id' => $dataset->id,
+                'original_filename' => $state['original_filename'],
+                'source_format' => $state['source_format'],
+                'imported_by' => auth()->id(),
+                'started_at' => now(),
+                'status' => 'processing',
+                'total_rows' => 0,
+                'successful_rows' => 0,
+                'failed_rows' => 0,
+            ]);
+
+            $uploaded = new \Illuminate\Http\UploadedFile(
+                $path,
+                $state['original_filename'],
+                null,
+                null,
+                true
+            );
+
+            $this->importService->import($import, $uploaded, $mapping, $dataset);
         } catch (\Throwable $e) {
             return back()->withErrors(['import' => 'فشل إنشاء الجدول: '.$e->getMessage()])->withInput();
         }
