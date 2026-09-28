@@ -94,7 +94,7 @@ class WebLoginTest extends TestCase
         $this->assertFalse(Auth::check());
     }
 
-    public function test_web_login_validation_email_required(): void
+    public function test_web_login_validation_login_required(): void
     {
         $response = $this->from('/login')->post('/login', [
             'password' => 'password123',
