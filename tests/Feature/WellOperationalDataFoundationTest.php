@@ -95,7 +95,7 @@ class WellOperationalDataFoundationTest extends TestCase
 
         $this->assertNotNull($relationship);
         $this->assertSame($wellId->id, $relationship->parent_field_id);
-        $this->assertSame('Well_id', $child->fields()->where('display_name', 'Well_id')->value('name'));
+        $this->assertSame('well_id', $child->fields()->where('display_name', 'Well_id')->value('name'));
 
         $this->actingAs($user)
             ->get(route('datasets.relationships.index', $wellDataset))
