@@ -12,6 +12,7 @@ use App\Services\FcmService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class WorkOrderController extends Controller
 {
@@ -65,22 +66,29 @@ class WorkOrderController extends Controller
             abort_unless($request->user()->can('tasks.assign'), 403);
             $this->validateUserActive($validated['assigned_to']);
         }
-        return DB::transaction(function () use ($validated, $request, $idempotencyKey) {
-            $workOrder = WorkOrder::create(['work_order_number' => $this->generateWorkOrderNumber(), 'idempotency_key' => $idempotencyKey, 'title' => $validated['title'], 'description' => $validated['description'], 'status' => $validated['status'] ?? 'pending', 'priority' => $validated['priority'] ?? 'medium', 'assigned_to' => $validated['assigned_to'] ?? null, 'created_by' => $request->user()->id, 'notes' => $validated['notes'] ?? null]);
+        $workOrder = DB::transaction(function () use ($validated, $request, $idempotencyKey) {
+            $workOrder = WorkOrder::create([
+                'work_order_number' => $this->generateWorkOrderNumber(),
+                'idempotency_key' => $idempotencyKey,
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'status' => $validated['status'] ?? 'pending',
+                'priority' => $validated['priority'] ?? 'medium',
+                'assigned_to' => $validated['assigned_to'] ?? null,
+                'created_by' => $request->user()->id,
+                'notes' => $validated['notes'] ?? null,
+                'latitude' => $validated['latitude'] ?? null,
+                'longitude' => $validated['longitude'] ?? null,
+            ]);
             if (!empty($validated['complaint_id'])) $workOrder->complaints()->syncWithoutDetaching([$validated['complaint_id']]);
             if ($workOrder->status === 'in_progress' && ! $workOrder->started_at) $workOrder->update(['started_at' => now()]);
             $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
-            $payload = $this->formatWorkOrder($workOrder);
-            if ($workOrder->assigned_to) {
-                $fcm->sendToUser(
-                    (int) $workOrder->assigned_to,
-                    'مهمة جديدة',
-                    "تم إسناد المهمة {$workOrder->work_order_number} إليك.",
-                    ['type' => 'work_order', 'work_order_id' => $workOrder->id]
-                );
-            }
-            return response()->json($payload, 201);
+            return $workOrder;
         });
+
+        $this->sendAssignmentNotificationSafely($fcm, $workOrder);
+
+        return response()->json($this->formatWorkOrder($workOrder), 201);
     }
 
     public function show(WorkOrder $workOrder): JsonResponse
@@ -111,25 +119,21 @@ class WorkOrderController extends Controller
         });
 
         if (($validated['status'] ?? $oldStatus) === 'completed') {
-            $workOrder->load('complaints');
-            $complaintIds = $workOrder->complaints->pluck('id')->all();
-            $archive->archiveCompletedWorkOrder($workOrder);
-            foreach ($complaintIds as $complaintId) {
-                $complaint = Complaint::find($complaintId);
-                if ($complaint?->status === 'closed') $archive->archiveClosedComplaint($complaint);
-            }
+            $this->archiveCompletedWorkOrderSafely($archive, $workOrder);
         }
 
         $newAssignedTo = $workOrder->assigned_to;
         if ($newAssignedTo && $newAssignedTo !== $oldAssignedTo) {
-            $fcm->sendToUser(
+            $this->sendNotificationSafely(
+                $fcm,
                 (int) $newAssignedTo,
                 'مهمة جديدة',
                 "تم إسناد المهمة {$workOrder->work_order_number} إليك.",
                 ['type' => 'work_order', 'work_order_id' => $workOrder->id]
             );
         } elseif ($newAssignedTo && isset($validated['status']) && $validated['status'] !== $oldStatus) {
-            $fcm->sendToUser(
+            $this->sendNotificationSafely(
+                $fcm,
                 (int) $newAssignedTo,
                 'تحديث مهمة',
                 "تم تحديث حالة المهمة {$workOrder->work_order_number} إلى {$workOrder->status}.",
@@ -216,6 +220,64 @@ class WorkOrderController extends Controller
             $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
             return response()->json($this->formatWorkOrder($workOrder));
         });
+    }
+
+    private function sendAssignmentNotificationSafely(FcmService $fcm, WorkOrder $workOrder): void
+    {
+        if ($workOrder->assigned_to === null) {
+            return;
+        }
+
+        $this->sendNotificationSafely(
+            $fcm,
+            (int) $workOrder->assigned_to,
+            'مهمة جديدة',
+            "تم إسناد المهمة {$workOrder->work_order_number} إليك.",
+            ['type' => 'work_order', 'work_order_id' => $workOrder->id]
+        );
+    }
+
+    private function sendNotificationSafely(FcmService $fcm, int $userId, string $title, string $body, array $data): void
+    {
+        try {
+            $fcm->sendToUser($userId, $title, $body, $data);
+        } catch (\Throwable $e) {
+            Log::warning('Work order notification failed after the primary operation succeeded.', [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function archiveCompletedWorkOrderSafely(ArchiveService $archive, WorkOrder $workOrder): void
+    {
+        try {
+            $workOrder->load('complaints');
+            $complaintIds = $workOrder->complaints->pluck('id')->all();
+            $archive->archiveCompletedWorkOrder($workOrder);
+
+            foreach ($complaintIds as $complaintId) {
+                $complaint = Complaint::find($complaintId);
+                if ($complaint?->status === 'closed') {
+                    try {
+                        $archive->archiveClosedComplaint($complaint);
+                    } catch (\Throwable $e) {
+                        Log::error('Work order was archived but a related complaint could not be archived.', [
+                            'work_order_id' => $workOrder->id,
+                            'complaint_id' => $complaintId,
+                            'message' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('Work order update succeeded but archiving failed.', [
+                'work_order_id' => $workOrder->id,
+                'work_order_number' => $workOrder->work_order_number,
+                'status' => $workOrder->status,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function generateComplaintNumber(): string
