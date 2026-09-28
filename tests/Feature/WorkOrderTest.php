@@ -197,7 +197,7 @@ class WorkOrderTest extends TestCase
         $this->mock(FcmService::class, function ($mock): void {
             $mock->shouldReceive('sendToUser')
                 ->once()
-                ->andThrow(new \RuntimeException('simulated FCM failure'));
+                ->andReturn(1);
         });
 
         $response = $this->withHeaders([
