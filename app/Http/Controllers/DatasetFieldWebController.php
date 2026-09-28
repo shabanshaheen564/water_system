@@ -107,4 +107,50 @@ class DatasetFieldWebController extends Controller
             ->whereRaw('jsonb_exists("values", ?)', [$field->name])
             ->exists();
     }
+    public function setIdentifier(Dataset $dataset, DatasetField $field): \Illuminate\Http\RedirectResponse
+    {
+        $this->ensureFieldBelongsToDataset($dataset, $field);
+
+        $values = DatasetRecord::where('dataset_id', $dataset->id)
+            ->pluck('values')
+            ->map(fn ($record) => $record[$field->name] ?? null);
+
+        $normalized = $values
+            ->filter(fn ($value) => $value !== null && $value !== '')
+            ->map(fn ($value) => (string) $value);
+
+        if ($values->contains(fn ($value) => $value === null || $value === '')) {
+            return back()->withErrors([
+                'field' => "Cannot set '{$field->display_name}' as identifier because some records have an empty value.",
+            ]);
+        }
+
+        if ($normalized->count() !== $normalized->unique()->count()) {
+            return back()->withErrors([
+                'field' => "Cannot set '{$field->display_name}' as identifier because duplicate values exist.",
+            ]);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($dataset, $field) {
+            $dataset->fields()->update(['is_identifier' => false]);
+
+            $field->update([
+                'is_identifier' => true,
+                'is_unique' => true,
+            ]);
+
+            DatasetRecord::where('dataset_id', $dataset->id)
+                ->get()
+                ->each(function (DatasetRecord $record) use ($field) {
+                    $record->update([
+                        'identifier_value' => isset($record->values[$field->name])
+                            ? (string) $record->values[$field->name]
+                            : null,
+                    ]);
+                });
+        });
+
+        return back()->with('success', "تم تعيين {$field->display_name} كمفتاح Identifier للبيانات.");
+    }
+
 }
