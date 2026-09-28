@@ -92,6 +92,8 @@ class FcmService
 
             $response = Http::withToken($accessToken)
                 ->acceptJson()
+                ->connectTimeout(5)
+                ->timeout(10)
                 ->post(
                     "https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send",
                     [
@@ -183,7 +185,10 @@ class FcmService
             }
 
             $assertion = $unsigned . '.' . $this->base64UrlEncode($signature);
-            $response = Http::asForm()->post(self::TOKEN_URL, [
+            $response = Http::asForm()
+                ->connectTimeout(5)
+                ->timeout(10)
+                ->post(self::TOKEN_URL, [
                 'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
                 'assertion' => $assertion,
             ]);
