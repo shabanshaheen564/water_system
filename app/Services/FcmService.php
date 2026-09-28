@@ -204,6 +204,54 @@ class FcmService
         });
     }
 
+    public function diagnostic(): array
+    {
+        $encoded = config('fcm.service_account_json_base64');
+        $projectId = (string) config('fcm.project_id');
+
+        $result = [
+            'configured' => !empty($encoded),
+            'base64_valid' => false,
+            'json_valid' => false,
+            'required_fields_present' => false,
+            'project_id' => $projectId !== '' ? $projectId : null,
+            'service_account_project_matches' => false,
+            'oauth_access_token' => false,
+        ];
+
+        if (!is_string($encoded) || $encoded === '') {
+            return $result;
+        }
+
+        $json = base64_decode($encoded, true);
+        if ($json === false) {
+            return $result;
+        }
+
+        $result['base64_valid'] = true;
+
+        $serviceAccount = json_decode($json, true);
+        if (!is_array($serviceAccount)) {
+            return $result;
+        }
+
+        $result['json_valid'] = true;
+
+        $required = ['project_id', 'client_email', 'private_key'];
+        $result['required_fields_present'] = collect($required)
+            ->every(fn (string $key) => !empty($serviceAccount[$key]));
+
+        $serviceProjectId = (string) ($serviceAccount['project_id'] ?? '');
+        $result['service_account_project_matches'] =
+            $projectId !== '' && $serviceProjectId === $projectId;
+
+        if ($result['required_fields_present'] && $result['service_account_project_matches']) {
+            $result['oauth_access_token'] = $this->accessToken($serviceAccount) !== null;
+        }
+
+        return $result;
+    }
+
     private function base64UrlEncode(string $value): string
     {
         return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
