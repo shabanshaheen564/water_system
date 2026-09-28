@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Services\ArchiveService;
+use App\Services\FcmService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
@@ -258,6 +259,39 @@ class ComplaintTest extends TestCase
             'id' => $complaint->id,
             'status' => 'closed',
             'solution' => 'تم الإغلاق بعد المعالجة.',
+        ]);
+    }
+
+    public function test_complaint_update_succeeds_when_notification_service_throws(): void
+    {
+        $complaint = $this->admin->reportedComplaints()->create([
+            'complaint_number' => 'CMP-990003',
+            'title' => 'Notification failure test',
+            'description' => 'Original description',
+            'status' => 'open',
+            'priority' => 'medium',
+        ]);
+
+        $assignee = User::factory()->create(['is_active' => true]);
+
+        $this->mock(FcmService::class, function ($mock): void {
+            $mock->shouldReceive('sendToUser')
+                ->once()
+                ->andThrow(new \RuntimeException('simulated FCM failure'));
+        });
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->putJson("/api/complaints/{$complaint->id}", [
+            'assigned_to' => $assignee->id,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('assigned_to.id', $assignee->id);
+
+        $this->assertDatabaseHas('complaints', [
+            'id' => $complaint->id,
+            'assigned_to' => $assignee->id,
         ]);
     }
 
