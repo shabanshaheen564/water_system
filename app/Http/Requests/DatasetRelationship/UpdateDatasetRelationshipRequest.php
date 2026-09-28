@@ -87,6 +87,12 @@ class UpdateDatasetRelationshipRequest extends FormRequest
                 }
             }
 
+            $parentFieldForType = DatasetField::find($effectiveParentFieldId);
+            $childFieldForType = DatasetField::find($effectiveChildFieldId);
+            if ($parentFieldForType && $childFieldForType && $parentFieldForType->data_type !== $childFieldForType->data_type) {
+                $validator->errors()->add('child_field_id', 'Parent and child relationship fields must use the same data type.');
+            }
+
             if ($this->input('relationship_type') === 'one_to_many' || $relationship->relationship_type === 'one_to_many') {
                 $parentField = DatasetField::find($effectiveParentFieldId);
                 if ($parentField && !$parentField->is_identifier && !$parentField->is_unique) {
