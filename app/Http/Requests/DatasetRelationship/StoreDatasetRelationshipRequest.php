@@ -59,6 +59,15 @@ class StoreDatasetRelationshipRequest extends FormRequest
                 }
             }
 
+            if ($parentFieldId && $childFieldId) {
+                $parentField = DatasetField::find($parentFieldId);
+                $childField = DatasetField::find($childFieldId);
+
+                if ($parentField && $childField && $parentField->data_type !== $childField->data_type) {
+                    $validator->errors()->add('child_field_id', 'Parent and child relationship fields must use the same data type.');
+                }
+            }
+
             // For one_to_many, parent field should be identifier or unique
             if ($this->input('relationship_type') === 'one_to_many' && $parentFieldId) {
                 $parentField = DatasetField::find($parentFieldId);
