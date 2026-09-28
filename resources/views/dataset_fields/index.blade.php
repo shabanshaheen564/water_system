@@ -34,6 +34,12 @@
                                     <td>
                                         <div class="flex items-center gap-3 text-sm font-medium">
                                             @can('datasets.update')
+                                                @if(!$field->is_identifier && !$field->is_unique)
+                                                    <form method="POST" action="{{ route('datasets.fields.identifier', [$field->dataset_id, $field]) }}" class="inline" onsubmit="return confirm('تعيين هذا الحقل كمفتاح Identifier؟ يجب أن تكون القيم غير فارغة وفريدة.');">
+                                                        @csrf
+                                                        <button type="submit" class="text-brand-600 hover:underline">تعيين كمفتاح</button>
+                                                    </form>
+                                                @endif
                                                 <a href="{{ route('datasets.fields.edit', [$field->dataset_id, $field]) }}" class="text-brand-600 hover:text-brand-700">{{ __('Edit') }}</a>
                                             @endcan
                                             @can('datasets.delete')
