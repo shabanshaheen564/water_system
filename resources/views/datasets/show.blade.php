@@ -60,8 +60,8 @@
 
 
         @php
-            $parentRelationships = $dataset->parentRelationships()->with(['childDataset', 'parentField', 'childField'])->get();
-            $childRelationships = $dataset->childRelationships()->with(['parentDataset', 'parentField', 'childField'])->get();
+            $parentRelationships = $dataset->parentRelationships;
+            $childRelationships = $dataset->childRelationships;
         @endphp
 
         @if($parentRelationships->count() || $childRelationships->count())
