@@ -18,6 +18,9 @@ class ComplaintController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Complaint::with(['reportedBy:id,name,email', 'assignedTo:id,name,email']);
+        if ($request->user()->hasRole('Field Worker')) {
+            $request->merge(['assigned_to' => $request->user()->id]);
+        }
         foreach (['status', 'priority', 'assigned_to', 'reported_by'] as $filter) {
             if ($request->filled($filter)) $query->where($filter, $request->{$filter});
         }
@@ -91,6 +94,7 @@ class ComplaintController extends Controller
 
     public function show(Complaint $complaint): JsonResponse
     {
+        abort_unless(!request()->user()->hasRole('Field Worker') || $complaint->assigned_to === request()->user()->id, 403);
         $complaint->load(['reportedBy:id,name,email', 'assignedTo:id,name,email', 'processedBy:id,name,email', 'workOrders']);
         return response()->json($this->formatComplaint($complaint, true));
     }
