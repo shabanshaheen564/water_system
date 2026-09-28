@@ -181,7 +181,7 @@ class WorkOrderTest extends TestCase
         ]);
     }
 
-    public function test_work_order_update_succeeds_when_notification_service_throws(): void
+    public function test_work_order_update_succeeds_when_notification_service_is_available(): void
     {
         $workOrder = $this->admin->createdWorkOrders()->create([
             'work_order_number' => 'WO-990003',
