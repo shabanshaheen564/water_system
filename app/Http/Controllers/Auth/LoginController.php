@@ -14,7 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
-    public function create(): \Illuminate\View\View { return view('auth.login'); }
+    public function create(): \Illuminate\View\View
+    {
+        return view('auth.login');
+    }
 
     public function login(LoginRequest $request): JsonResponse
     {
@@ -50,22 +53,28 @@ class LoginController extends Controller
 
     public function webLogin(Request $request): RedirectResponse
     {
+        $field = $request->has('login') ? 'login' : 'email';
         $credentials = $request->validate([
-            'login' => ['required', 'string', 'max:255'],
+            $field => ['required', 'string', 'max:255'],
             'password' => ['required'],
             'remember' => ['sometimes', 'boolean'],
         ]);
 
-        $user = User::where('email', trim($credentials['login']))
-            ->orWhere('username', trim($credentials['login']))
+        $login = trim($credentials[$field]);
+        if ($field === 'email') {
+            validator([$field => $login], [$field => ['email']])->validate();
+        }
+
+        $user = User::where('email', $login)
+            ->orWhere('username', $login)
             ->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
-            throw ValidationException::withMessages(['login' => __('The provided credentials do not match our records.')]);
+            throw ValidationException::withMessages([$field => __('The provided credentials do not match our records.')]);
         }
 
         if (! $user->is_active) {
-            throw ValidationException::withMessages(['login' => __('Your account is deactivated.')]);
+            throw ValidationException::withMessages([$field => __('Your account is deactivated.')]);
         }
 
         Auth::login($user, $request->boolean('remember'));
