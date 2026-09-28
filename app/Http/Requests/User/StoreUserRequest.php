@@ -2,11 +2,34 @@
 
 namespace App\Http\Requests\User;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 
 class StoreUserRequest extends FormRequest
 {
     public function authorize(): bool { return true; }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('username')) {
+            return;
+        }
+
+        $email = (string) $this->input('email', '');
+        $base = Str::lower(Str::before($email, '@'));
+        $base = (string) Str::of($base)->replaceMatches('/[^A-Za-z0-9._-]+/', '')->substr(0, 80);
+        $base = strlen($base) >= 3 ? $base : 'user';
+
+        $username = $base;
+        $counter = 1;
+        while (User::where('username', $username)->exists()) {
+            $counter++;
+            $username = substr($base, 0, 90 - strlen((string) $counter)) . $counter;
+        }
+
+        $this->merge(['username' => $username]);
+    }
 
     public function rules(): array
     {
