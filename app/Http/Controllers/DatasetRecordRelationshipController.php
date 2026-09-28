@@ -17,8 +17,7 @@ class DatasetRecordRelationshipController extends Controller
         $this->ensureRecordBelongsToDataset($dataset, $record);
 
         $relationships = DatasetRelationship::where('parent_dataset_id', $dataset->id)
-            ->where('parent_field_id', $dataset->getIdentifierField()?->id)
-            ->with(['childDataset', 'childField'])
+            ->with(['childDataset', 'parentField', 'childField'])
             ->get();
 
         $childRecords = [];
@@ -26,14 +25,14 @@ class DatasetRecordRelationshipController extends Controller
             $this->ensureDatasetAccessible($relationship->childDataset);
 
             $childField = $relationship->childField;
-            $parentIdentifierValue = $record->identifier_value;
+            $parentValue = $record->values[$relationship->parentField->name] ?? null;
 
-            if ($parentIdentifierValue === null) {
+            if ($parentValue === null || $parentValue === '') {
                 continue;
             }
 
             $children = DatasetRecord::where('dataset_id', $relationship->child_dataset_id)
-                ->whereJsonContains('values', [$childField->name => $parentIdentifierValue])
+                ->whereJsonContains('values', [$childField->name => $parentValue])
                 ->with(['createdBy:id,name,email', 'updatedBy:id,name,email'])
                 ->get();
 
