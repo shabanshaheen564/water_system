@@ -173,8 +173,13 @@ class WorkOrderWebController extends Controller
         }
 
         if ($new === 'completed' && $archiveWarning) {
+            if ($archivedWorkOrder) {
+                return redirect()->route('work-orders.index')
+                    ->with('warning', 'تم إكمال المهمة وأرشفتها، لكن تعذر أرشفة إحدى الشكاوى المرتبطة بالكامل. لم يتم فقدان البيانات، وتفاصيل العملية مسجلة في النظام.');
+            }
+
             return redirect()->route('work-orders.show', ['workOrder' => $workOrder->id])
-                ->with('warning', 'تم إكمال المهمة بنجاح، لكن تعذر إكمال عملية الأرشفة بالكامل. لم يتم فقدان التعديل، وتفاصيل العملية مسجلة في النظام.');
+                ->with('warning', 'تم إكمال المهمة بنجاح، لكن تعذر نقلها إلى الأرشيف. بقيت في السجل التشغيلي ولم تضِع البيانات.');
         }
 
         return redirect()->route('work-orders.show', ['workOrder' => $workOrder->id])
