@@ -18,6 +18,9 @@ class WorkOrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = WorkOrder::with(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
+        if ($request->user()->hasRole('Field Worker')) {
+            $request->merge(['assigned_to' => $request->user()->id]);
+        }
         if ($request->filled('status')) $query->where('status', $request->status);
         if ($request->filled('priority')) $query->where('priority', $request->priority);
         if ($request->filled('assigned_to')) $query->where('assigned_to', $request->assigned_to);
@@ -82,6 +85,7 @@ class WorkOrderController extends Controller
 
     public function show(WorkOrder $workOrder): JsonResponse
     {
+        abort_unless(!request()->user()->hasRole('Field Worker') || $workOrder->assigned_to === request()->user()->id, 403);
         $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
         return response()->json($this->formatWorkOrder($workOrder));
     }
