@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class RegisterController extends Controller
@@ -27,8 +28,19 @@ class RegisterController extends Controller
         }
 
         return DB::transaction(function () use ($validated, $targetRole) {
+            $base = Str::lower(Str::before($validated['email'], '@'));
+            $base = (string) Str::of($base)->replaceMatches('/[^A-Za-z0-9._-]+/', '')->substr(0, 80);
+            $base = strlen($base) >= 3 ? $base : 'user';
+            $username = $validated['username'] ?? $base;
+            $counter = 1;
+            while (User::where('username', $username)->exists()) {
+                $counter++;
+                $username = substr($base, 0, 90 - strlen((string) $counter)) . $counter;
+            }
+
             $user = User::create([
                 'name' => $validated['name'],
+                'username' => $username,
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'is_active' => true,
@@ -43,6 +55,7 @@ class RegisterController extends Controller
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
+                    'username' => $user->username,
                     'email' => $user->email,
                     'is_active' => $user->is_active,
                     'last_login_at' => $user->last_login_at,
