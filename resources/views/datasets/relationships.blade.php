@@ -89,18 +89,25 @@
     </section>
 </div>
 
+@php
+    $datasetOptions = $datasets->map(function ($d) {
+        return [
+            'id' => $d->id,
+            'fields' => $d->fields->map(function ($f) {
+                return [
+                    'id' => $f->id,
+                    'display_name' => $f->display_name,
+                    'name' => $f->name,
+                    'data_type' => $f->data_type,
+                ];
+            })->values()->all(),
+        ];
+    })->values()->all();
+@endphp
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const datasets = @json($datasets->map(fn($d) => [
-        'id' => $d->id,
-        'fields' => $d->fields->map(fn($f) => [
-            'id' => $f->id,
-            'display_name' => $f->display_name,
-            'name' => $f->name,
-            'data_type' => $f->data_type,
-        ])->values(),
-    ])->values());
-
+    const datasets = @json($datasetOptions);
     const datasetSelect = document.getElementById('child_dataset_id');
     const fieldSelect = document.getElementById('child_field_id');
     const oldField = @json(old('child_field_id'));
