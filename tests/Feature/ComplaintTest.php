@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\ArchiveService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
@@ -225,6 +226,39 @@ class ComplaintTest extends TestCase
         $response->assertStatus(200); $this->assertEquals('resolved', $response->json('status')); $this->assertNotNull($response->json('resolved_at'));
         $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->adminToken])->putJson("/api/complaints/{$complaint->id}", ['status' => 'closed']);
         $response->assertStatus(200); $this->assertEquals('closed', $response->json('status'));
+    }
+
+    public function test_complaint_update_returns_success_when_archive_fails_after_persistence(): void
+    {
+        $complaint = $this->admin->reportedComplaints()->create([
+            'complaint_number' => 'CMP-990001',
+            'title' => 'Archive failure test',
+            'description' => 'Original description',
+            'status' => 'resolved',
+            'priority' => 'medium',
+        ]);
+
+        $this->mock(ArchiveService::class, function ($mock): void {
+            $mock->shouldReceive('archiveEligibleForComplaint')
+                ->once()
+                ->andThrow(new \RuntimeException('simulated archive failure'));
+        });
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->putJson("/api/complaints/{$complaint->id}", [
+            'status' => 'closed',
+            'solution' => 'تم الإغلاق بعد المعالجة.',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'closed');
+
+        $this->assertDatabaseHas('complaints', [
+            'id' => $complaint->id,
+            'status' => 'closed',
+            'solution' => 'تم الإغلاق بعد المعالجة.',
+        ]);
     }
 
     public function test_invalid_status_transition_gets_422(): void
