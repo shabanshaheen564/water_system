@@ -139,17 +139,31 @@
     </form>
 </div>
 
+@php
+    $datasetOptions = $datasets->map(function ($d) {
+        return [
+            'id' => $d->id,
+            'fields' => $d->fields
+                ->filter(function ($f) {
+                    return $f->is_identifier || $f->is_unique;
+                })
+                ->map(function ($f) {
+                    return [
+                        'id' => $f->id,
+                        'name' => $f->name,
+                        'display_name' => $f->display_name,
+                        'data_type' => $f->data_type,
+                    ];
+                })
+                ->values()
+                ->all(),
+        ];
+    })->values()->all();
+@endphp
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const datasets = @json($datasets->map(fn($d) => [
-        'id' => $d->id,
-        'fields' => $d->fields->filter(fn($f) => $f->is_identifier || $f->is_unique)->map(fn($f) => [
-            'id' => $f->id,
-            'name' => $f->name,
-            'display_name' => $f->display_name,
-            'data_type' => $f->data_type,
-        ])->values(),
-    ])->values());
+    const datasets = @json($datasetOptions);
     const datasetSelect = document.getElementById('parent_dataset_id');
     const fieldSelect = document.getElementById('parent_field_id');
     const oldField = @json(old('parent_field_id'));
