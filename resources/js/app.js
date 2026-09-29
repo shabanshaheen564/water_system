@@ -1473,7 +1473,8 @@ function initMapPage() {
                                                     .filter(([, value]) => value !== null && value !== '')
                                                     .map(([key, value]) => '<div class="row"><span class="key">' + escapeHtml(key) + '</span><span class="value">' + escapeHtml(typeof value === 'object' ? JSON.stringify(value) : String(value)) + '</span></div>')
                                                     .join('');
-                                                return '<div class="mt-2 rounded-md border border-border bg-surface-1 p-2"><div class="mb-1 text-xs font-semibold text-ink">سجل بيانات إضافية ' + (index + 1) + '</div>' + rows + '</div>';
+                                                const tableTitle = record.dataset_name || record.relationship?.child_dataset_name || 'بيانات إضافية';
+                                                return '<div class="mt-2 rounded-md border border-border bg-surface-1 p-2"><div class="mb-1 text-xs font-semibold text-ink">' + escapeHtml(tableTitle) + '</div>' + rows + '</div>';
                                             }).join('');
                                         }
                                         button.classList.add('hidden');
