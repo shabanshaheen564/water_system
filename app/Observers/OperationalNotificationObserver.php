@@ -72,9 +72,9 @@ class OperationalNotificationObserver
                     'type' => $type,
                     'entity_id' => (string) $entityId,
                 ]);
-            } catch (\\Throwable $e) {
+            } catch (\Throwable $e) {
                 // Notification delivery must never turn a successful operational update into HTTP 500.
-                \\Log::warning('Operational notification delivery failed.', [
+                \Log::warning('Operational notification delivery failed.', [
                     'user_id' => $userId,
                     'type' => $type,
                     'entity_id' => $entityId,
