@@ -83,6 +83,40 @@ class DatasetWebController extends Controller
         return back()->with('success', 'تم فك ارتباط الجدول التشغيلي. البيانات نفسها بقيت محفوظة ويمكن إعادة ربطها لاحقاً.');
     }
 
+    public function destroy(Dataset $dataset): RedirectResponse
+    {
+        abort_unless(
+            $dataset->dataset_type === 'additional_table'
+                && $dataset->management_mode === 'operational',
+            403
+        );
+
+        if ($dataset->gisFeatures()->exists()) {
+            return back()->withErrors(['dataset' => 'لا يمكن حذف جدول تشغيلي يحتوي على معالم مكانية مرتبطة به.']);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($dataset) {
+            \App\Models\DatasetRelationship::destroy(
+                $dataset->parentRelationships()->pluck('id')->all()
+            );
+            \App\Models\DatasetRelationship::destroy(
+                $dataset->childRelationships()->pluck('id')->all()
+            );
+            \App\Models\DatasetRecord::destroy(
+                $dataset->records()->pluck('id')->all()
+            );
+            \App\Models\DatasetField::destroy(
+                $dataset->fields()->pluck('id')->all()
+            );
+            \App\Models\DatasetImport::destroy(
+                $dataset->imports()->pluck('id')->all()
+            );
+            \App\Models\Dataset::destroy($dataset->id);
+        });
+
+        return redirect()->route('datasets.index')->with('success', 'تم حذف جدول البيانات التشغيلية وجميع سجلاته.');
+    }
+
     public function edit(Dataset $dataset): \Illuminate\View\View
     {
         return view('datasets.edit', compact('dataset'));
