@@ -14,10 +14,19 @@ class UpdateDatasetRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'geometry_type' => $this->input('geometry_type') === '' ? null : $this->input('geometry_type'),
-            'srid' => $this->input('srid') === '' ? null : $this->input('srid'),
-        ]);
+        $updates = [];
+
+        if ($this->has('geometry_type') && $this->input('geometry_type') === '') {
+            $updates['geometry_type'] = null;
+        }
+
+        if ($this->has('srid') && $this->input('srid') === '') {
+            $updates['srid'] = null;
+        }
+
+        if ($updates !== []) {
+            $this->merge($updates);
+        }
     }
 
     public function rules(): array
