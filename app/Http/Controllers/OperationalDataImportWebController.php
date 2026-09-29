@@ -197,8 +197,14 @@ class OperationalDataImportWebController extends Controller
 
                         $childField = $childFields[$validated['match_source_column']];
                         $childRecord = DatasetRecord::where('dataset_id', $dataset->id)
-                            ->whereRaw("values->>? = ?", [$childField->name, $matchValue])
+                            ->where('identifier_value', $matchValue)
                             ->first();
+
+                        if (!$childRecord) {
+                            $childRecord = DatasetRecord::where('dataset_id', $dataset->id)
+                                ->whereRaw("values->>? = ?", [$childField->name, $matchValue])
+                                ->first();
+                        }
 
                         if ($childRecord) {
                             $childRecord->update([
