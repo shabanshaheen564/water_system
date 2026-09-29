@@ -4,9 +4,9 @@
 
 @section('content')
 <style>
-    #map { width:100%; height:calc(100vh - 64px); min-height:0; cursor:grab; }
-    #map.leaflet-dragging, #map.leaflet-dragging .leaflet-grab { cursor:grabbing !important; }
-    #map .leaflet-grab { cursor:grab !important; }
+    #map { width:100%; height:100%; min-height:0; cursor:grab !important; }
+    #map.leaflet-container, #map.leaflet-container.leaflet-grab { cursor:grab !important; }
+    #map.leaflet-container.leaflet-dragging, #map.leaflet-container.leaflet-dragging .leaflet-grab { cursor:grabbing !important; }
     .map-shell { position:relative; width:100%; height:calc(100vh - 64px); min-height:0; overflow:hidden; background:#eef2f6; }
     .map-marker { display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9999px; border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.28); font-size:14px; font-weight:700; color:#fff; }
     .map-marker.complaint { background:#b42318; }
@@ -29,18 +29,19 @@
     /* Keep Leaflet's native controls above the map content.
        The right panel is 330px wide, so only the zoom control is shifted
        left; the attribution remains centered independently. */
-    .map-shell .leaflet-control-container .leaflet-bottom.leaflet-left {
+    .map-shell .leaflet-top.leaflet-left {
+        top: 0 !important;
         left: 0 !important;
         right: auto !important;
-        bottom: 16px !important;
         width: 100% !important;
         z-index: 1001 !important;
         pointer-events: none !important;
     }
-    .map-shell .leaflet-bottom.leaflet-left .leaflet-control-zoom {
+    .map-shell .leaflet-top.leaflet-left .leaflet-control-zoom {
         position: absolute !important;
-        right: 16px !important;
-        bottom: 72px !important;
+        top: 16px !important;
+        left: 16px !important;
+        right: auto !important;
         margin: 0 !important;
         transform: none !important;
         z-index: 1001 !important;
@@ -62,9 +63,9 @@
         z-index: 1001 !important;
     }
     @media (max-width:1023px) {
-        .map-shell .leaflet-bottom.leaflet-left .leaflet-control-zoom {
-            right: 16px !important;
-            bottom: 72px !important;
+        .map-shell .leaflet-top.leaflet-left .leaflet-control-zoom {
+            top: 12px !important;
+            left: 12px !important;
         }
     }
 
