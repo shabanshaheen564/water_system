@@ -129,12 +129,12 @@ class DatasetTest extends TestCase
         ]);
     }
 
-    public function test_create_dataset_with_invalid_name_gets_422(): void
+    public function test_create_dataset_with_too_long_name_gets_422(): void
     {
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->adminToken,
         ])->postJson('/api/datasets', [
-            'name' => 'invalid-name', // hyphens not allowed
+            'name' => str_repeat('a', 256),
             'display_name' => 'Test',
             'dataset_type' => 'official_layer',
         ]);
@@ -243,6 +243,30 @@ class DatasetTest extends TestCase
         ])->getJson('/api/datasets/999999');
 
         $response->assertStatus(404);
+    }
+
+    public function test_can_rename_additional_table_dataset_to_arabic(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'excel_operational_data',
+            'display_name' => 'Excel Operational Data',
+            'dataset_type' => 'additional_table',
+            'management_mode' => 'operational',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->putJson("/api/datasets/{$dataset->id}", [
+            'name' => 'حالة آبار المياه',
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertEquals('حالة آبار المياه', $response->json('name'));
+        $this->assertDatabaseHas('datasets', [
+            'id' => $dataset->id,
+            'name' => 'حالة آبار المياه',
+        ]);
     }
 
     public function test_can_rename_additional_table_dataset(): void
