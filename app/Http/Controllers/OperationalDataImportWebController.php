@@ -45,11 +45,11 @@ class OperationalDataImportWebController extends Controller
                 ->withErrors(['import' => 'هذه المجموعة ليست جدولاً تشغيلياً مرتبطاً بطبقة أساسية.']);
         }
 
-        return view('datasets.operational-update-import', [
+        return view('datasets.operational-import', [
             'dataset' => $dataset,
-            'relationship' => $relationship,
             'parentDataset' => $relationship->parentDataset,
             'identifierField' => $relationship->parentField,
+            'updateMode' => true,
         ]);
     }
 
@@ -87,13 +87,14 @@ class OperationalDataImportWebController extends Controller
                 'headers' => $headers,
             ]);
 
-            return view('datasets.operational-update-import-mapping', [
+            return view('datasets.operational-import-mapping', [
                 'dataset' => $dataset,
                 'parentDataset' => $relationship->parentDataset,
                 'identifierField' => $relationship->parentField,
                 'childField' => $relationship->childField,
                 'headers' => $headers,
                 'token' => $token,
+                'updateMode' => true,
             ]);
         } catch (Throwable $e) {
             Storage::disk('local')->delete($relativePath);
