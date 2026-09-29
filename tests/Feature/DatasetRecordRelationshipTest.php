@@ -175,6 +175,7 @@ class DatasetRecordRelationshipTest extends TestCase
         $this->assertCount(2, $response->json('data'));
         $this->assertEquals('TASK-001', $response->json('data.0.identifier_value'));
         $this->assertEquals('TASK-002', $response->json('data.1.identifier_value'));
+        $this->assertEquals('tasks', $response->json('data.0.dataset_name'));
     }
 
     public function test_children_endpoint_requires_view_permission(): void
