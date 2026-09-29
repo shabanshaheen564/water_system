@@ -200,7 +200,7 @@ class OperationalDataImportWebController extends Controller
             if (!$handle) throw new \RuntimeException('تعذر فتح CSV.');
             $line = fgets($handle); fclose($handle);
             if ($line === false) return [];
-            $delimiter = substr_count($line, ';') > substr_count($line, ',') ? ';' : ',';
+            $delimiter = $this->detectCsvDelimiter($line);
             return array_values(array_map(fn ($v) => trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) $v)), str_getcsv($line, $delimiter)));
         }
         $sheet = IOFactory::load($path)->getActiveSheet();
@@ -208,12 +208,19 @@ class OperationalDataImportWebController extends Controller
         return array_values(array_map(fn ($v) => trim((string) $v), $sheet->rangeToArray("A1:{$highestColumn}1", null, false, false, false)[0] ?? []));
     }
 
+    private function detectCsvDelimiter(string $line): string
+    {
+        $delimiters = [',' => substr_count($line, ','), ';' => substr_count($line, ';'), "\\t" => substr_count($line, "\\t")];
+        arsort($delimiters);
+        return array_key_first($delimiters) ?? ',';
+    }
+
     private function parseRows(string $path, string $extension): array
     {
         if ($extension === 'csv') {
             $handle = fopen($path, 'rb'); if (!$handle) throw new \RuntimeException('تعذر فتح CSV.');
             $firstLine = fgets($handle); if ($firstLine === false) { fclose($handle); return []; }
-            $delimiter = substr_count($firstLine, ';') > substr_count($firstLine, ',') ? ';' : ','; rewind($handle);
+            $delimiter = $this->detectCsvDelimiter($firstLine); rewind($handle);
             $headers = fgetcsv($handle, 0, $delimiter);
             $headers = array_map(fn ($v) => trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) $v)), $headers);
             $rows = []; $rowNumber = 1;
