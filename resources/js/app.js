@@ -1560,7 +1560,25 @@ function initMapPage() {
             loadDataset(checkbox.dataset.datasetId, checkbox);
         }
     });
-    document.getElementById('toggle-map-filter')?.addEventListener('click', () => document.getElementById('map-filter')?.classList.toggle('open'));
+    document.querySelectorAll('[data-map-tool]').forEach(trigger => {
+        trigger.addEventListener('click', () => {
+            const targetId = trigger.getAttribute('aria-controls');
+            const target = targetId ? document.getElementById(targetId) : null;
+            if (!target) return;
+            const willOpen = !target.classList.contains('open');
+            document.querySelectorAll('[data-map-tool-section]').forEach(section => section.classList.remove('open'));
+            document.querySelectorAll('[data-map-tool]').forEach(item => {
+                item.classList.remove('active');
+                item.setAttribute('aria-expanded', 'false');
+            });
+            if (willOpen) {
+                target.classList.add('open');
+                trigger.classList.add('active');
+                trigger.setAttribute('aria-expanded', 'true');
+            }
+            window.setTimeout(() => map.invalidateSize(), 180);
+        });
+    });
     document.getElementById('map-search')?.addEventListener('input', applyFilters);
     document.getElementById('map-place-search-button')?.addEventListener('click', searchMapPlace);
     document.getElementById('map-place-search')?.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); searchMapPlace(); } });
