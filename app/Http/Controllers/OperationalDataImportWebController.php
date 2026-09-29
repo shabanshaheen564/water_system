@@ -125,14 +125,15 @@ class OperationalDataImportWebController extends Controller
             return back()->withErrors(['match_source_column' => 'عمود المطابقة غير موجود في الملف.'])->withInput();
         }
 
+        // A checked checkbox is represented by the presence of its key in the
+        // import_columns array. Do not depend on the checkbox value itself.
+        // This keeps update selection reliable for browser forms and direct requests.
         $selectedColumns = [];
         $importColumns = $request->input('import_columns', []);
+        $importColumns = is_array($importColumns) ? $importColumns : [];
+
         foreach ($state['headers'] as $header) {
-            if ($header === $validated['match_source_column'] || (
-                is_array($importColumns)
-                && array_key_exists($header, $importColumns)
-                && filter_var($importColumns[$header], FILTER_VALIDATE_BOOLEAN)
-            )) {
+            if ($header === $validated['match_source_column'] || array_key_exists($header, $importColumns)) {
                 $selectedColumns[] = $header;
             }
         }
