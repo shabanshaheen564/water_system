@@ -9,9 +9,12 @@
                 <h2 class="truncate text-xl font-semibold leading-[1.5] text-ink">{{ $dataset->display_name }}</h2>
                 <p class="mt-1 truncate text-sm text-ink-muted ltr-value">{{ $dataset->name }}</p>
             </div>
-            <div class="flex shrink-0 items-center gap-3">
+            <div class="flex shrink-0 flex-wrap items-center justify-end gap-3">
                 @can('datasets.update')
                     <a href="{{ route('datasets.edit', $dataset) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Edit') }}</a>
+                    @if($dataset->is_spatial)
+                        <a href="{{ route('datasets.operational-import', $dataset) }}" class="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">استيراد بيانات تشغيلية</a>
+                    @endif
                 @endcan
                 <a href="{{ route('datasets.validation', $dataset) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">GIS Quality</a>
                 @if($dataset->is_spatial && $dataset->is_active)
