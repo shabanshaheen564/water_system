@@ -36,7 +36,7 @@ class OperationalDataImportWebController extends Controller
         return view('datasets.operational-import', compact('dataset', 'identifierField'));
     }
 
-    public function updateCreate(Dataset $dataset): IlluminateViewView|RedirectResponse
+    public function updateCreate(Dataset $dataset): \Illuminate\View\View|RedirectResponse
     {
         $relationship = $this->operationalRelationship($dataset);
 
@@ -53,7 +53,7 @@ class OperationalDataImportWebController extends Controller
         ]);
     }
 
-    public function updatePreview(Request $request, Dataset $dataset): IlluminateViewView|RedirectResponse
+    public function updatePreview(Request $request, Dataset $dataset): \Illuminate\View\View|RedirectResponse
     {
         $relationship = $this->operationalRelationship($dataset);
 
@@ -75,7 +75,7 @@ class OperationalDataImportWebController extends Controller
         try {
             $headers = $this->parseHeaders(Storage::disk('local')->path($relativePath), $extension);
             if ($headers === [] || in_array('', $headers, true) || count($headers) !== count(array_unique($headers))) {
-                throw new RuntimeException('ملف الاستيراد يحتوي على عناوين أعمدة فارغة أو مكررة.');
+                throw new \RuntimeException('ملف الاستيراد يحتوي على عناوين أعمدة فارغة أو مكررة.');
             }
 
             session()->put("operational_import_updates.{$token}", [
@@ -96,7 +96,7 @@ class OperationalDataImportWebController extends Controller
                 'token' => $token,
                 'updateMode' => true,
             ]);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             Storage::disk('local')->delete($relativePath);
             return back()->withErrors(['file' => 'تعذر قراءة الملف: '.$e->getMessage()]);
         }
@@ -173,7 +173,7 @@ class OperationalDataImportWebController extends Controller
                     try {
                         $matchValue = trim((string) ($row[$validated['match_source_column']] ?? ''));
                         if ($matchValue === '') {
-                            throw new RuntimeException('قيمة الربط فارغة.');
+                            throw new \RuntimeException('قيمة الربط فارغة.');
                         }
 
                         $parentRecord = DatasetRecord::where('dataset_id', $parentDataset->id)
@@ -181,7 +181,7 @@ class OperationalDataImportWebController extends Controller
                             ->first();
 
                         if (!$parentRecord) {
-                            throw new RuntimeException("لم يتم العثور على سجل في الطبقة الأساسية للقيمة: {$matchValue}");
+                            throw new \RuntimeException("لم يتم العثور على سجل في الطبقة الأساسية للقيمة: {$matchValue}");
                         }
 
                         $values = [];
@@ -213,7 +213,7 @@ class OperationalDataImportWebController extends Controller
                         }
 
                         ++$successful;
-                    } catch (Throwable $e) {
+                    } catch (\Throwable $e) {
                         ++$failed;
                         $errors[] = ['row' => $rowNumber, 'error' => $e->getMessage()];
                     }
@@ -241,7 +241,7 @@ class OperationalDataImportWebController extends Controller
 
             return redirect()->route('datasets.show', $dataset)
                 ->with('success', "تم تحديث الجدول «{$dataset->name}». تمت معالجة {$result[0]} سجل: {$result[1]} جديد، {$result[2]} محدث، وفشل {$result[3]}.");
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $import->update([
                 'status' => 'failed',
                 'completed_at' => now(),
