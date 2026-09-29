@@ -1,6 +1,6 @@
-@php($updateMode = $updateMode ?? false)
 @extends('layouts.app')
 
+@php($updateMode = $updateMode ?? false)
 @section('title', $updateMode ? 'تحديث البيانات التشغيلية' : 'ربط البيانات التشغيلية')
 
 @section('content')
