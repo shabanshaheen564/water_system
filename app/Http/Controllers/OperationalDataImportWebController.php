@@ -208,14 +208,16 @@ class OperationalDataImportWebController extends Controller
 
                         // First use the relationship's actual child field in JSONB.
                         $childRecord = DatasetRecord::where('dataset_id', $dataset->id)
-                            ->whereRaw("TRIM(COALESCE(values->>?, '')) = ?", [$childField->name, $matchValue])
+                            ->where("values->{$childField->name}", $matchValue)
+                            ->lockForUpdate()
                             ->first();
 
                         // Keep identifier_value as a compatibility fallback for records
                         // created by older imports.
                         if (!$childRecord) {
                             $childRecord = DatasetRecord::where('dataset_id', $dataset->id)
-                                ->whereRaw('TRIM(COALESCE(identifier_value, \'\')) = ?', [$matchValue])
+                                ->where('identifier_value', $matchValue)
+                                ->lockForUpdate()
                                 ->first();
                         }
 
