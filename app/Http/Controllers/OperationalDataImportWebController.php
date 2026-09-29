@@ -126,8 +126,13 @@ class OperationalDataImportWebController extends Controller
         }
 
         $selectedColumns = [];
+        $importColumns = $request->input('import_columns', []);
         foreach ($state['headers'] as $header) {
-            if ($header === $validated['match_source_column'] || !empty($validated['import_columns'][$header])) {
+            if ($header === $validated['match_source_column'] || (
+                is_array($importColumns)
+                && array_key_exists($header, $importColumns)
+                && filter_var($importColumns[$header], FILTER_VALIDATE_BOOLEAN)
+            )) {
                 $selectedColumns[] = $header;
             }
         }
