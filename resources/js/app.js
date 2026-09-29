@@ -1437,16 +1437,52 @@ function initMapPage() {
                         const recordAction = canEdit && feature.dataset_record_id
                             ? '<a href="/datasets/' + datasetId + '/records/' + feature.dataset_record_id + '/edit" class="mt-2 block w-full rounded-md border border-border-strong bg-white px-3 py-2 text-center text-xs font-medium text-ink">فتح السجل المرتبط</a>'
                             : '';
+                        const relatedDataAction = feature.dataset_record_id
+                            ? '<button type="button" data-gis-related-data class="mt-2 w-full rounded-md border border-brand-600 bg-white px-3 py-2 text-xs font-medium text-brand-700">عرض البيانات الإضافية</button><div data-gis-related-data-container class="mt-2"></div>'
+                            : '';
                         const identifyMeta = '<div class="row"><span class="key">Feature ID</span><span class="value">' + escapeHtml(String(feature.id ?? '—')) + '</span></div>'
                             + '<div class="row"><span class="key">Record ID</span><span class="value">' + escapeHtml(String(feature.dataset_record_id ?? '—')) + '</span></div>'
                             + '<div class="row"><span class="key">نوع الهندسة</span><span class="value">' + escapeHtml(feature.geometry_type || feature.geometry?.type || '—') + '</span></div>'
                             + '<div class="row"><span class="key">SRID</span><span class="value">' + escapeHtml(String(feature.srid ?? '—')) + '</span></div>';
 
-                        featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${identifyMeta}${rows}${recordAction}${bufferAction}${editAction}${deleteAction}</div>`, { maxWidth: 380 });
+                        featureLayer.bindPopup(`<div class="map-popup"><h4>تفاصيل المعلم</h4>${identifyMeta}${rows}${recordAction}${relatedDataAction}${bufferAction}${editAction}${deleteAction}</div>`, { maxWidth: 380 });
 
                         if (canEdit || canDelete || feature.id) {
                             featureLayer.on('popupopen', event => {
                                 const popupElement = event.popup.getElement();
+                                popupElement?.querySelector('[data-gis-related-data]')?.addEventListener('click', async () => {
+                                    const button = popupElement.querySelector('[data-gis-related-data]');
+                                    const container = popupElement.querySelector('[data-gis-related-data-container]');
+                                    if (!button || !container) return;
+                                    button.disabled = true;
+                                    button.textContent = 'جاري تحميل البيانات...';
+                                    container.innerHTML = '';
+                                    try {
+                                        const response = await fetch('/datasets/' + datasetId + '/records/' + feature.dataset_record_id + '/children', {
+                                            headers: { 'Accept': 'application/json' },
+                                        });
+                                        const data = await response.json();
+                                        if (!response.ok) throw new Error(data.message || 'تعذر تحميل البيانات الإضافية.');
+                                        const records = Array.isArray(data.data) ? data.data : [];
+                                        if (!records.length) {
+                                            container.innerHTML = '<div class="mt-2 rounded-md border border-border bg-surface-1 p-2 text-xs text-ink-secondary">لا توجد بيانات تشغيلية مرتبطة بهذا المعلم.</div>';
+                                        } else {
+                                            container.innerHTML = records.map((record, index) => {
+                                                const values = record.values || {};
+                                                const rows = Object.entries(values)
+                                                    .filter(([, value]) => value !== null && value !== '')
+                                                    .map(([key, value]) => '<div class="row"><span class="key">' + escapeHtml(key) + '</span><span class="value">' + escapeHtml(typeof value === 'object' ? JSON.stringify(value) : String(value)) + '</span></div>')
+                                                    .join('');
+                                                return '<div class="mt-2 rounded-md border border-border bg-surface-1 p-2"><div class="mb-1 text-xs font-semibold text-ink">سجل بيانات إضافية ' + (index + 1) + '</div>' + rows + '</div>';
+                                            }).join('');
+                                        }
+                                        button.classList.add('hidden');
+                                    } catch (error) {
+                                        container.innerHTML = '<div class="mt-2 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700">' + escapeHtml(error.message || 'تعذر تحميل البيانات الإضافية.') + '</div>';
+                                        button.disabled = false;
+                                        button.textContent = 'إعادة تحميل البيانات الإضافية';
+                                    }
+                                });
                                 popupElement?.querySelector('[data-gis-edit-feature]')?.addEventListener('click', () => {
                                     map.closePopup();
                                     openFeatureEdit(datasetId, feature, featureLayer);
