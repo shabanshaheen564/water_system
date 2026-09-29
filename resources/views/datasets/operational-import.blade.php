@@ -21,8 +21,8 @@
             @csrf
             <div>
                 <label class="mb-2 block text-sm font-medium text-ink">ملف البيانات التشغيلية</label>
-                <input type="file" name="file" accept=".csv,.xlsx" required class="block w-full rounded-md border border-border-strong bg-white px-3 py-2 text-sm">
-                <p class="mt-2 text-xs text-ink-muted">الصيغ المدعومة: CSV و XLSX — الحد الأقصى 50MB.</p>
+                <input type="file" name="file" accept=".csv,.xls,.xlsx,.xlsm,.xlt,.xltx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required class="block w-full rounded-md border border-border-strong bg-white px-3 py-2 text-sm">
+                <p class="mt-2 text-xs text-ink-muted">الصيغ المدعومة: CSV و XLS و XLSX و XLSM و XLT و XLTX — الحد الأقصى 50MB.</p>
             </div>
             <div class="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                 <strong>مهم:</strong> المطابقة تتم على سجل موجود داخل الطبقة. لن يتم حذف Geometry ولن يتم إنشاء Feature جديد.
