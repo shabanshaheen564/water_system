@@ -4,6 +4,8 @@ return [
     'required' => 'حقل :attribute مطلوب.',
     'string' => 'يجب أن يكون :attribute نصاً.',
     'email' => 'يجب أن يكون :attribute عنوان بريد إلكتروني صحيحاً.',
+    'mimes' => 'صيغة :attribute غير مدعومة. الصيغ المسموحة: CSV و XLS و XLSX و XLSM و XLT و XLTX.',
+    'file' => 'يجب أن يكون :attribute ملفاً صالحاً.',
     'max' => ['string' => 'يجب ألا يتجاوز :attribute :max حرفاً.', 'array' => 'يجب ألا يحتوي :attribute على أكثر من :max عناصر.', 'file' => 'يجب ألا يتجاوز حجم :attribute :max كيلوبايت.', 'numeric' => 'يجب ألا تكون قيمة :attribute أكبر من :max.'],
     'min' => ['string' => 'يجب ألا يقل :attribute عن :min أحرف.', 'array' => 'يجب أن يحتوي :attribute على :min عناصر على الأقل.', 'numeric' => 'يجب ألا تقل قيمة :attribute عن :min.'],
     'unique' => 'قيمة :attribute مستخدمة بالفعل.',
