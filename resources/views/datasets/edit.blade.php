@@ -16,8 +16,13 @@
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <label for="name" class="mb-1 block text-sm font-medium text-ink">{{ __('Name') }}</label>
-                        <input type="text" name="name" id="name" value="{{ $dataset->name }}" required readonly class="input-institutional mt-1 block w-full bg-surface-1 text-sm text-ink-muted">
-                        <p class="mt-1 text-xs text-ink-muted">{{ __('Dataset name cannot be changed') }}</p>
+                        <input type="text" name="name" id="name" value="{{ old('name', $dataset->name) }}" required {{ $dataset->dataset_type === 'additional_table' ? '' : 'readonly' }} class="input-institutional mt-1 block w-full text-sm {{ $dataset->dataset_type === 'additional_table' ? 'outline-none focus:border-brand-600' : 'bg-surface-1 text-ink-muted' }}" pattern="[A-Za-z0-9_]+" maxlength="255">
+                        @if($dataset->dataset_type === 'additional_table')
+                            <p class="mt-1 text-xs text-ink-muted">يمكن تغيير الاسم الفني لجدول البيانات الإضافية، باستخدام الأحرف الإنجليزية والأرقام والشرطة السفلية فقط.</p>
+                        @else
+                            <p class="mt-1 text-xs text-ink-muted">{{ __('Dataset name cannot be changed') }}</p>
+                        @endif
+                        @error('name')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label for="display_name" class="mb-1 block text-sm font-medium text-ink">{{ __('Display Name') }}</label>
