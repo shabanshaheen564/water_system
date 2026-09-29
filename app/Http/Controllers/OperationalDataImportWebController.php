@@ -213,11 +213,28 @@ class OperationalDataImportWebController extends Controller
                         }
 
                         if ($childRecord) {
-                            $childRecord->update([
-                                'values' => array_merge($childRecord->values ?? [], $values),
-                                'identifier_value' => $matchValue,
-                                'updated_by' => $userId,
-                            ]);
+                            // Update the existing record through the model attributes so the
+                            // JSON cast is applied deterministically and the normal Eloquent
+                            // observers/audit trail remain active.
+                            $mergedValues = array_replace($childRecord->values ?? [], $values);
+
+                            $childRecord->values = $mergedValues;
+                            $childRecord->identifier_value = $matchValue;
+                            $childRecord->updated_by = $userId;
+                            $childRecord->save();
+
+                            // Reload the persisted state and fail the row if the requested
+                            // update was not actually stored. This prevents a successful
+                            // import from being reported when the database still contains
+                            // stale operational values.
+                            $childRecord->refresh();
+
+                            foreach ($values as $fieldName => $newValue) {
+                                if (($childRecord->values ?? [])[$fieldName] ?? null !== $newValue) {
+                                    throw new \RuntimeException("تعذر حفظ الحقل التشغيلي: {$fieldName}");
+                                }
+                            }
+
                             ++$updated;
                         } else {
                             DatasetRecord::create([
