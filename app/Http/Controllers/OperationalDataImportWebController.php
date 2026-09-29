@@ -277,7 +277,7 @@ class OperationalDataImportWebController extends Controller
         $result = [];
 
         foreach ($headers as $header) {
-            $name = $this->fieldNameForHeader($header, $fields->keys()->all());
+            $existingField = $fields->first(fn (DatasetField $field) => ($field->metadata['source_column'] ?? null) === $header || $field->name === Str::snake(Str::ascii($header)));\n            $name = $existingField?->name ?? $this->fieldNameForHeader($header, $fields->keys()->all());
             if ($header === $matchSourceColumn) {
                 $name = $this->fieldNameForHeader($header, $fields->keys()->all(), $parentIdentifierField->name);
                 $type = $parentIdentifierField->data_type;
@@ -287,7 +287,7 @@ class OperationalDataImportWebController extends Controller
                 $displayName = $header;
             }
 
-            $field = $fields->get($name);
+            $field = $existingField ?? $fields->get($name);
 
             if (!$field) {
                 $field = $supportingDataset->fields()->create([
@@ -312,7 +312,7 @@ class OperationalDataImportWebController extends Controller
 
     private function fieldNameForHeader(string $header, array $existingNames, ?string $preferred = null): string
     {
-        if ($preferred && !in_array($preferred, $existingNames, true)) return $preferred;
+        if ($preferred) return $preferred;
         $name = Str::snake(Str::ascii($header));
         $name = preg_replace('/[^a-zA-Z0-9_]/', '_', $name) ?: 'field';
         $name = trim($name, '_');
