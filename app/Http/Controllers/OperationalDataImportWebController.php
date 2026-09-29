@@ -156,6 +156,20 @@ class OperationalDataImportWebController extends Controller
                 $rows = $this->parseRows(Storage::disk('local')->path($state['relative_path']), $state['extension']);
                 $import->update(['total_rows' => count($rows)]);
 
+                logger()->debug('OP_UPDATE_BEFORE', [
+                    'dataset_id' => $dataset->id,
+                    'relationship_id' => $relationship->id,
+                    'parent_field_id' => $relationship->parent_field_id,
+                    'child_field_id' => $relationship->child_field_id,
+                    'records' => DatasetRecord::where('dataset_id', $dataset->id)
+                        ->get(['id', 'identifier_value', 'values'])
+                        ->map(fn (DatasetRecord $r) => [
+                            'id' => $r->id,
+                            'identifier_value' => $r->identifier_value,
+                            'values' => $r->values,
+                        ])->all(),
+                ]);
+
                 $parentDataset = $relationship->parentDataset;
                 $identifierField = $relationship->parentField;
                 $childFields = $this->ensureSupportingFields(
@@ -214,6 +228,16 @@ class OperationalDataImportWebController extends Controller
                             $matchValue
                         );
 
+                        logger()->debug('OP_UPDATE_MATCH', [
+                            'dataset_id' => $dataset->id,
+                            'match_value' => $matchValue,
+                            'child_record_id' => $childRecord?->id,
+                            'child_record_identifier_value' => $childRecord?->identifier_value,
+                            'child_record_values' => $childRecord?->values,
+                            'source_field' => [$sourceField->id, $sourceField->name],
+                            'relationship_child_field' => [$relationship->child_field_id, $relationship->childField?->name],
+                        ]);
+
                         if ($childRecord) {
                             // Update the existing record through the model attributes so the
                             // JSON cast is applied deterministically and the normal Eloquent
@@ -264,6 +288,20 @@ class OperationalDataImportWebController extends Controller
                         $errors[] = ['row' => $rowNumber, 'error' => $e->getMessage()];
                     }
                 }
+
+                logger()->debug('OP_UPDATE_AFTER', [
+                    'dataset_id' => $dataset->id,
+                    'created' => $created,
+                    'updated' => $updated,
+                    'failed' => $failed,
+                    'records' => DatasetRecord::where('dataset_id', $dataset->id)
+                        ->get(['id', 'identifier_value', 'values'])
+                        ->map(fn (DatasetRecord $r) => [
+                            'id' => $r->id,
+                            'identifier_value' => $r->identifier_value,
+                            'values' => $r->values,
+                        ])->all(),
+                ]);
 
                 $status = match (true) {
                     $successful > 0 && $failed > 0 => 'partial',
