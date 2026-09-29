@@ -201,48 +201,58 @@ class OperationalDataImportWebController extends Controller
                             $values[$field->name] = $this->castValue($row[$sourceColumn] ?? null, $field->data_type);
                         }
 
-                        // The relationship field is authoritative. The field returned by
-                        // ensureSupportingFields() must not redefine which column represents
-                        // the relationship key during an update.
+                        // The relationship and the persisted identifier_value form the
+                        // contract for an operational row. Never create a second row merely
+                        // because a legacy import stored the key under a different JSON field.
                         $childField = $relationship->childField;
+                        $sourceField = $childFields[$validated['match_source_column']] ?? null;
 
-                        // First use the relationship's actual child field in JSONB.
-                        $childRecord = DatasetRecord::where('dataset_id', $dataset->id)
-                            ->where("values->{$childField->name}", $matchValue)
+                        $candidateFieldNames = collect([
+                            $childField?->name,
+                            $sourceField?->name,
+                        ])->filter()->unique()->values()->all();
+
+                        // Also include fields that explicitly declare the same source column.
+                        // This covers older operational datasets whose field name changed while
+                        // the relationship still points at the original field definition.
+                        $metadataFieldNames = $dataset->fields()
+                            ->get()
+                            ->filter(fn (DatasetField $field) =>
+                                ($field->metadata['source_column'] ?? null) === $validated['match_source_column']
+                            )
+                            ->pluck('name')
+                            ->all();
+
+                        $candidateFieldNames = array_values(array_unique([
+                            ...$candidateFieldNames,
+                            ...$metadataFieldNames,
+                        ]));
+
+                        $records = DatasetRecord::where('dataset_id', $dataset->id)
                             ->lockForUpdate()
-                            ->first();
+                            ->get();
 
-                        // Keep identifier_value as a compatibility fallback for records
-                        // created by older imports.
-                        if (!$childRecord) {
-                            $childRecord = DatasetRecord::where('dataset_id', $dataset->id)
-                                ->where('identifier_value', $matchValue)
-                                ->lockForUpdate()
-                                ->first();
-                        }
-
-                        // Final compatibility fallback: compare the persisted JSON values
-                        // in PHP. This is intentionally used only when the indexed/JSONB
-                        // lookups did not find a record, and prevents a legitimate existing
-                        // operational row from being silently duplicated because of a legacy
-                        // key representation.
-                        if (!$childRecord) {
-                            $matches = DatasetRecord::where('dataset_id', $dataset->id)
-                                ->get()
-                                ->filter(function (DatasetRecord $record) use ($childField, $matchValue): bool {
-                                    $jsonValue = trim((string) (($record->values ?? [])[$childField->name] ?? ''));
-                                    $identifierValue = trim((string) $record->identifier_value);
-
-                                    return $jsonValue === $matchValue || $identifierValue === $matchValue;
-                                })
-                                ->values();
-
-                            if ($matches->count() > 1) {
-                                throw new \RuntimeException("يوجد أكثر من سجل تشغيلي بنفس مفتاح الربط: {$matchValue}");
+                        $matches = $records->filter(function (DatasetRecord $record) use ($matchValue, $candidateFieldNames): bool {
+                            if (trim((string) $record->identifier_value) === $matchValue) {
+                                return true;
                             }
 
-                            $childRecord = $matches->first();
+                            $values = $record->values ?? [];
+
+                            foreach ($candidateFieldNames as $fieldName) {
+                                if (trim((string) ($values[$fieldName] ?? '')) === $matchValue) {
+                                    return true;
+                                }
+                            }
+
+                            return false;
+                        })->values();
+
+                        if ($matches->count() > 1) {
+                            throw new \RuntimeException("يوجد أكثر من سجل تشغيلي بنفس مفتاح الربط: {$matchValue}");
                         }
+
+                        $childRecord = $matches->first();
 
                         if ($childRecord) {
                             // Update the existing record through the model attributes so the
@@ -636,6 +646,62 @@ class OperationalDataImportWebController extends Controller
         }
 
         return 'string';
+    }
+
+    /**
+     * Locate the single operational record represented by a relationship key.
+     * The database identifier_value is canonical, while JSON field names remain
+     * compatible with records created by older imports.
+     */
+    private function findOperationalRecord(
+        Dataset $dataset,
+        DatasetRelationship $relationship,
+        DatasetField $sourceField,
+        string $matchSourceColumn,
+        string $matchValue
+    ): ?DatasetRecord {
+        $candidateFieldNames = collect([
+            $relationship->childField?->name,
+            $sourceField->name,
+        ])->filter()->unique()->values()->all();
+
+        $metadataFieldNames = $dataset->fields()
+            ->get()
+            ->filter(fn (DatasetField $field) =>
+                ($field->metadata['source_column'] ?? null) === $matchSourceColumn
+            )
+            ->pluck('name')
+            ->all();
+
+        $candidateFieldNames = array_values(array_unique([
+            ...$candidateFieldNames,
+            ...$metadataFieldNames,
+        ]));
+
+        $matches = DatasetRecord::where('dataset_id', $dataset->id)
+            ->lockForUpdate()
+            ->get()
+            ->filter(function (DatasetRecord $record) use ($matchValue, $candidateFieldNames): bool {
+                if (trim((string) $record->identifier_value) === $matchValue) {
+                    return true;
+                }
+
+                foreach (($record->values ?? []) as $fieldName => $value) {
+                    if (in_array($fieldName, $candidateFieldNames, true)
+                        && trim((string) $value) === $matchValue) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })
+            ->values();
+
+        if ($matches->count() > 1) {
+            throw new \RuntimeException("يوجد أكثر من سجل تشغيلي بنفس مفتاح الربط: {$matchValue}");
+        }
+
+        return $matches->first();
     }
 
     private function operationalRelationship(Dataset $dataset): ?DatasetRelationship
