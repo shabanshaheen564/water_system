@@ -75,7 +75,24 @@
     .map-legend{position:absolute;bottom:16px;inset-inline-end:16px;z-index:1000;min-width:230px;max-width:300px;padding:11px 12px;border:1px solid rgba(255,255,255,.8);border-radius:14px;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(16,24,40,.14);direction:rtl}.map-legend-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:9px}.map-legend-title{font-size:12px;font-weight:800;color:#101828}.map-legend-subtitle{font-size:9px;color:#98a2b3}.map-legend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.map-legend-item{display:flex;align-items:center;gap:7px;min-width:0;font-size:10px;color:#475467}.map-legend-dot.point{width:12px;height:12px;border-radius:50%;background:#667085;border:2px solid #fff;box-shadow:0 0 0 1px #98a2b3}.map-legend-line{width:20px;height:4px;border-radius:99px;background:#667085}.map-legend-area{width:16px;height:12px;border:2px solid #667085;border-radius:3px;background:rgba(102,112,133,.16)}.map-tool-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}.map-tool-actions button{height:38px;border:1px solid #d0d5dd;border-radius:10px;background:#fff;color:#344054;font-size:16px;cursor:pointer}.map-tool-actions button:hover{border-color:#98a2b3;background:#f9fafb}.map-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px;padding-top:9px;border-top:1px solid #e2e5e9;text-align:center}.map-stats span{display:block;font-size:8px;color:#98a2b3}.map-stats strong{display:block;margin-top:1px;font-size:12px;color:#344054}@keyframes map-tool-in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
     @media(max-width:1023px){.map-tool-dock{inset-inline:10px;inset-block:10px;width:auto;max-width:none;max-height:calc(100vh - 84px)}.map-legend{bottom:10px;inset-inline-end:10px;max-width:calc(100vw - 20px)}}
 
-    /* Distributed floating map controls */
+    /* Distributed floating map controls — harden visibility above Leaflet */
+    .map-shell > .map-tool-dock{
+        z-index:2000!important;
+        visibility:visible!important;
+        opacity:1!important;
+    }
+    .map-shell > .map-tool-dock .map-tool-trigger{
+        visibility:visible!important;
+        opacity:1!important;
+        display:grid!important;
+        position:absolute!important;
+    }
+    .map-shell > .map-tool-dock .map-tool-section.open{
+        visibility:visible!important;
+        opacity:1!important;
+        display:block!important;
+    }
+/* Distributed floating map controls */
     .map-tool-dock{
         position:absolute!important;
         inset:0!important;
