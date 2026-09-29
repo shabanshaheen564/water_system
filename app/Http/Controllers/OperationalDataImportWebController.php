@@ -285,6 +285,14 @@ class OperationalDataImportWebController extends Controller
                         ++$successful;
                     } catch (\Throwable $e) {
                         ++$failed;
+                        logger()->debug('OP_UPDATE_ROW_FAILED', [
+                            'dataset_id' => $dataset->id,
+                            'row' => $rowNumber,
+                            'match_source_column' => $validated['match_source_column'],
+                            'row_data' => $row,
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString(),
+                        ]);
                         $errors[] = ['row' => $rowNumber, 'error' => $e->getMessage()];
                     }
                 }
