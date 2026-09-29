@@ -492,16 +492,16 @@ class OperationalDataImportWebController extends Controller
 
     private function getOrCreateSupportingDataset(Dataset $parent, string $filename, string $extension, int $userId): Dataset
     {
-        $fileBase = pathinfo($filename, PATHINFO_FILENAME);
-        $baseName = Str::snake(Str::ascii($parent->name.'_'.$fileBase));
-        $baseName = preg_replace('/[^a-zA-Z0-9_]/', '_', $baseName) ?: 'operational_data';
-        $baseName = trim($baseName, '_') ?: 'operational_data';
+        $fileBase = trim(pathinfo($filename, PATHINFO_FILENAME));
+        $baseName = $fileBase !== '' ? $fileBase : 'بيانات تشغيلية';
 
+        // Keep the operational dataset name exactly as the uploaded Excel filename
+        // (without extension). Arabic and English names are both supported.
         $candidate = $baseName;
         $counter = 2;
 
         while (Dataset::where('name', $candidate)->exists()) {
-            $candidate = $baseName.'_'.$counter++;
+            $candidate = $baseName.' ('.$counter++.')';
         }
 
         return Dataset::create([
