@@ -15,7 +15,20 @@
                 @endcan
                 @if($dataset->is_spatial)
                     @can('datasets.update')
-                        <a href="{{ route('datasets.operational-import', $dataset) }}" class="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">استيراد بيانات تشغيلية</a>
+                        <a href="{{ route('datasets.operational-import', $dataset) }}" class="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">استيراد ملف Excel</a>
+                    @endcan
+                @endif
+                @if($dataset->dataset_type === 'additional_table' && $dataset->management_mode === 'operational')
+                    @can('datasets.update')
+                        <a href="{{ route('datasets.operational-import.update', $dataset) }}" class="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">إضافة / تحديث Excel</a>
+                    @endcan
+                    <a href="{{ route('datasets.records.index', $dataset) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">السجلات</a>
+                    @can('datasets.delete')
+                        <form method="POST" action="{{ route('datasets.destroy', $dataset) }}" onsubmit="return confirm('سيتم حذف جدول البيانات التشغيلية وجميع سجلاته نهائياً. هل أنت متأكد؟');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="rounded-md border border-danger-300 bg-white px-4 py-2 text-sm font-medium text-danger hover:bg-danger-surface">حذف الجدول</button>
+                        </form>
                     @endcan
                 @endif
                 <a href="{{ route('datasets.validation', $dataset) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">GIS Quality</a>
@@ -58,6 +71,71 @@
                 </div>
             @endif
         </div>
+
+        @if($dataset->dataset_type === 'additional_table' && $dataset->management_mode === 'operational')
+            <section data-enter class="card-institutional mt-6 overflow-hidden">
+                <div class="border-b border-border px-6 py-4">
+                    <h3 class="text-base font-semibold text-ink">الارتباط التشغيلي</h3>
+                </div>
+                <div class="p-6">
+                    @forelse($dataset->childRelationships as $relationship)
+                        <div class="flex flex-wrap items-center justify-between gap-4 rounded-md border border-border bg-surface-1 p-4">
+                            <div>
+                                <div class="text-sm font-semibold text-ink">مرتبط بطبقة: {{ $relationship->parentDataset?->display_name ?? $relationship->parentDataset?->name ?? '—' }}</div>
+                                <div class="mt-1 text-xs text-ink-secondary">
+                                    {{ $relationship->parentField?->display_name ?? $relationship->parent_field_id }}
+                                    ←
+                                    {{ $relationship->childField?->display_name ?? $relationship->child_field_id }}
+                                    — علاقة 1 : N
+                                </div>
+                            </div>
+                            @can('datasets.update')
+                                <form method="POST" action="{{ route('datasets.operational-relationships.unlink', [$dataset, $relationship]) }}" onsubmit="return confirm('سيتم فك الارتباط فقط ولن يتم حذف بيانات الجدول. هل تريد المتابعة؟');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="rounded-md border border-amber-300 bg-white px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-50">فك الارتباط</button>
+                                </form>
+                            @endcan
+                        </div>
+                    @empty
+                        <p class="text-sm text-ink-muted">هذا الجدول غير مرتبط حالياً بأي طبقة.</p>
+                    @endforelse
+                </div>
+            </section>
+        @endif
+
+        @if($dataset->is_spatial && $dataset->parentRelationships->count() > 0)
+            <section data-enter class="card-institutional mt-6 overflow-hidden">
+                <div class="border-b border-border px-6 py-4">
+                    <h3 class="text-base font-semibold text-ink">جداول البيانات التشغيلية المرتبطة</h3>
+                </div>
+                <div class="divide-y divide-border">
+                    @foreach($dataset->parentRelationships as $relationship)
+                        @if($relationship->childDataset)
+                            <div class="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
+                                <div>
+                                    <a href="{{ route('datasets.show', $relationship->childDataset) }}" class="font-medium text-brand-700 hover:underline">{{ $relationship->childDataset->name }}</a>
+                                    <div class="mt-1 text-xs text-ink-secondary">{{ $relationship->childDataset->display_name }} — {{ $relationship->childDataset->source_name ?? 'بدون مصدر' }}</div>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    @can('datasets.view')
+                                        <a href="{{ route('datasets.records.index', $relationship->childDataset) }}" class="rounded-md border border-border-strong bg-white px-3 py-2 text-xs font-medium text-ink">السجلات</a>
+                                    @endcan
+                                    @can('datasets.update')
+                                        <a href="{{ route('datasets.operational-import.update', $relationship->childDataset) }}" class="rounded-md border border-amber-300 bg-white px-3 py-2 text-xs font-medium text-amber-700">تحديث Excel</a>
+                                        <form method="POST" action="{{ route('datasets.operational-relationships.unlink', [$dataset, $relationship]) }}" onsubmit="return confirm('سيتم فك الارتباط فقط ولن يتم حذف الجدول التشغيلي. هل تريد المتابعة؟');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="rounded-md border border-amber-300 bg-white px-3 py-2 text-xs font-medium text-amber-700">فك الارتباط</button>
+                                        </form>
+                                    @endcan
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
+                </div>
+            </section>
+        @endif
 
         @if($dataset->is_spatial && $featuresCount > 0)
             <section data-enter class="card-institutional mt-6 overflow-hidden">
