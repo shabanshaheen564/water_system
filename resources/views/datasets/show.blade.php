@@ -12,10 +12,12 @@
             <div class="flex shrink-0 flex-wrap items-center justify-end gap-3">
                 @can('datasets.update')
                     <a href="{{ route('datasets.edit', $dataset) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">{{ __('Edit') }}</a>
-                    @if($dataset->is_spatial)
-                        <a href="{{ route('datasets.operational-import', $dataset) }}" class="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">استيراد بيانات تشغيلية</a>
-                    @endif
                 @endcan
+                @if($dataset->is_spatial)
+                    @can('datasets.update')
+                        <a href="{{ route('datasets.operational-import', $dataset) }}" class="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">استيراد بيانات تشغيلية</a>
+                    @endcan
+                @endif
                 <a href="{{ route('datasets.validation', $dataset) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface-1">GIS Quality</a>
                 @if($dataset->is_spatial && $dataset->is_active)
                     <a href="{{ route('map.index') }}?dataset={{ $dataset->id }}" class="btn-motion rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ __('View on Map') }}</a>
