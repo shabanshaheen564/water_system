@@ -57,7 +57,11 @@ class DatasetWebController extends Controller
             'fields',
             'createdBy:id,name,email',
             'parentRelationships.childDataset',
+            'parentRelationships.parentField',
+            'parentRelationships.childField',
             'childRelationships.parentDataset',
+            'childRelationships.parentField',
+            'childRelationships.childField',
         ]);
         $recordsCount = $dataset->records()->count();
         $featuresCount = $dataset->gisFeatures()->count();
