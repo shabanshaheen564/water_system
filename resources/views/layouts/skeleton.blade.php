@@ -14,17 +14,18 @@
         }
 
         .map-page .main-content {
-            position: fixed;
-            top: 4rem;
-            right: 16rem;
-            left: 0;
-            bottom: 0;
-            width: auto;
-            height: auto;
-            min-height: 0;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden;
+            position: relative !important;
+            top: auto !important;
+            right: auto !important;
+            left: auto !important;
+            bottom: auto !important;
+            width: auto !important;
+            height: 100vh !important;
+            min-height: 0 !important;
+            margin: 0 16rem 0 0 !important;
+            padding: 4rem 0 0 0 !important;
+            overflow: hidden !important;
+            box-sizing: border-box;
             z-index: 1;
         }
 
@@ -66,12 +67,10 @@
 
         @media (max-width: 1023px) {
             .map-page .main-content {
-                top: 4rem;
-                right: 0;
-                left: 0;
-                bottom: 0;
-                width: auto;
-                height: auto;
+                width: 100% !important;
+                height: 100vh !important;
+                margin: 0 !important;
+                padding: 4rem 0 0 0 !important;
             }
 
             .map-page .map-shell,
