@@ -53,7 +53,12 @@ class DatasetWebController extends Controller
 
     public function show(Dataset $dataset): \Illuminate\View\View
     {
-        $dataset->load(['fields', 'createdBy:id,name,email']);
+        $dataset->load([
+            'fields',
+            'createdBy:id,name,email',
+            'parentRelationships.childDataset',
+            'childRelationships.parentDataset',
+        ]);
         $recordsCount = $dataset->records()->count();
         $featuresCount = $dataset->gisFeatures()->count();
 
