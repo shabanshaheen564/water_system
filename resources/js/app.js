@@ -295,7 +295,7 @@ function initMapPage() {
     if (!mapElement) return;
     if (mapElement.dataset.operationalMap !== 'true') return;
 
-    const map = L.map(mapElement, { center: [31.5, 34.5], zoom: 10, zoomControl: false, attributionControl: true });
+    const map = L.map(mapElement, { center: [31.5, 34.5], zoom: 10, zoomControl: true, attributionControl: true, dragging: true });
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -1601,8 +1601,11 @@ function initMapPage() {
             fitVisible();
         })
         .catch(() => {
-            document.getElementById('stat-complaints')?.replaceChildren(document.createTextNode('—'));
-            document.getElementById('stat-tasks')?.replaceChildren(document.createTextNode('—'));
+            document.getElementById('stat-complaints')?.replaceChildren(document.createTextNode('0'));
+            document.getElementById('stat-tasks')?.replaceChildren(document.createTextNode('0'));
+            document.getElementById('stat-high')?.replaceChildren(document.createTextNode('0'));
+            document.getElementById('stat-datasets')?.replaceChildren(document.createTextNode('0'));
+            console.error('Map operational data failed to load.');
         });
 
     window.setTimeout(() => map.invalidateSize(), 150);
