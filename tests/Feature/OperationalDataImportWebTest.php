@@ -29,6 +29,7 @@ class OperationalDataImportWebTest extends TestCase
         $this->admin = User::factory()->create();
         $this->admin->givePermissionTo(Permission::where('name', 'datasets.view')->first());
         $this->admin->givePermissionTo(Permission::where('name', 'datasets.update')->first());
+        $this->admin->givePermissionTo(Permission::where('name', 'datasets.delete')->first());
 
         $this->dataset = Dataset::create([
             'name' => 'test_operational_layer',
@@ -97,7 +98,7 @@ class OperationalDataImportWebTest extends TestCase
         $this->assertEquals(10.5, (float) $this->record->values['daily_flow']);
 
         $supporting = Dataset::where('dataset_type', 'additional_table')
-            ->where('name', 'test_operational_layer_operational_data')
+            ->where('name', 'test_operational_layer_operations')
             ->firstOrFail();
 
         $this->assertDatabaseHas('dataset_relationships', [
@@ -113,6 +114,111 @@ class OperationalDataImportWebTest extends TestCase
 
         $this->assertSame($beforeFeatureCount, DB::table('gis_features')->where('dataset_id', $this->dataset->id)->count());
         $this->assertDatabaseHas('dataset_imports', ['dataset_id' => $this->dataset->id, 'status' => 'completed', 'successful_rows' => 1, 'failed_rows' => 0]);
+    }
+
+    public function test_each_excel_import_creates_a_separate_operational_dataset(): void
+    {
+        $first = $this->import("Asset_ID,status,daily_flow
+W_01,Active,20
+");
+        $first->assertRedirect();
+
+        $second = $this->import("Asset_ID,status,daily_flow
+W_01,Under_Maintenance,30
+");
+        $second->assertRedirect();
+
+        $tables = Dataset::where('dataset_type', 'additional_table')
+            ->where('management_mode', 'operational')
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(2, $tables);
+        $this->assertNotSame($tables[0]->id, $tables[1]->id);
+        $this->assertDatabaseCount('dataset_relationships', 2);
+        $this->assertEquals('Active', DatasetRecord::where('dataset_id', $tables[0]->id)->first()->values['status']);
+        $this->assertEquals('Under_Maintenance', DatasetRecord::where('dataset_id', $tables[1]->id)->first()->values['status']);
+    }
+
+    public function test_existing_operational_dataset_can_be_updated_from_excel(): void
+    {
+        $this->import("Asset_ID,status,daily_flow
+W_01,Active,20
+")->assertRedirect();
+
+        $supporting = Dataset::where('name', 'test_operational_layer_operations')->firstOrFail();
+
+        $preview = $this->actingAs($this->admin)->post(route('datasets.operational-import.update.preview', $supporting), [
+            'file' => UploadedFile::fake()->createWithContent(
+                'operations-update.csv',
+                "Asset_ID,status,daily_flow
+W_01,Under_Maintenance,35.5
+",
+                'text/csv'
+            ),
+        ]);
+        $preview->assertOk();
+        preg_match('/name="token" value="([^"]+)"/', $preview->getContent(), $matches);
+        $this->assertNotEmpty($matches[1]);
+
+        $response = $this->actingAs($this->admin)->post(
+            route('datasets.operational-import.update.confirm', $supporting),
+            [
+                'token' => $matches[1],
+                'match_source_column' => 'Asset_ID',
+                'import_columns' => [
+                    'Asset_ID' => '1',
+                    'status' => '1',
+                    'daily_flow' => '1',
+                ],
+            ]
+        );
+
+        $response->assertRedirect(route('datasets.show', $supporting));
+        $child = DatasetRecord::where('dataset_id', $supporting->id)->firstOrFail();
+        $this->assertSame('Under_Maintenance', $child->values['status']);
+        $this->assertEquals(35.5, (float) $child->values['daily_flow']);
+        $this->assertDatabaseHas('dataset_imports', [
+            'dataset_id' => $supporting->id,
+            'status' => 'completed',
+            'successful_rows' => 1,
+            'failed_rows' => 0,
+        ]);
+    }
+
+    public function test_operational_relationship_can_be_unlinked_without_deleting_data(): void
+    {
+        $this->import("Asset_ID,status,daily_flow
+W_01,Active,20
+")->assertRedirect();
+
+        $supporting = Dataset::where('name', 'test_operational_layer_operations')->firstOrFail();
+        $relationship = DatasetRelationship::where('child_dataset_id', $supporting->id)->firstOrFail();
+
+        $response = $this->actingAs($this->admin)->delete(
+            route('datasets.operational-relationships.unlink', [$this->dataset, $relationship])
+        );
+
+        $response->assertRedirect();
+        $this->assertDatabaseMissing('dataset_relationships', ['id' => $relationship->id]);
+        $this->assertDatabaseHas('datasets', ['id' => $supporting->id]);
+        $this->assertDatabaseHas('dataset_records', ['dataset_id' => $supporting->id]);
+    }
+
+    public function test_operational_dataset_can_be_deleted_with_its_data(): void
+    {
+        $this->import("Asset_ID,status,daily_flow
+W_01,Active,20
+")->assertRedirect();
+
+        $supporting = Dataset::where('name', 'test_operational_layer_operations')->firstOrFail();
+
+        $response = $this->actingAs($this->admin)->delete(route('datasets.destroy', $supporting));
+
+        $response->assertRedirect(route('datasets.index'));
+        $this->assertDatabaseMissing('datasets', ['id' => $supporting->id]);
+        $this->assertDatabaseMissing('dataset_records', ['dataset_id' => $supporting->id]);
+        $this->assertDatabaseMissing('dataset_relationships', ['child_dataset_id' => $supporting->id]);
     }
 
     public function test_operational_import_does_not_create_supporting_record_for_missing_parent(): void
