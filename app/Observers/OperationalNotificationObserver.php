@@ -67,10 +67,20 @@ class OperationalNotificationObserver
     private function sendAfterCommit(int $userId, string $title, string $body, string $type, int $entityId): void
     {
         DB::afterCommit(function () use ($userId, $title, $body, $type, $entityId): void {
-            app(FcmService::class)->sendToUser($userId, $title, $body, [
-                'type' => $type,
-                'entity_id' => (string) $entityId,
-            ]);
+            try {
+                app(FcmService::class)->sendToUser($userId, $title, $body, [
+                    'type' => $type,
+                    'entity_id' => (string) $entityId,
+                ]);
+            } catch (\\Throwable $e) {
+                // Notification delivery must never turn a successful operational update into HTTP 500.
+                \\Log::warning('Operational notification delivery failed.', [
+                    'user_id' => $userId,
+                    'type' => $type,
+                    'entity_id' => $entityId,
+                    'message' => $e->getMessage(),
+                ]);
+            }
         });
     }
 }
