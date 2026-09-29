@@ -12,6 +12,14 @@ class UpdateDatasetRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'geometry_type' => $this->input('geometry_type') === '' ? null : $this->input('geometry_type'),
+            'srid' => $this->input('srid') === '' ? null : $this->input('srid'),
+        ]);
+    }
+
     public function rules(): array
     {
         return [
