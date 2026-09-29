@@ -638,7 +638,9 @@ class OperationalDataImportWebController extends Controller
         }
 
         if ($values === []) return 'string';
-        if (collect($values)->every(fn ($v) => filter_var($v, FILTER_VALIDATE_INT) !== false)) return 'integer';
+        // Operational numeric columns must remain able to accept fractional values
+        // on later Excel updates. Treat numeric source data as decimal instead of locking
+        // the field to integer based only on the first uploaded file.
         if (collect($values)->every(fn ($v) => is_numeric($v))) return 'decimal';
         if (collect($values)->every(fn ($v) => in_array(strtolower($v), ['true','false','yes','no','1','0'], true))) return 'boolean';
 
