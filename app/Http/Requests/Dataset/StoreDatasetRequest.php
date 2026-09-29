@@ -15,7 +15,7 @@ class StoreDatasetRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255', 'unique:datasets,name', 'regex:/^[a-zA-Z0-9_]+$/'],
+            'name' => ['required', 'string', 'max:255', 'unique:datasets,name'],
             'display_name' => ['required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'dataset_type' => ['required', Rule::in(['official_layer', 'additional_table'])],
