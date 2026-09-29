@@ -48,12 +48,20 @@
 
         /* Sidebar is on the right in RTL. Keep the tools on the left. */
         .map-page .map-tool-dock {
-            inset-inline-start: 16px !important;
-            inset-inline-end: auto !important;
+            left: 16px !important;
+            right: auto !important;
+        }
+
+        .map-page #sidebar {
+            right: 0 !important;
+            left: auto !important;
+            transform: translateX(0) !important;
+            z-index: 1200 !important;
         }
 
         .map-page .map-legend {
-            inset-inline-end: 16px !important;
+            left: 16px !important;
+            right: auto !important;
         }
 
         @media (max-width: 1023px) {
@@ -73,7 +81,8 @@
             }
 
             .map-page .map-tool-dock {
-                inset-inline: 10px !important;
+                left: 10px !important;
+                right: 10px !important;
                 width: auto !important;
                 max-width: none !important;
                 max-height: calc(100% - 20px) !important;
