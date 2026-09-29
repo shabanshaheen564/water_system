@@ -166,7 +166,7 @@
     .map-tool-actions{
         position:absolute!important;
         left:16px!important;
-        bottom:72px!important;
+        bottom:124px!important;
         display:flex!important;
         gap:7px!important;
         margin:0!important;
@@ -183,7 +183,7 @@
     .map-stats{
         position:absolute!important;
         left:16px!important;
-        bottom:16px!important;
+        bottom:68px!important;
         width:190px!important;
         margin:0!important;
         padding:8px!important;
@@ -211,8 +211,8 @@
         #map-tool-editing{top:192px!important;left:12px!important}
         #map-tool-filters{top:192px!important;left:12px!important}
         .map-tool-section{max-height:calc(100% - 140px)!important;overflow-y:auto!important}
-        .map-tool-actions{left:12px!important;bottom:58px!important}
-        .map-stats{left:12px!important;bottom:10px!important;width:180px!important}
+        .map-tool-actions{left:12px!important;bottom:108px!important}
+        .map-stats{left:12px!important;bottom:58px!important;width:180px!important}
     }
 </style>
 
