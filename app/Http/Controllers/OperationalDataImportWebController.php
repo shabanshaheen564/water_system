@@ -218,16 +218,32 @@ class OperationalDataImportWebController extends Controller
                             // observers/audit trail remain active.
                             $mergedValues = array_replace($childRecord->values ?? [], $values);
 
-                            $childRecord->values = $mergedValues;
-                            $childRecord->identifier_value = $matchValue;
-                            $childRecord->updated_by = $userId;
-                            $childRecord->save();
+                            // Persist the complete JSON document directly. This avoids any
+                            // ambiguity around dirty-state detection for the JSON/JSONB
+                            // attribute while keeping the update scoped to this exact record.
+                            $affected = DB::table('dataset_records')
+                                ->where('id', $childRecord->id)
+                                ->where('dataset_id', $dataset->id)
+                                ->update([
+                                    'values' => json_encode($mergedValues, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                                    'identifier_value' => $matchValue,
+                                    'updated_by' => $userId,
+                                    'updated_at' => now(),
+                                ]);
 
-                            // Reload the persisted state and fail the row if the requested
-                            // update was not actually stored. This prevents a successful
-                            // import from being reported when the database still contains
-                            // stale operational values.
+                            if ($affected !== 1) {
+                                throw new \RuntimeException('تعذر تحديث السجل التشغيلي الموجود.');
+                            }
+
                             $childRecord->refresh();
+
+                            // Verify the persisted database state before counting this row
+                            // as updated.
+                            foreach ($values as $fieldName => $newValue) {
+                                if ((($childRecord->values ?? [])[$fieldName] ?? null) !== $newValue) {
+                                    throw new \RuntimeException("تعذر حفظ الحقل التشغيلي: {$fieldName}");
+                                }
+                            }
 
                             foreach ($values as $fieldName => $newValue) {
                                 if ((($childRecord->values ?? [])[$fieldName] ?? null) !== $newValue) {
