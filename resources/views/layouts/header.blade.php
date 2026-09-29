@@ -1,4 +1,4 @@
-<header class="fixed inset-x-0 top-0 z-[1100] h-16 border-b border-border bg-white">
+<header class="fixed inset-x-0 top-0 z-[1100] h-16 border-b border-border bg-white lg:end-64">
     <div class="flex h-full items-center justify-between px-4 sm:px-6 lg:px-8">
         <div class="flex items-center gap-3">
             <button id="sidebar-toggle" class="rounded-md p-2 text-ink-secondary hover:bg-surface-1 lg:hidden" aria-label="{{ __('messages.ui.open_menu') }}" aria-expanded="false" aria-controls="sidebar">
