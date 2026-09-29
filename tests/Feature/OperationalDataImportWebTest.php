@@ -107,7 +107,7 @@ class OperationalDataImportWebTest extends TestCase
         ]);
 
         $child = DatasetRecord::where('dataset_id', $supporting->id)->firstOrFail();
-        $this->assertSame('W_01', $child->values['asset_id']);
+        $this->assertSame('W_01', $child->values['Asset_ID']);
         $this->assertSame('Under_Maintenance', $child->values['status']);
         $this->assertEquals(25.75, (float) $child->values['daily_flow']);
 
