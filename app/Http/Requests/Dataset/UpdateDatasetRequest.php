@@ -38,7 +38,7 @@ class UpdateDatasetRequest extends FormRequest
             'source_format' => ['sometimes', 'nullable', 'string', 'max:50'],
             'is_active' => ['boolean'],
             'is_spatial' => ['boolean'],
-            'geometry_type' => ['sometimes', Rule::in(config('gis.geometry_types'))],
+            'geometry_type' => ['sometimes', 'nullable', Rule::in(config('gis.geometry_types'))],
             'srid' => ['sometimes', 'nullable', 'integer', Rule::exists('spatial_ref_sys', 'srid')],
             'map_order' => ['sometimes', 'integer', 'min:0', 'max:999999'],
             'default_visible' => ['sometimes', 'boolean'],
