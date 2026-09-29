@@ -113,7 +113,7 @@ class OperationalDataImportWebTest extends TestCase
         $this->assertEquals(25.75, (float) $child->values['daily_flow']);
 
         $this->assertSame($beforeFeatureCount, DB::table('gis_features')->where('dataset_id', $this->dataset->id)->count());
-        $this->assertDatabaseHas('dataset_imports', ['dataset_id' => $this->dataset->id, 'status' => 'completed', 'successful_rows' => 1, 'failed_rows' => 0]);
+        $this->assertDatabaseHas('dataset_imports', ['dataset_id' => $supporting->id, 'status' => 'completed', 'successful_rows' => 1, 'failed_rows' => 0]);
     }
 
     public function test_each_excel_import_creates_a_separate_operational_dataset(): void
@@ -229,7 +229,7 @@ W_01,Active,20
         $supporting = Dataset::where('name', 'test_operational_layer_operational_data')->firstOrFail();
         $this->assertSame(0, DatasetRecord::where('dataset_id', $supporting->id)->count());
         $this->assertSame(1, DatasetRecord::where('dataset_id', $this->dataset->id)->count());
-        $this->assertDatabaseHas('dataset_imports', ['dataset_id' => $this->dataset->id, 'status' => 'failed', 'successful_rows' => 0, 'failed_rows' => 1]);
+        $this->assertDatabaseHas('dataset_imports', ['dataset_id' => $supporting->id, 'status' => 'failed', 'successful_rows' => 0, 'failed_rows' => 1]);
     }
 
     public function test_user_without_update_permission_cannot_import_operational_data(): void
