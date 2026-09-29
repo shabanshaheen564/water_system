@@ -116,6 +116,45 @@ class OperationalDataImportWebTest extends TestCase
         $this->assertDatabaseHas('dataset_imports', ['dataset_id' => $supporting->id, 'status' => 'completed', 'successful_rows' => 1, 'failed_rows' => 0]);
     }
 
+    public function test_operational_import_preserves_arabic_excel_filename_as_dataset_name(): void
+    {
+        $response = $this->actingAs($this->admin)->post(
+            route('datasets.operational-import.preview', $this->dataset),
+            [
+                'file' => UploadedFile::fake()->createWithContent(
+                    'حالة آبار المياه.csv',
+                    "Asset_ID,status,daily_flow\nW_01,Active,20\n",
+                    'text/csv'
+                ),
+            ]
+        );
+
+        $response->assertOk();
+        preg_match('/name="token" value="([^"]+)"/', $response->getContent(), $matches);
+        $this->assertNotEmpty($matches[1]);
+
+        $response = $this->actingAs($this->admin)->post(
+            route('datasets.operational-import.confirm', $this->dataset),
+            [
+                'token' => $matches[1],
+                'match_source_column' => 'Asset_ID',
+                'import_columns' => [
+                    'Asset_ID' => '1',
+                    'status' => '1',
+                    'daily_flow' => '1',
+                ],
+            ]
+        );
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('datasets', [
+            'name' => 'حالة آبار المياه',
+            'display_name' => 'حالة آبار المياه',
+            'dataset_type' => 'additional_table',
+            'management_mode' => 'operational',
+        ]);
+    }
+
     public function test_each_excel_import_creates_a_separate_operational_dataset(): void
     {
         $first = $this->import("Asset_ID,status,daily_flow
