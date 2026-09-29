@@ -36,6 +36,221 @@ class OperationalDataImportWebController extends Controller
         return view('datasets.operational-import', compact('dataset', 'identifierField'));
     }
 
+    public function updateCreate(Dataset $dataset): IlluminateViewView|RedirectResponse
+    {
+        $relationship = $this->operationalRelationship($dataset);
+
+        if (!$relationship) {
+            return redirect()->route('datasets.show', $dataset)
+                ->withErrors(['import' => 'هذه المجموعة ليست جدولاً تشغيلياً مرتبطاً بطبقة أساسية.']);
+        }
+
+        return view('datasets.operational-update-import', [
+            'dataset' => $dataset,
+            'relationship' => $relationship,
+            'parentDataset' => $relationship->parentDataset,
+            'identifierField' => $relationship->parentField,
+        ]);
+    }
+
+    public function updatePreview(Request $request, Dataset $dataset): IlluminateViewView|RedirectResponse
+    {
+        $relationship = $this->operationalRelationship($dataset);
+
+        if (!$relationship) {
+            return redirect()->route('datasets.show', $dataset)
+                ->withErrors(['import' => 'لا توجد علاقة تشغيلية صالحة لهذا الجدول.']);
+        }
+
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,xls,xlsx,xlsm,xlt,xltx', 'max:51200'],
+        ]);
+
+        $file = $request->file('file');
+        $extension = strtolower($file->getClientOriginalExtension());
+        $token = (string) Str::uuid();
+        $relativePath = 'operational-imports/'.$token.'.'.$extension;
+        $file->storeAs('operational-imports', $token.'.'.$extension, 'local');
+
+        try {
+            $headers = $this->parseHeaders(Storage::disk('local')->path($relativePath), $extension);
+            if ($headers === [] || in_array('', $headers, true) || count($headers) !== count(array_unique($headers))) {
+                throw new RuntimeException('ملف الاستيراد يحتوي على عناوين أعمدة فارغة أو مكررة.');
+            }
+
+            session()->put("operational_import_updates.{$token}", [
+                'dataset_id' => $dataset->id,
+                'parent_dataset_id' => $relationship->parent_dataset_id,
+                'relative_path' => $relativePath,
+                'original_filename' => $file->getClientOriginalName(),
+                'extension' => $extension,
+                'headers' => $headers,
+            ]);
+
+            return view('datasets.operational-update-import-mapping', [
+                'dataset' => $dataset,
+                'parentDataset' => $relationship->parentDataset,
+                'identifierField' => $relationship->parentField,
+                'childField' => $relationship->childField,
+                'headers' => $headers,
+                'token' => $token,
+            ]);
+        } catch (Throwable $e) {
+            Storage::disk('local')->delete($relativePath);
+            return back()->withErrors(['file' => 'تعذر قراءة الملف: '.$e->getMessage()]);
+        }
+    }
+
+    public function updateConfirm(Request $request, Dataset $dataset): RedirectResponse
+    {
+        $relationship = $this->operationalRelationship($dataset);
+
+        if (!$relationship) {
+            return redirect()->route('datasets.show', $dataset)
+                ->withErrors(['import' => 'لا توجد علاقة تشغيلية صالحة لهذا الجدول.']);
+        }
+
+        $validated = $request->validate([
+            'token' => ['required', 'uuid'],
+            'match_source_column' => ['required', 'string', 'max:100'],
+            'import_columns' => ['sometimes', 'array'],
+            'import_columns.*' => ['nullable', 'boolean'],
+        ]);
+
+        $state = session()->get("operational_import_updates.{$validated['token']}");
+        abort_unless($state && (int) $state['dataset_id'] === (int) $dataset->id, 404);
+
+        if (!in_array($validated['match_source_column'], $state['headers'], true)) {
+            return back()->withErrors(['match_source_column' => 'عمود المطابقة غير موجود في الملف.'])->withInput();
+        }
+
+        $selectedColumns = [];
+        foreach ($state['headers'] as $header) {
+            if ($header === $validated['match_source_column'] || !empty($validated['import_columns'][$header])) {
+                $selectedColumns[] = $header;
+            }
+        }
+
+        $userId = $request->user()->id;
+        $import = DatasetImport::create([
+            'dataset_id' => $dataset->id,
+            'original_filename' => $state['original_filename'],
+            'source_format' => $state['extension'],
+            'imported_by' => $userId,
+            'started_at' => now(),
+            'status' => 'processing',
+            'total_rows' => 0,
+            'successful_rows' => 0,
+            'failed_rows' => 0,
+        ]);
+
+        try {
+            $result = DB::transaction(function () use ($dataset, $relationship, $state, $validated, $selectedColumns, $import, $userId) {
+                $rows = $this->parseRows(Storage::disk('local')->path($state['relative_path']), $state['extension']);
+                $import->update(['total_rows' => count($rows)]);
+
+                $parentDataset = $relationship->parentDataset;
+                $identifierField = $relationship->parentField;
+                $childFields = $this->ensureSupportingFields(
+                    $dataset,
+                    $selectedColumns,
+                    $validated['match_source_column'],
+                    $identifierField,
+                    $rows
+                );
+
+                $successful = 0;
+                $created = 0;
+                $updated = 0;
+                $failed = 0;
+                $errors = [];
+
+                foreach ($rows as $rowInfo) {
+                    $rowNumber = $rowInfo['row'];
+                    $row = $rowInfo['data'];
+
+                    try {
+                        $matchValue = trim((string) ($row[$validated['match_source_column']] ?? ''));
+                        if ($matchValue === '') {
+                            throw new RuntimeException('قيمة الربط فارغة.');
+                        }
+
+                        $parentRecord = DatasetRecord::where('dataset_id', $parentDataset->id)
+                            ->whereRaw("values->>? = ?", [$identifierField->name, $matchValue])
+                            ->first();
+
+                        if (!$parentRecord) {
+                            throw new RuntimeException("لم يتم العثور على سجل في الطبقة الأساسية للقيمة: {$matchValue}");
+                        }
+
+                        $values = [];
+                        foreach ($selectedColumns as $sourceColumn) {
+                            $field = $childFields[$sourceColumn];
+                            $values[$field->name] = $this->castValue($row[$sourceColumn] ?? null, $field->data_type);
+                        }
+
+                        $childField = $childFields[$validated['match_source_column']];
+                        $childRecord = DatasetRecord::where('dataset_id', $dataset->id)
+                            ->whereRaw("values->>? = ?", [$childField->name, $matchValue])
+                            ->first();
+
+                        if ($childRecord) {
+                            $childRecord->update([
+                                'values' => array_merge($childRecord->values ?? [], $values),
+                                'identifier_value' => $matchValue,
+                                'updated_by' => $userId,
+                            ]);
+                            ++$updated;
+                        } else {
+                            DatasetRecord::create([
+                                'dataset_id' => $dataset->id,
+                                'values' => $values,
+                                'identifier_value' => $matchValue,
+                                'created_by' => $userId,
+                            ]);
+                            ++$created;
+                        }
+
+                        ++$successful;
+                    } catch (Throwable $e) {
+                        ++$failed;
+                        $errors[] = ['row' => $rowNumber, 'error' => $e->getMessage()];
+                    }
+                }
+
+                $status = match (true) {
+                    $successful > 0 && $failed > 0 => 'partial',
+                    $successful > 0 => 'completed',
+                    default => 'failed',
+                };
+
+                $import->update([
+                    'status' => $status,
+                    'successful_rows' => $successful,
+                    'failed_rows' => $failed,
+                    'completed_at' => now(),
+                    'error_summary' => $errors ? array_slice($errors, 0, 50) : null,
+                ]);
+
+                return [$successful, $created, $updated, $failed];
+            });
+
+            session()->forget("operational_import_updates.{$validated['token']}");
+            Storage::disk('local')->delete($state['relative_path']);
+
+            return redirect()->route('datasets.show', $dataset)
+                ->with('success', "تم تحديث الجدول «{$dataset->name}». تمت معالجة {$result[0]} سجل: {$result[1]} جديد، {$result[2]} محدث، وفشل {$result[3]}.");
+        } catch (Throwable $e) {
+            $import->update([
+                'status' => 'failed',
+                'completed_at' => now(),
+                'error_summary' => [['error' => $e->getMessage()]],
+            ]);
+
+            return back()->withErrors(['import' => 'فشل تحديث البيانات التشغيلية: '.$e->getMessage()])->withInput();
+        }
+    }
+
     public function preview(Request $request, Dataset $dataset): \Illuminate\View\View|RedirectResponse
     {
         $this->ensureSpatial($dataset);
@@ -179,7 +394,7 @@ class OperationalDataImportWebController extends Controller
                         DatasetRecord::create([
                             'dataset_id' => $supportingDataset->id,
                             'values' => $values,
-                            'identifier_value' => null,
+                            'identifier_value' => $matchValue,
                             'created_by' => $userId,
                         ]);
 
@@ -225,50 +440,36 @@ class OperationalDataImportWebController extends Controller
 
     private function getOrCreateSupportingDataset(Dataset $parent, string $filename, string $extension, int $userId): Dataset
     {
-        $baseName = Str::snake($parent->name.'_operational_data');
+        $fileBase = pathinfo($filename, PATHINFO_FILENAME);
+        $baseName = Str::snake(Str::ascii($fileBase));
         $baseName = preg_replace('/[^a-zA-Z0-9_]/', '_', $baseName) ?: 'operational_data';
-        $baseName = trim($baseName, '_');
+        $baseName = trim($baseName, '_') ?: 'operational_data';
 
         $candidate = $baseName;
         $counter = 2;
 
-        while (true) {
-            $existing = Dataset::where('name', $candidate)->first();
-            if (!$existing) {
-                return Dataset::create([
-                    'name' => $candidate,
-                    'display_name' => $parent->display_name.' — البيانات التشغيلية',
-                    'description' => 'جدول داعم للبيانات التشغيلية المرتبطة بطبقة '.$parent->display_name,
-                    'dataset_type' => 'additional_table',
-                    'management_mode' => 'operational',
-                    'source_name' => $filename,
-                    'source_format' => $extension,
-                    'is_active' => true,
-                    'is_spatial' => false,
-                    'geometry_type' => null,
-                    'srid' => null,
-                    'map_order' => 0,
-                    'default_visible' => false,
-                    'map_opacity' => 1,
-                    'display_color' => '#475467',
-                    'created_by' => $userId,
-                ]);
-            }
-
-            $linked = DatasetRelationship::where('parent_dataset_id', $parent->id)
-                ->where('child_dataset_id', $existing->id)
-                ->exists();
-
-            if ($linked) {
-                $existing->update([
-                    'source_name' => $filename,
-                    'source_format' => $extension,
-                ]);
-                return $existing;
-            }
-
+        while (Dataset::where('name', $candidate)->exists()) {
             $candidate = $baseName.'_'.$counter++;
         }
+
+        return Dataset::create([
+            'name' => $candidate,
+            'display_name' => $fileBase ?: $candidate,
+            'description' => 'جدول داعم للبيانات التشغيلية المرتبطة بطبقة '.$parent->display_name.' — مصدر الملف: '.$filename,
+            'dataset_type' => 'additional_table',
+            'management_mode' => 'operational',
+            'source_name' => $filename,
+            'source_format' => $extension,
+            'is_active' => true,
+            'is_spatial' => false,
+            'geometry_type' => null,
+            'srid' => null,
+            'map_order' => 0,
+            'default_visible' => false,
+            'map_opacity' => 1,
+            'display_color' => '#475467',
+            'created_by' => $userId,
+        ]);
     }
 
     private function ensureSupportingFields(Dataset $supportingDataset, array $headers, string $matchSourceColumn, DatasetField $parentIdentifierField, array $rows): array
@@ -353,6 +554,17 @@ class OperationalDataImportWebController extends Controller
         }
 
         return 'string';
+    }
+
+    private function operationalRelationship(Dataset $dataset): ?DatasetRelationship
+    {
+        if ($dataset->dataset_type !== 'additional_table' || $dataset->management_mode !== 'operational') {
+            return null;
+        }
+
+        return $dataset->childRelationships()
+            ->with(['parentDataset', 'parentField', 'childField'])
+            ->first();
     }
 
     private function ensureSpatial(Dataset $dataset): void
