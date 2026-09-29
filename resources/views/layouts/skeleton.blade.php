@@ -7,8 +7,8 @@
     <title>{{ config('app.name') }} — {{ $title ?? __('messages.navigation.dashboard') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        /* The application shell owns the page geometry. The map is the only
-           page that is allowed to fill the remaining viewport below the header. */
+        /* Stable map shell: header and right sidebar own the viewport edges;
+           the map occupies only the remaining rectangle. */
         .map-page {
             overflow: hidden;
         }
@@ -16,8 +16,8 @@
         .map-page .main-content {
             position: fixed;
             top: 4rem;
-            right: 0;
-            left: 16rem;
+            right: 16rem;
+            left: 0;
             bottom: 0;
             width: auto;
             height: auto;
@@ -46,11 +46,10 @@
             display: none;
         }
 
-        /* The application sidebar is on the RIGHT in RTL. Map controls live
-           on the LEFT so they never overlap the sidebar. */
+        /* Sidebar is on the right in RTL. Keep the tools on the left. */
         .map-page .map-tool-dock {
-            inset-inline-start: auto !important;
-            inset-inline-end: 16px !important;
+            inset-inline-start: 16px !important;
+            inset-inline-end: auto !important;
         }
 
         .map-page .map-legend {
@@ -67,11 +66,7 @@
                 height: auto;
             }
 
-            .map-page .map-shell {
-                height: 100% !important;
-                min-height: 0 !important;
-            }
-
+            .map-page .map-shell,
             .map-page #map {
                 height: 100% !important;
                 min-height: 0 !important;
