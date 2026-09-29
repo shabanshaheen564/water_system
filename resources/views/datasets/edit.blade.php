@@ -16,9 +16,9 @@
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <label for="name" class="mb-1 block text-sm font-medium text-ink">{{ __('Name') }}</label>
-                        <input type="text" name="name" id="name" value="{{ old('name', $dataset->name) }}" required {{ $dataset->dataset_type === 'additional_table' ? '' : 'readonly' }} class="input-institutional mt-1 block w-full text-sm {{ $dataset->dataset_type === 'additional_table' ? 'outline-none focus:border-brand-600' : 'bg-surface-1 text-ink-muted' }}" pattern="[A-Za-z0-9_]+" maxlength="255">
+                        <input type="text" name="name" id="name" value="{{ old('name', $dataset->name) }}" required {{ $dataset->dataset_type === 'additional_table' ? '' : 'readonly' }} class="input-institutional mt-1 block w-full text-sm {{ $dataset->dataset_type === 'additional_table' ? 'outline-none focus:border-brand-600' : 'bg-surface-1 text-ink-muted' }}" maxlength="255">
                         @if($dataset->dataset_type === 'additional_table')
-                            <p class="mt-1 text-xs text-ink-muted">يمكن تغيير الاسم الفني لجدول البيانات الإضافية، باستخدام الأحرف الإنجليزية والأرقام والشرطة السفلية فقط.</p>
+                            <p class="mt-1 text-xs text-ink-muted">يمكن تغيير اسم جدول البيانات الإضافية باللغة العربية أو الإنجليزية، مع الاحتفاظ بالاسم كما هو دون تحويله إلى اسم فني آخر.</p>
                         @else
                             <p class="mt-1 text-xs text-ink-muted">{{ __('Dataset name cannot be changed') }}</p>
                         @endif
