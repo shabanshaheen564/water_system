@@ -134,12 +134,12 @@
     .map-tool-label,.map-tool-chevron{display:none!important}
 
     /* Top row */
-    .map-tool-trigger[data-map-tool="search"]{top:16px!important;left:16px!important}
-    .map-tool-trigger[data-map-tool="gis"]{top:16px!important;left:74px!important}
-    .map-tool-trigger[data-map-tool="analysis"]{top:16px!important;left:132px!important}
-    .map-tool-trigger[data-map-tool="layers"]{top:16px!important;left:190px!important}
-    .map-tool-trigger[data-map-tool="editing"]{top:16px!important;left:248px!important}
-    .map-tool-trigger[data-map-tool="filters"]{top:16px!important;left:306px!important}
+    .map-tool-trigger[data-map-tool="search"]{top:80px!important;left:16px!important}
+    .map-tool-trigger[data-map-tool="gis"]{top:80px!important;left:74px!important}
+    .map-tool-trigger[data-map-tool="analysis"]{top:80px!important;left:132px!important}
+    .map-tool-trigger[data-map-tool="layers"]{top:80px!important;left:190px!important}
+    .map-tool-trigger[data-map-tool="editing"]{top:80px!important;left:248px!important}
+    .map-tool-trigger[data-map-tool="filters"]{top:80px!important;left:306px!important}
 
     /* Open panels sit directly below their button */
     .map-tool-section{
@@ -156,12 +156,12 @@
         z-index:1009!important;
     }
     .map-tool-section.open{display:block!important}
-    #map-tool-search{top:72px!important;left:16px!important}
-    #map-tool-gis{top:72px!important;left:74px!important}
-    #map-tool-analysis{top:72px!important;left:132px!important}
-    #map-tool-layers{top:72px!important;left:190px!important}
-    #map-tool-editing{top:72px!important;left:248px!important}
-    #map-tool-filters{top:72px!important;left:306px!important}
+    #map-tool-search{top:136px!important;left:16px!important}
+    #map-tool-gis{top:136px!important;left:74px!important}
+    #map-tool-analysis{top:136px!important;left:132px!important}
+    #map-tool-layers{top:136px!important;left:190px!important}
+    #map-tool-editing{top:136px!important;left:248px!important}
+    #map-tool-filters{top:136px!important;left:306px!important}
 
     .map-tool-actions{
         position:absolute!important;
@@ -198,18 +198,18 @@
 
     @media(max-width:1023px){
         .map-tool-trigger{width:44px!important;height:44px!important;min-height:44px!important}
-        .map-tool-trigger[data-map-tool="search"]{top:12px!important;left:12px!important}
-        .map-tool-trigger[data-map-tool="gis"]{top:12px!important;left:64px!important}
-        .map-tool-trigger[data-map-tool="analysis"]{top:12px!important;left:116px!important}
-        .map-tool-trigger[data-map-tool="layers"]{top:64px!important;left:12px!important}
-        .map-tool-trigger[data-map-tool="editing"]{top:64px!important;left:64px!important}
-        .map-tool-trigger[data-map-tool="filters"]{top:64px!important;left:116px!important}
-        #map-tool-search{top:64px!important;left:12px!important}
-        #map-tool-gis{top:64px!important;left:12px!important}
-        #map-tool-analysis{top:116px!important;left:12px!important}
-        #map-tool-layers{top:116px!important;left:12px!important}
-        #map-tool-editing{top:116px!important;left:12px!important}
-        #map-tool-filters{top:116px!important;left:12px!important}
+        .map-tool-trigger[data-map-tool="search"]{top:76px!important;left:12px!important}
+        .map-tool-trigger[data-map-tool="gis"]{top:76px!important;left:64px!important}
+        .map-tool-trigger[data-map-tool="analysis"]{top:76px!important;left:116px!important}
+        .map-tool-trigger[data-map-tool="layers"]{top:128px!important;left:12px!important}
+        .map-tool-trigger[data-map-tool="editing"]{top:128px!important;left:64px!important}
+        .map-tool-trigger[data-map-tool="filters"]{top:128px!important;left:116px!important}
+        #map-tool-search{top:128px!important;left:12px!important}
+        #map-tool-gis{top:128px!important;left:12px!important}
+        #map-tool-analysis{top:192px!important;left:12px!important}
+        #map-tool-layers{top:192px!important;left:12px!important}
+        #map-tool-editing{top:192px!important;left:12px!important}
+        #map-tool-filters{top:192px!important;left:12px!important}
         .map-tool-section{max-height:calc(100% - 140px)!important;overflow-y:auto!important}
         .map-tool-actions{left:12px!important;bottom:58px!important}
         .map-stats{left:12px!important;bottom:10px!important;width:180px!important}
