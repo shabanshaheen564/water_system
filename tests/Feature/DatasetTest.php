@@ -245,6 +245,53 @@ class DatasetTest extends TestCase
         $response->assertStatus(404);
     }
 
+    public function test_can_rename_additional_table_dataset(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'excel_operational_data',
+            'display_name' => 'Excel Operational Data',
+            'dataset_type' => 'additional_table',
+            'management_mode' => 'operational',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->putJson("/api/datasets/{$dataset->id}", [
+            'name' => 'well_operational_status',
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertEquals('well_operational_status', $response->json('name'));
+        $this->assertDatabaseHas('datasets', [
+            'id' => $dataset->id,
+            'name' => 'well_operational_status',
+        ]);
+    }
+
+    public function test_cannot_rename_official_layer_dataset(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'official_wells',
+            'display_name' => 'Official Wells',
+            'dataset_type' => 'official_layer',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->adminToken,
+        ])->putJson("/api/datasets/{$dataset->id}", [
+            'name' => 'renamed_official_wells',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['name']);
+        $this->assertDatabaseHas('datasets', [
+            'id' => $dataset->id,
+            'name' => 'official_wells',
+        ]);
+    }
+
     public function test_user_with_update_permission_can_update_dataset(): void
     {
         $dataset = Dataset::create([
