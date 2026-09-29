@@ -226,7 +226,7 @@ W_01,Active,20
         $response = $this->import("Asset_ID,status,daily_flow\nW_99,Active,40\n");
         $response->assertRedirect(route('datasets.show', $this->dataset));
 
-        $supporting = Dataset::where('name', 'test_operational_layer_operational_data')->firstOrFail();
+        $supporting = Dataset::where('name', 'test_operational_layer_operations')->firstOrFail();
         $this->assertSame(0, DatasetRecord::where('dataset_id', $supporting->id)->count());
         $this->assertSame(1, DatasetRecord::where('dataset_id', $this->dataset->id)->count());
         $this->assertDatabaseHas('dataset_imports', ['dataset_id' => $supporting->id, 'status' => 'failed', 'successful_rows' => 0, 'failed_rows' => 1]);
