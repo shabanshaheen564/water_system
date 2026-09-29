@@ -201,20 +201,45 @@ class OperationalDataImportWebController extends Controller
                             $values[$field->name] = $this->castValue($row[$sourceColumn] ?? null, $field->data_type);
                         }
 
-                        $childField = $childFields[$validated['match_source_column']];
+                        // The relationship field is authoritative. The field returned by
+                        // ensureSupportingFields() must not redefine which column represents
+                        // the relationship key during an update.
+                        $childField = $relationship->childField;
 
-                        // The operational key is the relationship's child field. Treat
-                        // identifier_value as a denormalized lookup/cache only; older
-                        // imports may have it empty or stale. Match the actual JSONB
-                        // field first, using normalized text comparison.
+                        // First use the relationship's actual child field in JSONB.
                         $childRecord = DatasetRecord::where('dataset_id', $dataset->id)
                             ->whereRaw("TRIM(COALESCE(values->>?, '')) = ?", [$childField->name, $matchValue])
                             ->first();
 
+                        // Keep identifier_value as a compatibility fallback for records
+                        // created by older imports.
                         if (!$childRecord) {
                             $childRecord = DatasetRecord::where('dataset_id', $dataset->id)
-                                ->where('identifier_value', $matchValue)
+                                ->whereRaw('TRIM(COALESCE(identifier_value, \'\')) = ?', [$matchValue])
                                 ->first();
+                        }
+
+                        // Final compatibility fallback: compare the persisted JSON values
+                        // in PHP. This is intentionally used only when the indexed/JSONB
+                        // lookups did not find a record, and prevents a legitimate existing
+                        // operational row from being silently duplicated because of a legacy
+                        // key representation.
+                        if (!$childRecord) {
+                            $matches = DatasetRecord::where('dataset_id', $dataset->id)
+                                ->get()
+                                ->filter(function (DatasetRecord $record) use ($childField, $matchValue): bool {
+                                    $jsonValue = trim((string) (($record->values ?? [])[$childField->name] ?? ''));
+                                    $identifierValue = trim((string) $record->identifier_value);
+
+                                    return $jsonValue === $matchValue || $identifierValue === $matchValue;
+                                })
+                                ->values();
+
+                            if ($matches->count() > 1) {
+                                throw new \RuntimeException("يوجد أكثر من سجل تشغيلي بنفس مفتاح الربط: {$matchValue}");
+                            }
+
+                            $childRecord = $matches->first();
                         }
 
                         if ($childRecord) {
@@ -244,12 +269,6 @@ class OperationalDataImportWebController extends Controller
 
                             // Verify the persisted database state before counting this row
                             // as updated.
-                            foreach ($values as $fieldName => $newValue) {
-                                if ((($childRecord->values ?? [])[$fieldName] ?? null) !== $newValue) {
-                                    throw new \RuntimeException("تعذر حفظ الحقل التشغيلي: {$fieldName}");
-                                }
-                            }
-
                             foreach ($values as $fieldName => $newValue) {
                                 if ((($childRecord->values ?? [])[$fieldName] ?? null) !== $newValue) {
                                     throw new \RuntimeException("تعذر حفظ الحقل التشغيلي: {$fieldName}");
