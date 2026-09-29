@@ -230,7 +230,7 @@ class OperationalDataImportWebController extends Controller
                             $childRecord->refresh();
 
                             foreach ($values as $fieldName => $newValue) {
-                                if (($childRecord->values ?? [])[$fieldName] ?? null !== $newValue) {
+                                if ((($childRecord->values ?? [])[$fieldName] ?? null) !== $newValue) {
                                     throw new \RuntimeException("تعذر حفظ الحقل التشغيلي: {$fieldName}");
                                 }
                             }
