@@ -201,58 +201,18 @@ class OperationalDataImportWebController extends Controller
                             $values[$field->name] = $this->castValue($row[$sourceColumn] ?? null, $field->data_type);
                         }
 
-                        // The relationship and the persisted identifier_value form the
-                        // contract for an operational row. Never create a second row merely
-                        // because a legacy import stored the key under a different JSON field.
-                        $childField = $relationship->childField;
                         $sourceField = $childFields[$validated['match_source_column']] ?? null;
-
-                        $candidateFieldNames = collect([
-                            $childField?->name,
-                            $sourceField?->name,
-                        ])->filter()->unique()->values()->all();
-
-                        // Also include fields that explicitly declare the same source column.
-                        // This covers older operational datasets whose field name changed while
-                        // the relationship still points at the original field definition.
-                        $metadataFieldNames = $dataset->fields()
-                            ->get()
-                            ->filter(fn (DatasetField $field) =>
-                                ($field->metadata['source_column'] ?? null) === $validated['match_source_column']
-                            )
-                            ->pluck('name')
-                            ->all();
-
-                        $candidateFieldNames = array_values(array_unique([
-                            ...$candidateFieldNames,
-                            ...$metadataFieldNames,
-                        ]));
-
-                        $records = DatasetRecord::where('dataset_id', $dataset->id)
-                            ->lockForUpdate()
-                            ->get();
-
-                        $matches = $records->filter(function (DatasetRecord $record) use ($matchValue, $candidateFieldNames): bool {
-                            if (trim((string) $record->identifier_value) === $matchValue) {
-                                return true;
-                            }
-
-                            $values = $record->values ?? [];
-
-                            foreach ($candidateFieldNames as $fieldName) {
-                                if (trim((string) ($values[$fieldName] ?? '')) === $matchValue) {
-                                    return true;
-                                }
-                            }
-
-                            return false;
-                        })->values();
-
-                        if ($matches->count() > 1) {
-                            throw new \RuntimeException("يوجد أكثر من سجل تشغيلي بنفس مفتاح الربط: {$matchValue}");
+                        if (!$sourceField) {
+                            throw new \RuntimeException('تعذر تحديد حقل مفتاح الربط في الجدول التشغيلي.');
                         }
 
-                        $childRecord = $matches->first();
+                        $childRecord = $this->findOperationalRecord(
+                            $dataset,
+                            $relationship,
+                            $sourceField,
+                            $validated['match_source_column'],
+                            $matchValue
+                        );
 
                         if ($childRecord) {
                             // Update the existing record through the model attributes so the
