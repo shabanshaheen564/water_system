@@ -211,6 +211,43 @@ class DatasetWebTest extends TestCase
     }
 
     // Dataset Update Tests
+    public function test_authorized_user_can_rename_operational_dataset_to_arabic(): void
+    {
+        $dataset = Dataset::create([
+            'name' => 'water_well_status',
+            'display_name' => 'Water Well Status',
+            'dataset_type' => 'additional_table',
+            'management_mode' => 'operational',
+            'is_spatial' => false,
+            'is_active' => true,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->put('/datasets/' . $dataset->id, [
+                'name' => 'حالة آبار المياه',
+                'display_name' => 'حالة آبار المياه',
+                'description' => '',
+                'dataset_type' => 'additional_table',
+                'management_mode' => 'operational',
+                'source_name' => '',
+                'source_format' => '',
+                'is_active' => '1',
+                'is_spatial' => '0',
+                'geometry_type' => '',
+                'srid' => '',
+                'map_order' => '0',
+                'default_visible' => '1',
+                'map_opacity' => '1',
+                'display_color' => '#475467',
+            ]);
+
+        $response->assertRedirect(route('datasets.index'))
+            ->assertSessionHas('success');
+
+        $this->assertSame('حالة آبار المياه', $dataset->fresh()->name);
+    }
+
     public function test_authorized_user_can_edit_dataset(): void
     {
         $dataset = Dataset::create([
