@@ -341,6 +341,7 @@ class OperationalDataImportWebController extends Controller
                 $import->update(['total_rows' => count($rows)]);
 
                 $supportingDataset = $this->getOrCreateSupportingDataset($dataset, $state['original_filename'], $state['extension'], $userId);
+                $import->update(['dataset_id' => $supportingDataset->id]);
                 $childFields = $this->ensureSupportingFields(
                     $supportingDataset,
                     $selectedColumns,
