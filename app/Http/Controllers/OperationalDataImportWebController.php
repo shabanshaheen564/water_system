@@ -165,6 +165,7 @@ class OperationalDataImportWebController extends Controller
                 $updated = 0;
                 $failed = 0;
                 $errors = [];
+                $seen = [];
 
                 foreach ($rows as $rowInfo) {
                     $rowNumber = $rowInfo['row'];
@@ -175,6 +176,10 @@ class OperationalDataImportWebController extends Controller
                         if ($matchValue === '') {
                             throw new \RuntimeException('قيمة الربط فارغة.');
                         }
+                        if (isset($seen[$matchValue])) {
+                            throw new \RuntimeException("مفتاح الربط مكرر داخل الملف: {$matchValue}");
+                        }
+                        $seen[$matchValue] = true;
 
                         $parentRecord = DatasetRecord::where('dataset_id', $parentDataset->id)
                             ->whereRaw("values->>? = ?", [$identifierField->name, $matchValue])
@@ -378,6 +383,10 @@ class OperationalDataImportWebController extends Controller
                         if ($matchValue === '') {
                             throw new \RuntimeException('قيمة الربط فارغة.');
                         }
+                        if (isset($seen[$matchValue])) {
+                            throw new \RuntimeException("مفتاح الربط مكرر داخل الملف: {$matchValue}");
+                        }
+                        $seen[$matchValue] = true;
 
                         $parentRecord = DatasetRecord::where('dataset_id', $dataset->id)
                             ->whereRaw("values->>? = ?", [$identifierField->name, $matchValue])
