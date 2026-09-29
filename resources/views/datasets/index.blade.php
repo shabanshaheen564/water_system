@@ -99,6 +99,11 @@
                                     @endif
 
                                     @can('datasets.update')
+                                        @if($dataset->is_spatial && $dataset->is_active)
+                                            <a href="{{ route('datasets.operational-import', $dataset) }}" class="text-amber-700">
+                                                استيراد تشغيلي
+                                            </a>
+                                        @endif
                                         <a href="{{ route('datasets.edit', $dataset) }}"
                                            class="text-ink-secondary">
                                             تعديل
