@@ -146,7 +146,7 @@ class DatasetRecordRelationshipController extends Controller
         return [
             'id' => $record->id,
             'dataset_id' => $record->dataset_id,
-            'dataset_name' => $relationship->childDataset?->display_name ?? $relationship->childDataset?->name,
+            'dataset_name' => $relationship->childDataset?->name ?? $relationship->childDataset?->display_name,
             'values' => $record->values,
             'identifier_value' => $record->identifier_value,
             'created_by' => $record->createdBy ? [
