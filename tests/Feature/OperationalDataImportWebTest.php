@@ -98,7 +98,7 @@ class OperationalDataImportWebTest extends TestCase
         $this->assertEquals(10.5, (float) $this->record->values['daily_flow']);
 
         $supporting = Dataset::where('dataset_type', 'additional_table')
-            ->where('name', 'test_operational_layer_operations')
+            ->where('name', 'operations')
             ->firstOrFail();
 
         $this->assertDatabaseHas('dataset_relationships', [
@@ -174,6 +174,8 @@ W_01,Under_Maintenance,30
 
         $this->assertCount(2, $tables);
         $this->assertNotSame($tables[0]->id, $tables[1]->id);
+        $this->assertSame('operations', $tables[0]->name);
+        $this->assertSame('operations (2)', $tables[1]->name);
         $this->assertDatabaseCount('dataset_relationships', 2);
         $this->assertEquals('Active', DatasetRecord::where('dataset_id', $tables[0]->id)->first()->values['status']);
         $this->assertEquals('Under_Maintenance', DatasetRecord::where('dataset_id', $tables[1]->id)->first()->values['status']);
@@ -185,7 +187,7 @@ W_01,Under_Maintenance,30
 W_01,Active,20
 ")->assertRedirect();
 
-        $supporting = Dataset::where('name', 'test_operational_layer_operations')->firstOrFail();
+        $supporting = Dataset::where('name', 'operations')->firstOrFail();
 
         $preview = $this->actingAs($this->admin)->post(route('datasets.operational-import.update.preview', $supporting), [
             'file' => UploadedFile::fake()->createWithContent(
@@ -225,13 +227,65 @@ W_01,Under_Maintenance,35.5
         ]);
     }
 
+    public function test_existing_operational_dataset_update_adds_new_key_and_retains_missing_rows(): void
+    {
+        DatasetRecord::create([
+            'dataset_id' => $this->dataset->id,
+            'values' => ['Asset_ID' => 'W_02', 'status' => 'Active', 'daily_flow' => 11.5],
+            'identifier_value' => 'W_02',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $this->import("Asset_ID,status,daily_flow
+W_01,Active,20
+")->assertRedirect();
+
+        $supporting = Dataset::where('name', 'operations')->firstOrFail();
+
+        $preview = $this->actingAs($this->admin)->post(route('datasets.operational-import.update.preview', $supporting), [
+            'file' => UploadedFile::fake()->createWithContent(
+                'operations-update.csv',
+                "Asset_ID,status,daily_flow
+W_01,Under_Maintenance,35.5
+W_02,Active,40
+",
+                'text/csv'
+            ),
+        ]);
+        $preview->assertOk();
+        preg_match('/name="token" value="([^"]+)"/', $preview->getContent(), $matches);
+        $this->assertNotEmpty($matches[1]);
+
+        $response = $this->actingAs($this->admin)->post(
+            route('datasets.operational-import.update.confirm', $supporting),
+            [
+                'token' => $matches[1],
+                'match_source_column' => 'Asset_ID',
+                'import_columns' => [
+                    'Asset_ID' => '1',
+                    'status' => '1',
+                    'daily_flow' => '1',
+                ],
+            ]
+        );
+
+        $response->assertRedirect(route('datasets.show', $supporting));
+
+        $children = DatasetRecord::where('dataset_id', $supporting->id)->orderBy('identifier_value')->get();
+        $this->assertCount(2, $children);
+        $this->assertSame('Under_Maintenance', $children[0]->values['status']);
+        $this->assertEquals(35.5, (float) $children[0]->values['daily_flow']);
+        $this->assertSame('W_02', $children[1]->identifier_value);
+        $this->assertEquals(40, (float) $children[1]->values['daily_flow']);
+    }
+
     public function test_operational_relationship_can_be_unlinked_without_deleting_data(): void
     {
         $this->import("Asset_ID,status,daily_flow
 W_01,Active,20
 ")->assertRedirect();
 
-        $supporting = Dataset::where('name', 'test_operational_layer_operations')->firstOrFail();
+        $supporting = Dataset::where('name', 'operations')->firstOrFail();
         $relationship = DatasetRelationship::where('child_dataset_id', $supporting->id)->firstOrFail();
 
         $response = $this->actingAs($this->admin)->delete(
@@ -250,7 +304,7 @@ W_01,Active,20
 W_01,Active,20
 ")->assertRedirect();
 
-        $supporting = Dataset::where('name', 'test_operational_layer_operations')->firstOrFail();
+        $supporting = Dataset::where('name', 'operations')->firstOrFail();
 
         $response = $this->actingAs($this->admin)->delete(route('datasets.destroy', $supporting));
 
@@ -265,7 +319,7 @@ W_01,Active,20
         $response = $this->import("Asset_ID,status,daily_flow\nW_99,Active,40\n");
         $response->assertRedirect(route('datasets.show', $this->dataset));
 
-        $supporting = Dataset::where('name', 'test_operational_layer_operations')->firstOrFail();
+        $supporting = Dataset::where('name', 'operations')->firstOrFail();
         $this->assertSame(0, DatasetRecord::where('dataset_id', $supporting->id)->count());
         $this->assertSame(1, DatasetRecord::where('dataset_id', $this->dataset->id)->count());
         $this->assertDatabaseHas('dataset_imports', ['dataset_id' => $supporting->id, 'status' => 'failed', 'successful_rows' => 0, 'failed_rows' => 1]);
