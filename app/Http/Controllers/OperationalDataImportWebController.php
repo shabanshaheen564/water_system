@@ -24,7 +24,6 @@ class OperationalDataImportWebController extends Controller
         }
 
         $dataset->load('fields');
-
         return view('datasets.operational-import', compact('dataset'));
     }
 
@@ -32,10 +31,7 @@ class OperationalDataImportWebController extends Controller
     {
         $this->ensureSpatial($dataset);
 
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,xlsx', 'max:51200'],
-        ]);
-
+        $request->validate(['file' => ['required', 'file', 'mimes:csv,xlsx', 'max:51200']]);
         $file = $request->file('file');
         $extension = strtolower($file->getClientOriginalExtension());
         $token = (string) Str::uuid();
@@ -44,8 +40,8 @@ class OperationalDataImportWebController extends Controller
 
         try {
             $headers = $this->parseHeaders(Storage::disk('local')->path($relativePath), $extension);
-            if ($headers === []) {
-                throw new \RuntimeException('ملف الاستيراد لا يحتوي على أعمدة.');
+            if ($headers === [] || in_array('', $headers, true) || count($headers) !== count(array_unique($headers))) {
+                throw new \RuntimeException('ملف الاستيراد يحتوي على عناوين أعمدة فارغة أو مكررة.');
             }
 
             session()->put("operational_imports.{$token}", [
@@ -89,21 +85,32 @@ class OperationalDataImportWebController extends Controller
         }
 
         $mapping = [];
+        $mappedTargets = [];
         foreach ($validated['column_mapping'] as $source => $target) {
-            if ($target === null || $target === '') {
-                continue;
-            }
+            if ($target === null || $target === '') continue;
             if (!in_array($source, $state['headers'], true) || !$fields->has($target)) {
                 return back()->withErrors(['column_mapping' => 'يوجد ربط أعمدة غير صالح.'])->withInput();
             }
+            if ($target === $validated['match_target_field'] && $source !== $validated['match_source_column']) {
+                return back()->withErrors(['column_mapping' => 'لا يمكن لعمود آخر استبدال حقل المطابقة.'])->withInput();
+            }
+            if (isset($mappedTargets[$target])) {
+                return back()->withErrors(['column_mapping' => "الحقل {$target} مربوط بأكثر من عمود."])->withInput();
+            }
+            $mappedTargets[$target] = true;
             $mapping[$source] = $target;
         }
 
+        if (!isset($mapping[$validated['match_source_column']])) {
+            $mapping[$validated['match_source_column']] = $validated['match_target_field'];
+        }
+
+        $userId = $request->user()->id;
         $import = DatasetImport::create([
             'dataset_id' => $dataset->id,
             'original_filename' => $state['original_filename'],
             'source_format' => $state['extension'],
-            'imported_by' => $request->user()->id,
+            'imported_by' => $userId,
             'started_at' => now(),
             'status' => 'processing',
             'total_rows' => 0,
@@ -112,7 +119,7 @@ class OperationalDataImportWebController extends Controller
         ]);
 
         try {
-            $result = DB::transaction(function () use ($dataset, $state, $validated, $mapping, $fields, $import) {
+            $result = DB::transaction(function () use ($dataset, $state, $validated, $mapping, $fields, $import, $userId) {
                 $rows = $this->parseRows(Storage::disk('local')->path($state['relative_path']), $state['extension']);
                 $import->update(['total_rows' => count($rows)]);
 
@@ -124,35 +131,28 @@ class OperationalDataImportWebController extends Controller
                 foreach ($rows as $rowInfo) {
                     $rowNumber = $rowInfo['row'];
                     $row = $rowInfo['data'];
-
                     try {
                         $matchValue = trim((string) ($row[$validated['match_source_column']] ?? ''));
-                        if ($matchValue === '') {
-                            throw new \RuntimeException('قيمة المطابقة فارغة.');
-                        }
+                        if ($matchValue === '') throw new \RuntimeException('قيمة المطابقة فارغة.');
 
                         $seenKey = mb_strtolower($matchValue);
-                        if (isset($seen[$seenKey])) {
-                            throw new \RuntimeException("قيمة المطابقة مكررة داخل الملف: {$matchValue}");
-                        }
+                        if (isset($seen[$seenKey])) throw new \RuntimeException("قيمة المطابقة مكررة داخل الملف: {$matchValue}");
                         $seen[$seenKey] = true;
 
                         $record = DatasetRecord::where('dataset_id', $dataset->id)
                             ->whereRaw("values->>? = ?", [$validated['match_target_field'], $matchValue])
                             ->first();
-
-                        if (!$record) {
-                            throw new \RuntimeException("لم يتم العثور على معلم/سجل مطابق للقيمة: {$matchValue}");
-                        }
+                        if (!$record) throw new \RuntimeException("لم يتم العثور على سجل مطابق للقيمة: {$matchValue}");
 
                         $values = $record->values ?? [];
                         foreach ($mapping as $sourceColumn => $targetField) {
-                            $rawValue = $row[$sourceColumn] ?? null;
-                            $values[$targetField] = $this->castValue($rawValue, $fields->get($targetField)->data_type);
+                            if ($targetField === $validated['match_target_field'] && $sourceColumn === $validated['match_source_column']) continue;
+                            $field = $fields->get($targetField);
+                            $values[$targetField] = $this->castValue($row[$sourceColumn] ?? null, $field->data_type);
                         }
 
                         $record->values = $values;
-                        $record->updated_by = $request->user()->id ?? $import->imported_by;
+                        $record->updated_by = $userId;
                         $record->save();
                         ++$successful;
                     } catch (\Throwable $e) {
@@ -180,16 +180,10 @@ class OperationalDataImportWebController extends Controller
 
             session()->forget("operational_imports.{$validated['token']}");
             Storage::disk('local')->delete($state['relative_path']);
-
             return redirect()->route('datasets.show', $dataset)
                 ->with('success', "تم ربط البيانات التشغيلية بنجاح. تم تحديث {$result[0]} سجل، وفشل {$result[1]} سجل.");
         } catch (\Throwable $e) {
-            $import->update([
-                'status' => 'failed',
-                'completed_at' => now(),
-                'error_summary' => [['error' => $e->getMessage()]],
-            ]);
-
+            $import->update(['status' => 'failed', 'completed_at' => now(), 'error_summary' => [['error' => $e->getMessage()]]]);
             return back()->withErrors(['import' => 'فشل استيراد البيانات التشغيلية: '.$e->getMessage()])->withInput();
         }
     }
@@ -204,14 +198,11 @@ class OperationalDataImportWebController extends Controller
         if ($extension === 'csv') {
             $handle = fopen($path, 'rb');
             if (!$handle) throw new \RuntimeException('تعذر فتح CSV.');
-            $line = fgets($handle);
-            fclose($handle);
+            $line = fgets($handle); fclose($handle);
             if ($line === false) return [];
             $delimiter = substr_count($line, ';') > substr_count($line, ',') ? ';' : ',';
-            $headers = str_getcsv($line, $delimiter);
-            return array_values(array_map(fn ($v) => trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) $v)), $headers));
+            return array_values(array_map(fn ($v) => trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) $v)), str_getcsv($line, $delimiter)));
         }
-
         $sheet = IOFactory::load($path)->getActiveSheet();
         $highestColumn = $sheet->getHighestColumn();
         return array_values(array_map(fn ($v) => trim((string) $v), $sheet->rangeToArray("A1:{$highestColumn}1", null, false, false, false)[0] ?? []));
@@ -220,28 +211,21 @@ class OperationalDataImportWebController extends Controller
     private function parseRows(string $path, string $extension): array
     {
         if ($extension === 'csv') {
-            $handle = fopen($path, 'rb');
-            if (!$handle) throw new \RuntimeException('تعذر فتح CSV.');
-            $firstLine = fgets($handle);
-            if ($firstLine === false) { fclose($handle); return []; }
-            $delimiter = substr_count($firstLine, ';') > substr_count($firstLine, ',') ? ';' : ',';
-            rewind($handle);
+            $handle = fopen($path, 'rb'); if (!$handle) throw new \RuntimeException('تعذر فتح CSV.');
+            $firstLine = fgets($handle); if ($firstLine === false) { fclose($handle); return []; }
+            $delimiter = substr_count($firstLine, ';') > substr_count($firstLine, ',') ? ';' : ','; rewind($handle);
             $headers = fgetcsv($handle, 0, $delimiter);
             $headers = array_map(fn ($v) => trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) $v)), $headers);
-            $rows = [];
-            $rowNumber = 1;
+            $rows = []; $rowNumber = 1;
             while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
                 ++$rowNumber;
                 if (count($data) !== count($headers) || count(array_filter($data, fn ($v) => trim((string) $v) !== '')) === 0) continue;
                 $rows[] = ['row' => $rowNumber, 'data' => array_combine($headers, $data)];
             }
-            fclose($handle);
-            return $rows;
+            fclose($handle); return $rows;
         }
 
-        $sheet = IOFactory::load($path)->getActiveSheet();
-        $highestColumn = $sheet->getHighestColumn();
-        $highestRow = $sheet->getHighestRow();
+        $sheet = IOFactory::load($path)->getActiveSheet(); $highestColumn = $sheet->getHighestColumn(); $highestRow = $sheet->getHighestRow();
         $headers = array_map(fn ($v) => trim((string) $v), $sheet->rangeToArray("A1:{$highestColumn}1", null, false, false, false)[0] ?? []);
         $rows = [];
         for ($rowNumber = 2; $rowNumber <= $highestRow; ++$rowNumber) {
@@ -254,23 +238,13 @@ class OperationalDataImportWebController extends Controller
 
     private function castValue(mixed $value, string $dataType): mixed
     {
-        if ($value instanceof DateTimeInterface) {
-            return match ($dataType) {
-                'date' => $value->format('Y-m-d'),
-                'datetime' => $value->format('Y-m-d H:i:s'),
-                default => (string) $value,
-            };
-        }
+        if ($value instanceof DateTimeInterface) return match ($dataType) {'date' => $value->format('Y-m-d'), 'datetime' => $value->format('Y-m-d H:i:s'), default => (string) $value};
         if ($value === null || trim((string) $value) === '') return null;
         $value = trim((string) $value);
         return match ($dataType) {
             'integer' => filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE) ?? throw new \RuntimeException("قيمة integer غير صالحة: {$value}"),
             'decimal' => is_numeric($value) ? (float) $value : throw new \RuntimeException("قيمة decimal غير صالحة: {$value}"),
-            'boolean' => match (strtolower($value)) {
-                'true', '1', 'yes', 'y', 'on' => true,
-                'false', '0', 'no', 'n', 'off' => false,
-                default => throw new \RuntimeException("قيمة boolean غير صالحة: {$value}"),
-            },
+            'boolean' => match (strtolower($value)) {'true', '1', 'yes', 'y', 'on' => true, 'false', '0', 'no', 'n', 'off' => false, default => throw new \RuntimeException("قيمة boolean غير صالحة: {$value}")},
             'date' => $this->castDate($value),
             'datetime' => $this->castDateTime($value),
             default => $value,
@@ -279,22 +253,16 @@ class OperationalDataImportWebController extends Controller
 
     private function castDate(string $value): string
     {
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
-        $errors = DateTimeImmutable::getLastErrors();
-        if (!$date || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) || $date->format('Y-m-d') !== $value) {
-            throw new \RuntimeException("قيمة التاريخ غير صالحة: {$value}");
-        }
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value); $errors = DateTimeImmutable::getLastErrors();
+        if (!$date || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) || $date->format('Y-m-d') !== $value) throw new \RuntimeException("قيمة التاريخ غير صالحة: {$value}");
         return $date->format('Y-m-d');
     }
 
     private function castDateTime(string $value): string
     {
         foreach (['Y-m-d H:i:s', 'Y-m-d H:i', DATE_ATOM] as $format) {
-            $date = DateTimeImmutable::createFromFormat($format, $value);
-            $errors = DateTimeImmutable::getLastErrors();
-            if ($date && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
-                return $date->format('Y-m-d H:i:s');
-            }
+            $date = DateTimeImmutable::createFromFormat($format, $value); $errors = DateTimeImmutable::getLastErrors();
+            if ($date && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) return $date->format('Y-m-d H:i:s');
         }
         throw new \RuntimeException("قيمة التاريخ والوقت غير صالحة: {$value}");
     }
