@@ -202,13 +202,18 @@ class OperationalDataImportWebController extends Controller
                         }
 
                         $childField = $childFields[$validated['match_source_column']];
+
+                        // The operational key is the relationship's child field. Treat
+                        // identifier_value as a denormalized lookup/cache only; older
+                        // imports may have it empty or stale. Match the actual JSONB
+                        // field first, using normalized text comparison.
                         $childRecord = DatasetRecord::where('dataset_id', $dataset->id)
-                            ->where('identifier_value', $matchValue)
+                            ->whereRaw("TRIM(COALESCE(values->>?, '')) = ?", [$childField->name, $matchValue])
                             ->first();
 
                         if (!$childRecord) {
                             $childRecord = DatasetRecord::where('dataset_id', $dataset->id)
-                                ->whereRaw("values->>? = ?", [$childField->name, $matchValue])
+                                ->where('identifier_value', $matchValue)
                                 ->first();
                         }
 
