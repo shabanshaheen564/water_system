@@ -65,6 +65,24 @@ class DatasetWebController extends Controller
         return view('datasets.show', compact('dataset', 'recordsCount', 'featuresCount'));
     }
 
+    public function unlinkOperationalRelationship(Dataset $dataset, \App\Models\DatasetRelationship $relationship): RedirectResponse
+    {
+        abort_unless(
+            $relationship->parent_dataset_id === $dataset->id || $relationship->child_dataset_id === $dataset->id,
+            404
+        );
+
+        $child = $relationship->childDataset;
+        abort_unless(
+            $child && $child->dataset_type === 'additional_table' && $child->management_mode === 'operational',
+            404
+        );
+
+        \App\Models\DatasetRelationship::destroy($relationship->id);
+
+        return back()->with('success', 'تم فك ارتباط الجدول التشغيلي. البيانات نفسها بقيت محفوظة ويمكن إعادة ربطها لاحقاً.');
+    }
+
     public function edit(Dataset $dataset): \Illuminate\View\View
     {
         return view('datasets.edit', compact('dataset'));
