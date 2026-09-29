@@ -20,7 +20,6 @@ class UpdateDatasetRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                'regex:/^[a-zA-Z0-9_]+$/',
                 Rule::unique('datasets', 'name')->ignore($this->route('dataset')?->id),
             ],
             'display_name' => ['sometimes', 'required', 'string', 'max:255'],
