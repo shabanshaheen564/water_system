@@ -442,7 +442,7 @@ class OperationalDataImportWebController extends Controller
     private function getOrCreateSupportingDataset(Dataset $parent, string $filename, string $extension, int $userId): Dataset
     {
         $fileBase = pathinfo($filename, PATHINFO_FILENAME);
-        $baseName = Str::snake(Str::ascii($fileBase));
+        $baseName = Str::snake(Str::ascii($parent->name.'_'.$fileBase));
         $baseName = preg_replace('/[^a-zA-Z0-9_]/', '_', $baseName) ?: 'operational_data';
         $baseName = trim($baseName, '_') ?: 'operational_data';
 
