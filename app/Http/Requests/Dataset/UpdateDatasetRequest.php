@@ -15,6 +15,14 @@ class UpdateDatasetRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[a-zA-Z0-9_]+$/',
+                Rule::unique('datasets', 'name')->ignore($this->route('dataset')?->id),
+            ],
             'display_name' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'dataset_type' => ['sometimes', Rule::in(['official_layer', 'additional_table'])],
@@ -40,6 +48,10 @@ class UpdateDatasetRequest extends FormRequest
             $geometryType = $this->input('geometry_type', $dataset->geometry_type);
             $srid = $this->input('srid', $dataset->srid);
             $managementMode = $this->input('management_mode', $dataset->management_mode);
+
+            if ($this->has('name') && $dataset->dataset_type !== 'additional_table') {
+                $validator->errors()->add('name', 'The dataset name can only be changed for additional tables.');
+            }
 
             if ($isSpatial) {
                 if (!$geometryType) {
