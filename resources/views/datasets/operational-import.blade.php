@@ -6,8 +6,8 @@
 <div class="mx-auto max-w-5xl p-4 sm:p-6 lg:p-8">
     <div class="mb-6">
         <a href="{{ route('datasets.show', $dataset) }}" class="text-sm text-brand-700 hover:underline">← العودة إلى الطبقة</a>
-        <h2 class="mt-3 text-xl font-semibold text-ink">استيراد بيانات تشغيلية وربطها بالطبقة</h2>
-        <p class="mt-1 text-sm text-ink-secondary">الطبقة: {{ $dataset->display_name }}. سيتم تحديث السجلات الموجودة فقط ولن يتم إنشاء معالم مكانية جديدة.</p>
+        <h2 class="mt-3 text-xl font-semibold text-ink">استيراد بيانات تشغيلية إلى جدول داعم</h2>
+        <p class="mt-1 text-sm text-ink-secondary">الطبقة: {{ $dataset->display_name }}. سيتم إنشاء/استخدام جدول داعم مرتبط بالطبقة الأساسية. لن يتم تعديل بيانات الطبقة أو إنشاء معالم مكانية جديدة.</p>
     </div>
 
     @if($errors->any())
@@ -25,7 +25,7 @@
                 <p class="mt-2 text-xs text-ink-muted">الصيغ المدعومة: CSV و XLS و XLSX و XLSM و XLT و XLTX — الحد الأقصى 50MB.</p>
             </div>
             <div class="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                <strong>مهم:</strong> المطابقة تتم على سجل موجود داخل الطبقة. لن يتم حذف Geometry ولن يتم إنشاء Feature جديد.
+                <strong>مهم:</strong> المطابقة تتم مع Identifier الموجود في الطبقة الأساسية. البيانات الأخرى تذهب إلى جدول داعم غير مكاني، ويمكن عرضها من زر «عرض البيانات الإضافية» داخل Popup البئر على الخريطة.
             </div>
             <div class="flex justify-end gap-3">
                 <a href="{{ route('datasets.show', $dataset) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm">إلغاء</a>
