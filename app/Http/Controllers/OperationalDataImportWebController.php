@@ -279,7 +279,7 @@ class OperationalDataImportWebController extends Controller
         foreach ($headers as $header) {
             $existingField = $fields->first(fn (DatasetField $field) => ($field->metadata['source_column'] ?? null) === $header || $field->name === Str::snake(Str::ascii($header)));\n            $name = $existingField?->name ?? $this->fieldNameForHeader($header, $fields->keys()->all());
             if ($header === $matchSourceColumn) {
-                $name = $this->fieldNameForHeader($header, $fields->keys()->all(), $parentIdentifierField->name);
+                $name = $existingField?->name ?? $parentIdentifierField->name;
                 $type = $parentIdentifierField->data_type;
                 $displayName = $parentIdentifierField->display_name;
             } else {
