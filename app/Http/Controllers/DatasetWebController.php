@@ -84,7 +84,7 @@ class DatasetWebController extends Controller
 
         \App\Models\DatasetRelationship::destroy($relationship->id);
 
-        return back()->with('success', 'تم فك ارتباط الجدول التشغيلي. البيانات نفسها بقيت محفوظة ويمكن إعادة ربطها لاحقاً.');
+        return back()->with('success', 'تم فك ارتباط الجدول التشغيلي. البيانات نفسها بقيت محفوظة ولم يتم حذفها.');
     }
 
     public function destroy(Dataset $dataset): RedirectResponse
