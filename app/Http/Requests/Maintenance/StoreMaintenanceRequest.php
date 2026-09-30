@@ -17,7 +17,6 @@ class StoreMaintenanceRequest extends FormRequest
         return [
             'gis_feature_id' => ['required', 'integer', 'exists:gis_features,id'],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
-            'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
             'priority' => ['sometimes', Rule::in(['low', 'medium', 'high', 'urgent'])],
             'problem_description' => ['required', 'string'],
             'fault_description' => ['sometimes', 'nullable', 'string'],
