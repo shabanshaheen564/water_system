@@ -107,7 +107,7 @@ class MaintenanceWebController extends Controller
             'gis_feature_id' => $feature->id,
             'reported_by' => $request->user()->id,
             'assigned_to' => $validated['assigned_to'] ?? null,
-            'priority' => $validated['priority'],
+            'priority' => $validated['priority'] ?? 'medium',
             'status' => 'new',
             'problem_description' => $validated['problem_description'],
             'fault_description' => $validated['fault_description'] ?? null,
