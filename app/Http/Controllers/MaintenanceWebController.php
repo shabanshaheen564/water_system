@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class MaintenanceWebController extends Controller
@@ -197,9 +198,10 @@ class MaintenanceWebController extends Controller
             ->orderBy('display_name')
             ->get();
 
-        $roles = Role::query()->where('name', '!=', 'System Owner')->orderBy('name')->get();
+        $roles = Role::query()->where('name', '!=', 'System Owner')->with('permissions')->orderBy('name')->get();
+        $maintenancePermissions = Permission::query()->where('guard_name', 'web')->where('name', 'like', 'maintenance.%')->orderBy('name')->get();
 
-        return view('maintenance.settings', compact('datasets', 'roles'));
+        return view('maintenance.settings', compact('datasets', 'roles', 'maintenancePermissions'));
     }
 
     public function updateDatasetSettings(Request $request, Dataset $dataset): RedirectResponse
@@ -224,6 +226,34 @@ class MaintenanceWebController extends Controller
         });
 
         return back()->with('success', 'تم تحديث إعدادات الصيانة للطبقة.');
+    }
+
+    public function updateRolePermissions(Request $request, Role $role): RedirectResponse
+    {
+        abort_unless($request->user()->can('maintenance.update'), 403);
+        abort_unless($role->name !== 'System Owner', 403);
+
+        $maintenancePermissions = Permission::query()
+            ->where('guard_name', 'web')
+            ->where('name', 'like', 'maintenance.%')
+            ->get();
+
+        $validated = $request->validate([
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['integer'],
+        ]);
+
+        $selected = $maintenancePermissions
+            ->whereIn('id', $validated['permissions'] ?? [])
+            ->values();
+
+        $existingNonMaintenance = $role->permissions()
+            ->whereNotIn('permissions.id', $maintenancePermissions->pluck('id'))
+            ->get();
+
+        $role->syncPermissions($existingNonMaintenance->merge($selected));
+
+        return back()->with('success', 'تم تحديث صلاحيات الصيانة للدور.');
     }
 
     private function ensureVisible(Request $request, MaintenanceRequest $maintenanceRequest): void

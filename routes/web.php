@@ -63,6 +63,7 @@ Route::middleware(['auth', 'active', 'permission:maintenance.update'])->group(fu
     Route::put('/maintenance/{maintenanceRequest}', [MaintenanceWebController::class, 'update'])->name('maintenance.update');
     Route::get('/maintenance-settings', [MaintenanceWebController::class, 'settings'])->name('maintenance.settings');
     Route::post('/maintenance-settings/datasets/{dataset}', [MaintenanceWebController::class, 'updateDatasetSettings'])->name('maintenance.settings.dataset');
+    Route::post('/maintenance-settings/roles/{role}/permissions', [MaintenanceWebController::class, 'updateRolePermissions'])->name('maintenance.settings.role-permissions');
 });
 Route::middleware(['auth', 'active', 'permission:maintenance.complete'])->post('/maintenance/{maintenanceRequest}/jobs', [MaintenanceWebController::class, 'storeJob'])->name('maintenance.jobs.store');
 

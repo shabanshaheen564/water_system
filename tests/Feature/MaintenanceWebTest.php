@@ -75,6 +75,27 @@ class MaintenanceWebTest extends TestCase
         $this->assertFalse($dataset->fresh()->maintenance_enabled);
     }
 
+
+    public function test_settings_can_update_maintenance_permissions_without_removing_other_role_permissions(): void
+    {
+        $admin = User::factory()->create(['is_active' => true]);
+        $admin->givePermissionTo(Permission::findByName('maintenance.update', 'web'));
+        $role = Role::findOrCreate('Engineer', 'web');
+        $otherPermission = Permission::where('name', 'datasets.view')->firstOrFail();
+        $role->givePermissionTo($otherPermission);
+
+        $view = Permission::findByName('maintenance.view', 'web');
+
+        $this->actingAs($admin)->post("/maintenance-settings/roles/{$role->id}/permissions", [
+            'permissions' => [$view->id],
+        ])->assertRedirect();
+
+        $role->refresh();
+        $this->assertTrue($role->hasPermissionTo('maintenance.view'));
+        $this->assertFalse($role->hasPermissionTo('maintenance.create'));
+        $this->assertTrue($role->hasPermissionTo('datasets.view'));
+    }
+
     public function test_disabled_dataset_is_not_available_even_when_role_is_granted(): void
     {
         $dataset = $this->createDataset('disabled_layer', 'Disabled Layer', false);
