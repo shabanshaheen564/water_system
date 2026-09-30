@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Maintenance\StoreAssetInspectionRequest;
 use App\Http\Requests\Maintenance\StoreMaintenanceJobRequest;
 use App\Http\Requests\Maintenance\StoreMaintenanceRequest;
 use App\Http\Requests\Maintenance\UpdateMaintenanceRequest;
+use App\Models\AssetInspection;
 use App\Models\Dataset;
 use App\Models\GisFeature;
 use App\Models\MaintenanceJob;
@@ -76,17 +78,63 @@ class MaintenanceWebController extends Controller
         abort_unless($request->user()->can('maintenance.view'), 403);
         abort_unless($this->access->canAccessDataset($request->user(), $dataset), 403);
 
-        $features = GisFeature::query()
+        $search = trim((string) $request->input('search'));
+        $query = GisFeature::query()
             ->where('dataset_id', $dataset->id)
-            ->with('datasetRecord:id,identifier_value')
-            ->orderBy('id')
-            ->limit(100)
-            ->get(['id', 'dataset_record_id']);
+            ->with('datasetRecord:id,identifier_value,values')
+            ->orderBy('id');
 
-        return response()->json(['data' => $features->map(fn (GisFeature $feature) => [
-            'id' => $feature->id,
-            'identifier' => $feature->datasetRecord?->identifier_value,
-        ])->values()]);
+        if ($search !== '') {
+            $query->whereHas('datasetRecord', function ($records) use ($search) {
+                $records->where('identifier_value', 'ILIKE', "%{$search}%")
+                    ->orWhereRaw("values::text ILIKE ?", ["%{$search}%"]);
+            });
+        }
+
+        $features = $query->limit(500)->get();
+
+        return response()->json([
+            'data' => $features->map(fn (GisFeature $feature) => [
+                'id' => $feature->id,
+                'identifier' => $feature->datasetRecord?->identifier_value,
+                'values' => $feature->datasetRecord?->values ?? [],
+                'geojson' => $feature->toGeoJsonFeature(),
+            ])->values(),
+        ]);
+    }
+
+    public function inspect(StoreAssetInspectionRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+        $feature = GisFeature::with(['dataset', 'datasetRecord'])->findOrFail($validated['gis_feature_id']);
+        abort_unless($this->access->canAccessFeature($request->user(), $feature), 403);
+
+        AssetInspection::create([
+            'gis_feature_id' => $feature->id,
+            'inspected_by' => $request->user()->id,
+            'inspection_at' => $validated['inspection_at'] ?? now(),
+            'result' => $validated['result'],
+            'problem_description' => $validated['problem_description'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        if ($validated['result'] === 'problem') {
+            $maintenance = MaintenanceRequest::create([
+                'gis_feature_id' => $feature->id,
+                'reported_by' => $request->user()->id,
+                'priority' => 'medium',
+                'status' => 'new',
+                'problem_description' => $validated['problem_description'],
+                'fault_description' => null,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            return redirect()->route('maintenance.show', $maintenance)
+                ->with('success', 'تم تسجيل الفحص وإنشاء طلب صيانة للمشكلة.');
+        }
+
+        return redirect()->route('maintenance.index')
+            ->with('success', 'تم تسجيل الفحص بنجاح ولم يتم إنشاء طلب صيانة لأن الأصل سليم.');
     }
 
     public function create(Request $request): View
@@ -128,6 +176,7 @@ class MaintenanceWebController extends Controller
             'reportedBy:id,name,email',
             'assignedTo:id,name,email',
             'jobs.technician:id,name,email',
+            'inspections.inspectedBy:id,name',
         ]);
 
         $technicians = $this->technicians();
