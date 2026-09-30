@@ -56,7 +56,7 @@ class MaintenanceFoundationTest extends TestCase
         $inactive = $this->createDataset('inactive_layer', 'Inactive Layer', false, true);
         $nonSpatial = $this->createDataset('table_layer', 'Non Spatial Table', true, false);
 
-        $this->user->roles()->first()->maintenanceDatasets()->attach($allowed->id);
+        DB::table('maintenance_dataset_role')->insert(['role_id' => $this->user->roles()->first()->id, 'dataset_id' => $allowed->id, 'created_at' => now(), 'updated_at' => now()]);
 
         $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])
             ->getJson('/api/maintenance/datasets');
@@ -83,7 +83,7 @@ class MaintenanceFoundationTest extends TestCase
         $this->user->syncRoles([$role]);
 
         $dataset = $this->createDataset('wells_layer', 'Wells', true, true);
-        $this->user->roles()->first()->maintenanceDatasets()->attach($dataset->id);
+        DB::table('maintenance_dataset_role')->insert(['role_id' => $this->user->roles()->first()->id, 'dataset_id' => $dataset->id, 'created_at' => now(), 'updated_at' => now()]);
         $feature = $this->createFeature($dataset, 'W_02');
 
         $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])
