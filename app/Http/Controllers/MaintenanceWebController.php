@@ -214,9 +214,13 @@ class MaintenanceWebController extends Controller
                 throw \Illuminate\Validation\ValidationException::withMessages(['cancellation_reason' => 'سبب الإلغاء مطلوب.']);
             }
 
-            if ($maintenanceRequest->assigned_to !== null && $oldAssigned === null) {
-                $maintenanceRequest->assigned_at = now();
-                if ($maintenanceRequest->status === 'new') $maintenanceRequest->status = 'assigned';
+            if ($maintenanceRequest->assigned_to !== null) {
+                if ($oldAssigned === null) {
+                    $maintenanceRequest->assigned_at = now();
+                }
+                if ($status === null && $maintenanceRequest->status === 'new') {
+                    $maintenanceRequest->status = 'assigned';
+                }
             }
 
             if ($status !== null) {
