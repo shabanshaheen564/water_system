@@ -29,6 +29,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'audit_logs.view',
             // Datasets
             'datasets.view', 'datasets.create', 'datasets.update', 'datasets.delete',
+            // Maintenance
+            'maintenance.view', 'maintenance.create', 'maintenance.update', 'maintenance.assign', 'maintenance.complete', 'maintenance.inspect',
         ];
 
         foreach ($permissions as $permission) {
@@ -51,6 +53,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'reports.view', 'reports.export',
                 'gis.view',
                 'datasets.view', 'datasets.create', 'datasets.update',
+                'maintenance.view', 'maintenance.create', 'maintenance.update', 'maintenance.assign', 'maintenance.complete', 'maintenance.inspect',
             ],
             'Field Worker' => [
                 'complaints.view', 'complaints.update', 'complaints.transition',
@@ -59,6 +62,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'reports.view',
                 'gis.view',
                 'datasets.view',
+                'maintenance.view', 'maintenance.create', 'maintenance.update', 'maintenance.complete', 'maintenance.inspect',
             ],
             'Viewer' => [
                 'complaints.view',
@@ -67,6 +71,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'gis.view',
                 'reports.view',
                 'datasets.view',
+                'maintenance.view',
             ],
         ];
 

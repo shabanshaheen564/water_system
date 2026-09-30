@@ -24,6 +24,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\MobileBootstrapController;
 use App\Http\Controllers\OperationalGisController;
+use App\Http\Controllers\MaintenanceController;
 
 Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
 Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkApi'])->middleware('throttle:login');
@@ -37,6 +38,12 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
     Route::post('/device/fcm-token', [\App\Http\Controllers\FcmTokenController::class, 'store']);
     Route::delete('/device/fcm-token', [\App\Http\Controllers\FcmTokenController::class, 'destroy']);
 });
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:maintenance.view'])->group(function () {
+    Route::get('/maintenance/datasets', [MaintenanceController::class, 'datasets']);
+    Route::get('/maintenance/datasets/{dataset}/features', [MaintenanceController::class, 'features']);
+    Route::get('/maintenance/requests/{maintenanceRequest}', [MaintenanceController::class, 'show']);
+});
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:maintenance.create'])->post('/maintenance/requests', [MaintenanceController::class, 'store']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:users.view'])->group(function () { Route::get('/users', [UserController::class, 'index']); Route::get('/users/{user}', [UserController::class, 'show']); });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:users.create'])->group(function () { Route::post('/users', [UserController::class, 'store']); Route::post('/register', [RegisterController::class, 'register']); });
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:users.update'])->group(function () { Route::put('/users/{user}', [UserController::class, 'update']); Route::put('/users/{user}/roles', [UserController::class, 'syncRoles']); Route::put('/users/{user}/status', [UserController::class, 'updateStatus']); });
