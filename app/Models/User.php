@@ -60,4 +60,24 @@ class User extends Authenticatable implements CanResetPasswordContract
     {
         return $this->hasMany(WorkOrder::class, 'created_by');
     }
+
+    public function maintenanceRequests()
+    {
+        return $this->hasMany(MaintenanceRequest::class, 'reported_by');
+    }
+
+    public function assignedMaintenanceRequests()
+    {
+        return $this->hasMany(MaintenanceRequest::class, 'assigned_to');
+    }
+
+    public function assetInspections()
+    {
+        return $this->hasMany(AssetInspection::class, 'inspected_by');
+    }
+
+    public function maintenanceJobs()
+    {
+        return $this->hasMany(MaintenanceJob::class, 'technician_id');
+    }
 }
