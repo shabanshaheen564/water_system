@@ -117,7 +117,12 @@ class MaintenanceFoundationTest extends TestCase
 
         $allowed = $this->createDataset('allowed_layer', 'Allowed Layer', true, true);
         $restricted = $this->createDataset('restricted_layer', 'Restricted Layer', true, true);
-        DB::table('maintenance_dataset_role')->insert([\n            'role_id' => $this->user->roles()->first()->id,\n            'dataset_id' => $allowed->id,\n            'created_at' => now(),\n            'updated_at' => now(),\n        ]);
+        DB::table('maintenance_dataset_role')->insert([
+            'role_id' => $this->user->roles()->first()->id,
+            'dataset_id' => $allowed->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $feature = $this->createFeature($restricted, 'R-01');
 
         $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])
