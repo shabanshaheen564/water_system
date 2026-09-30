@@ -6,7 +6,7 @@
 <div class="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
     <div class="mb-6">
         <h2 class="text-xl font-semibold text-ink">إنشاء طلب صيانة</h2>
-        <p class="mt-1 text-sm text-ink-secondary">اختر نوع الأصل ثم المعلم الفعلي من GIS. لا يتم إدخال اسم الطبقة أو رقم الأصل يدويًا.</p>
+        <p class="mt-1 text-sm text-ink-secondary">اختر نوع الأصل ثم اسم الأصل من GIS. موقع الأصل وإحداثياته يتم جلبهما تلقائيًا من بيانات GIS ولا يتم تحديدهما يدويًا.</p>
     </div>
 
     @if($errors->any())
@@ -34,7 +34,7 @@
             </div>
 
             <div>
-                <label class="mb-1 block text-sm font-medium text-ink">المعلم الفعلي</label>
+                <label class="mb-1 block text-sm font-medium text-ink">اسم الأصل</label>
                 <select id="gis_feature_id" name="gis_feature_id" class="input-institutional w-full" required disabled>
                     <option value="">اختر نوع الأصل أولًا</option>
                 </select>
@@ -84,7 +84,7 @@
         <div class="card-institutional overflow-hidden lg:col-span-3">
             <div class="border-b border-border px-5 py-4">
                 <h3 class="font-semibold text-ink">موقع الأصل</h3>
-                <p class="mt-1 text-xs text-ink-secondary">يتم عرض المعلم الحقيقي من GIS عند اختياره.</p>
+                <p class="mt-1 text-xs text-ink-secondary">يتم تحديد موقع الأصل تلقائيًا من إحداثياته المسجلة في GIS.</p>
             </div>
             <div id="maintenance-create-map" class="h-[560px] w-full"></div>
         </div>
@@ -148,7 +148,11 @@ document.addEventListener('DOMContentLoaded', () => {
             feature.innerHTML = '<option value="">اختر المعلم</option>';
             featureItems.forEach(item => {
                 const option = document.createElement('option');
-                option.value = item.id; option.textContent = item.identifier || ('GIS #' + item.id);
+                option.value = item.id;
+                const values = item.values || {};
+                const name = values.name_ar || values.NAME_AR || values.name || values.NAME || values.asset_name || values.ASSET_NAME || values.well_name || values.Well_Name || values.WELL_NAME || '';
+                const identifier = item.identifier || ('GIS #' + item.id);
+                option.textContent = name ? name + ' — ' + identifier : identifier;
                 feature.appendChild(option);
             });
             feature.disabled = featureItems.length === 0;
