@@ -10,6 +10,14 @@ class MaintenanceAccessService
 {
     public function datasetsFor(User $user): Builder
     {
+        if ($user->hasRole('System Owner')) {
+            return Dataset::query()
+                ->where('is_active', true)
+                ->where('is_spatial', true)
+                ->where('maintenance_enabled', true)
+                ->orderBy('display_name');
+        }
+
         $roleIds = $user->roles()->pluck('roles.id');
 
         return Dataset::query()
@@ -24,6 +32,10 @@ class MaintenanceAccessService
     {
         if (!$dataset->is_active || !$dataset->is_spatial || !$dataset->maintenance_enabled) {
             return false;
+        }
+
+        if ($user->hasRole('System Owner')) {
+            return true;
         }
 
         return \Illuminate\Support\Facades\DB::table('maintenance_dataset_role')
