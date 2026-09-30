@@ -248,6 +248,128 @@ class MaintenanceWebTest extends TestCase
         $this->assertDatabaseMissing('asset_inspections', ['gis_feature_id' => $feature->id]);
     }
 
+
+    public function test_assignment_and_status_lifecycle_is_recorded(): void
+    {
+        $dataset = $this->createDataset('lifecycle_layer', 'Lifecycle Layer');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'L-01');
+
+        $maintenance = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'problem_description' => 'Lifecycle test.',
+        ]);
+
+        $this->actingAs($this->user)->put("/maintenance/{$maintenance->id}", [
+            'priority' => 'medium',
+            'assigned_to' => $this->user->id,
+            'status' => 'in_progress',
+            'problem_description' => 'Lifecycle test.',
+        ])->assertRedirect();
+
+        $maintenance->refresh();
+        $this->assertSame('in_progress', $maintenance->status);
+        $this->assertNotNull($maintenance->assigned_at);
+        $this->assertNotNull($maintenance->started_at);
+
+        $this->actingAs($this->user)->put("/maintenance/{$maintenance->id}", [
+            'priority' => 'medium',
+            'assigned_to' => $this->user->id,
+            'status' => 'waiting',
+            'problem_description' => 'Lifecycle test.',
+        ])->assertRedirect();
+
+        $maintenance->refresh();
+        $this->assertSame('waiting', $maintenance->status);
+        $this->assertNotNull($maintenance->waiting_at);
+    }
+
+    public function test_multiple_execution_attempts_are_preserved_and_final_repair_completes_request(): void
+    {
+        $dataset = $this->createDataset('attempts_layer', 'Attempts Layer');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'A-01');
+
+        $maintenance = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'assigned_to' => $this->user->id,
+            'status' => 'assigned',
+            'problem_description' => 'Multiple attempts.',
+        ]);
+
+        $this->actingAs($this->user)->post("/maintenance/{$maintenance->id}/jobs", [
+            'result' => 'not_repaired',
+            'diagnosed_fault' => 'المحاولة الأولى.',
+        ])->assertRedirect();
+
+        $this->actingAs($this->user)->post("/maintenance/{$maintenance->id}/jobs", [
+            'result' => 'inspection_only',
+            'diagnosed_fault' => 'فحص إضافي.',
+        ])->assertRedirect();
+
+        $this->actingAs($this->user)->post("/maintenance/{$maintenance->id}/jobs", [
+            'result' => 'repaired',
+            'repair_action' => 'تم الإصلاح في المحاولة الثالثة.',
+        ])->assertRedirect();
+
+        $this->assertSame(3, $maintenance->jobs()->count());
+        $this->assertDatabaseHas('maintenance_jobs', ['maintenance_request_id' => $maintenance->id, 'result' => 'not_repaired']);
+        $this->assertDatabaseHas('maintenance_jobs', ['maintenance_request_id' => $maintenance->id, 'result' => 'inspection_only']);
+        $this->assertDatabaseHas('maintenance_jobs', ['maintenance_request_id' => $maintenance->id, 'result' => 'repaired']);
+        $this->assertDatabaseHas('maintenance_requests', ['id' => $maintenance->id, 'status' => 'completed']);
+    }
+
+    public function test_cancellation_requires_reason_and_records_timestamp(): void
+    {
+        $dataset = $this->createDataset('cancel_layer', 'Cancel Layer');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'C-01');
+
+        $maintenance = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'problem_description' => 'Cancel test.',
+        ]);
+
+        $this->actingAs($this->user)->post("/maintenance/{$maintenance->id}/cancel", [
+            'cancellation_reason' => 'تم إلغاء الطلب بعد المعالجة خارج النظام.',
+        ])->assertRedirect();
+
+        $maintenance->refresh();
+        $this->assertSame('cancelled', $maintenance->status);
+        $this->assertNotNull($maintenance->cancelled_at);
+        $this->assertSame('تم إلغاء الطلب بعد المعالجة خارج النظام.', $maintenance->cancellation_reason);
+    }
+
+    public function test_user_without_complete_permission_cannot_execute_maintenance(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $user->syncRoles([Role::findOrCreate('Field Worker', 'web')]);
+        $user->revokePermissionTo(Permission::where('name', 'maintenance.complete')->first());
+
+        $dataset = $this->createDataset('authorization_layer', 'Authorization Layer');
+        DB::table('maintenance_dataset_role')->insert([
+            'role_id' => $user->roles()->first()->id,
+            'dataset_id' => $dataset->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $feature = $this->createFeature($dataset, 'AUTH-01');
+        $maintenance = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $user->id,
+            'problem_description' => 'Authorization test.',
+        ]);
+
+        $this->actingAs($user)->post("/maintenance/{$maintenance->id}/jobs", [
+            'result' => 'repaired',
+        ])->assertForbidden();
+
+        $this->assertDatabaseCount('maintenance_jobs', 0);
+    }
+
     private function createDataset(string $name, string $displayName, bool $enabled = true): Dataset
     {
         return Dataset::create([
