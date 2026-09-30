@@ -25,7 +25,7 @@ class MaintenanceWebTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
         $this->user = User::factory()->create(['is_active' => true]);
         $this->user->givePermissionTo(Permission::whereIn('name', [
-            'maintenance.view', 'maintenance.create', 'maintenance.update', 'maintenance.complete',
+            'maintenance.view', 'maintenance.create', 'maintenance.update', 'maintenance.complete', 'maintenance.inspect',
         ])->get());
         $this->user->syncRoles([Role::findOrCreate('Field Worker', 'web')]);
     }
@@ -170,6 +170,82 @@ class MaintenanceWebTest extends TestCase
         ]);
 
         $this->actingAs($this->user)->get("/maintenance/{$maintenance->id}")->assertForbidden();
+    }
+
+
+    public function test_feature_endpoint_returns_gis_geometry_and_dynamic_values(): void
+    {
+        $dataset = $this->createDataset('wells_layer', 'Wells');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'W_02');
+
+        $this->actingAs($this->user)
+            ->getJson("/maintenance/datasets/{$dataset->id}/features")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $feature->id)
+            ->assertJsonPath('data.0.identifier', 'W_02')
+            ->assertJsonPath('data.0.geojson.type', 'Feature')
+            ->assertJsonPath('data.0.geojson.geometry.type', 'Point')
+            ->assertJsonPath('data.0.values.asset_code', 'W_02');
+    }
+
+    public function test_inspection_okay_is_saved_without_creating_maintenance_request(): void
+    {
+        $dataset = $this->createDataset('wells_layer', 'Wells');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'W_03');
+
+        $this->actingAs($this->user)->post('/maintenance-inspections', [
+            'gis_feature_id' => $feature->id,
+            'result' => 'okay',
+            'notes' => 'الفحص اليومي سليم.',
+        ])->assertRedirect('/maintenance');
+
+        $this->assertDatabaseHas('asset_inspections', [
+            'gis_feature_id' => $feature->id,
+            'inspected_by' => $this->user->id,
+            'result' => 'okay',
+        ]);
+        $this->assertDatabaseMissing('maintenance_requests', ['gis_feature_id' => $feature->id]);
+    }
+
+    public function test_inspection_problem_creates_maintenance_request_for_same_gis_feature(): void
+    {
+        $dataset = $this->createDataset('wells_layer', 'Wells');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'W_04');
+
+        $this->actingAs($this->user)->post('/maintenance-inspections', [
+            'gis_feature_id' => $feature->id,
+            'result' => 'problem',
+            'problem_description' => 'تسرب ظاهر عند خط الطرد.',
+            'notes' => 'يحتاج فني صيانة.',
+        ])->assertRedirect();
+
+        $maintenance = MaintenanceRequest::query()->latest('id')->firstOrFail();
+
+        $this->assertDatabaseHas('asset_inspections', [
+            'gis_feature_id' => $feature->id,
+            'result' => 'problem',
+            'problem_description' => 'تسرب ظاهر عند خط الطرد.',
+        ]);
+        $this->assertSame($feature->id, $maintenance->gis_feature_id);
+        $this->assertSame('new', $maintenance->status);
+        $this->assertSame('تسرب ظاهر عند خط الطرد.', $maintenance->problem_description);
+    }
+
+    public function test_inspection_cannot_use_feature_from_unallowed_dataset(): void
+    {
+        $dataset = $this->createDataset('restricted_layer', 'Restricted Layer');
+        $feature = $this->createFeature($dataset, 'R-02');
+
+        $this->actingAs($this->user)->post('/maintenance-inspections', [
+            'gis_feature_id' => $feature->id,
+            'result' => 'problem',
+            'problem_description' => 'مشكلة.',
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('asset_inspections', ['gis_feature_id' => $feature->id]);
     }
 
     private function createDataset(string $name, string $displayName, bool $enabled = true): Dataset
