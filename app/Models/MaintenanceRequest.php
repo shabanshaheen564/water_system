@@ -23,13 +23,18 @@ class MaintenanceRequest extends Model
         'repair_action',
         'materials_used',
         'notes',
+        'assigned_at', 'started_at', 'waiting_at', 'cancelled_at', 'cancellation_reason',
     ];
 
     protected function casts(): array
     {
         return [
             'requested_at' => 'datetime',
+            'assigned_at' => 'datetime',
+            'started_at' => 'datetime',
+            'waiting_at' => 'datetime',
             'completed_at' => 'datetime',
+            'cancelled_at' => 'datetime',
         ];
     }
 
