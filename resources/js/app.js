@@ -8,6 +8,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
+window.L = L;
 
 const DEIR_AL_BALAH_CENTER = [31.417, 34.368];
 const CENTRAL_GAZA_VIEWBOX = '34.27,31.56,34.56,31.36';
