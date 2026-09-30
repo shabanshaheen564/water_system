@@ -48,6 +48,9 @@ COPY --from=frontend /app/public/build ./public/build
 RUN chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R ug+rwx storage bootstrap/cache
 
+COPY docker/render-entrypoint.sh /usr/local/bin/render-entrypoint
+RUN chmod +x /usr/local/bin/render-entrypoint
+
 EXPOSE 80
 
-CMD ["apache2-foreground"]
+ENTRYPOINT ["render-entrypoint"]
