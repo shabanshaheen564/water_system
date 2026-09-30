@@ -25,28 +25,45 @@
             <h3 class="font-semibold text-ink">صلاحيات الصيانة حسب الدور</h3>
             <p class="mt-1 text-sm text-ink-secondary">يتم تعديل صلاحيات الصيانة فقط؛ باقي صلاحيات الدور لا تتأثر.</p>
         </div>
-        <div class="overflow-x-auto">
-            <table class="table-institutional">
-                <thead><tr><th>الدور</th>@foreach($maintenancePermissions as $permission)<th>{{ str_replace('maintenance.', '', $permission->name) }}</th>@endforeach<th>حفظ</th></tr></thead>
-                <tbody>
-                @foreach($roles as $role)
-                    <tr>
-                        <td class="font-medium">{{ $role->name }}</td>
-                        @foreach($maintenancePermissions as $permission)
-                            <td>
-                                <input form="role-permissions-{{ $role->id }}" type="checkbox" name="permissions[]" value="{{ $permission->id }}" @checked($role->permissions->contains('id', $permission->id))>
-                            </td>
-                        @endforeach
-                        <td>
-                            <form id="role-permissions-{{ $role->id }}" method="POST" action="{{ route('maintenance.settings.role-permissions', $role) }}">
-                                @csrf
-                                <button class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white">حفظ</button>
-                            </form>
-                        </td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-        </div>
+        <form method="POST" action="{{ route('maintenance.settings.role-permissions') }}">
+            @csrf
+            <div class="overflow-x-auto">
+                <table class="table-institutional">
+                    <thead>
+                        <tr>
+                            <th>الدور</th>
+                            @foreach($maintenancePermissions as $permission)
+                                <th>
+                                    @switch(str_replace('maintenance.', '', $permission->name))
+                                        @case('assign') تعيين @break
+                                        @case('complete') تنفيذ وإكمال @break
+                                        @case('create') إنشاء @break
+                                        @case('inspect') فحص @break
+                                        @case('update') تعديل @break
+                                        @case('view') عرض @break
+                                        @default {{ $permission->name }}
+                                    @endswitch
+                                </th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach($roles as $role)
+                        <tr>
+                            <td class="font-medium">{{ $role->name }}</td>
+                            @foreach($maintenancePermissions as $permission)
+                                <td>
+                                    <input type="checkbox" name="role_permissions[{{ $role->id }}][]" value="{{ $permission->id }}" @checked($role->permissions->contains('id', $permission->id))>
+                                </td>
+                            @endforeach
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="border-t border-border px-5 py-4">
+                <button class="rounded-md bg-brand-600 px-5 py-2 text-sm font-medium text-white">حفظ جميع الصلاحيات</button>
+            </div>
+        </form>
     </div>
 @endsection
