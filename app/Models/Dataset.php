@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Permission\Models\Role;
 
 class Dataset extends Model
 {
@@ -62,6 +64,11 @@ class Dataset extends Model
     public function gisFeatures(): HasMany
     {
         return $this->hasMany(GisFeature::class);
+    }
+
+    public function maintenanceRoles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'maintenance_dataset_role')->withTimestamps();
     }
 
     public function parentRelationships(): HasMany
