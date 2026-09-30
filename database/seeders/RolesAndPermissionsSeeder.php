@@ -45,7 +45,6 @@ class RolesAndPermissionsSeeder extends Seeder
                 'assets.view', 'assets.create', 'assets.update',
                 'reports.view', 'reports.export',
                 'datasets.view', 'datasets.create', 'datasets.update', 'datasets.delete',
-                'maintenance.view', 'maintenance.create', 'maintenance.update', 'maintenance.assign', 'maintenance.complete', 'maintenance.inspect',
             ],
             'Engineer' => [
                 'complaints.view', 'complaints.create', 'complaints.update', 'complaints.transition', 'complaints.convert_to_task', 'complaints.export',
