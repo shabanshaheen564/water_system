@@ -177,16 +177,12 @@ class MaintenanceFoundationTest extends TestCase
             'created_by' => $this->user->id,
         ]);
 
-        $id = DB::table('gis_features')->insertGetId([
-            'dataset_record_id' => $record->id,
-            'dataset_id' => $dataset->id,
-            'geometry' => DB::raw("ST_SetSRID(ST_GeomFromText('POINT(34.75 31.42)'), 4326)"),
-            'geometry_type' => 'Point',
-            'srid' => 4326,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        DB::statement(
+            "INSERT INTO gis_features (dataset_record_id, dataset_id, geometry, geometry_type, srid, created_at, updated_at)
+             VALUES (?, ?, ST_SetSRID(ST_GeomFromText('POINT(34.75 31.42)'), 4326), ?, ?, ?, ?)",
+            [$record->id, $dataset->id, 'Point', 4326, now(), now()]
+        );
 
-        return GisFeature::findOrFail($id);
+        return GisFeature::query()->where('dataset_record_id', $record->id)->firstOrFail();
     }
 }
