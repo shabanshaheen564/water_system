@@ -25,8 +25,9 @@ class MaintenanceAccessService
             return false;
         }
 
-        return $user->roles()
-            ->whereHas('maintenanceDatasets', fn (Builder $query) => $query->whereKey($dataset->id))
+        return \Illuminate\Support\Facades\DB::table('maintenance_dataset_role')
+            ->whereIn('role_id', $user->roles()->pluck('roles.id'))
+            ->where('dataset_id', $dataset->id)
             ->exists();
     }
 
