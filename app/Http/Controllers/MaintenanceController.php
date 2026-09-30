@@ -29,8 +29,10 @@ class MaintenanceController extends Controller
         $query = MaintenanceRequest::query()
             ->with([
                 'gisFeature.dataset:id,name,display_name',
-                'gisFeature.datasetRecord:id,identifier_value',
+                'gisFeature.datasetRecord:id,identifier_value,values',
                 'assignedTo:id,name,email',
+                'jobs.technician:id,name,email',
+                'inspections.inspectedBy:id,name',
             ])
             ->whereHas('gisFeature', fn ($q) => $q->whereIn('dataset_id', $accessibleDatasetIds))
             ->latest('requested_at');
@@ -174,7 +176,7 @@ class MaintenanceController extends Controller
 
         $maintenance->load([
             'gisFeature.dataset:id,name,display_name',
-            'gisFeature.datasetRecord:id,identifier_value',
+            'gisFeature.datasetRecord:id,identifier_value,values',
             'reportedBy:id,name,email',
             'assignedTo:id,name,email',
         ]);
