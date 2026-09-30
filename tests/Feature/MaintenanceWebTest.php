@@ -86,14 +86,36 @@ class MaintenanceWebTest extends TestCase
 
         $view = Permission::findByName('maintenance.view', 'web');
 
-        $this->actingAs($admin)->post("/maintenance-settings/roles/{$role->id}/permissions", [
-            'permissions' => [$view->id],
+        $this->actingAs($admin)->post('/maintenance-settings/roles/permissions', [
+            'role_permissions' => [
+                $role->id => [$view->id],
+            ],
         ])->assertRedirect();
 
         $role->refresh();
         $this->assertTrue($role->hasPermissionTo('maintenance.view'));
         $this->assertFalse($role->hasPermissionTo('maintenance.create'));
         $this->assertTrue($role->hasPermissionTo('datasets.view'));
+    }
+
+
+    public function test_system_owner_can_access_enabled_maintenance_datasets_without_role_pivot(): void
+    {
+        $owner = User::factory()->create(['is_active' => true]);
+        $owner->syncRoles([Role::findOrCreate('System Owner', 'web')]);
+        $owner->givePermissionTo(Permission::whereIn('name', ['maintenance.view', 'maintenance.create'])->get());
+
+        $dataset = $this->createDataset('owner_layer', 'Owner Layer');
+
+        $this->actingAs($owner)
+            ->get('/maintenance/create')
+            ->assertOk()
+            ->assertSee('Owner Layer');
+
+        $this->actingAs($owner)
+            ->getJson('/api/maintenance/datasets')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $dataset->id);
     }
 
     public function test_disabled_dataset_is_not_available_even_when_role_is_granted(): void
