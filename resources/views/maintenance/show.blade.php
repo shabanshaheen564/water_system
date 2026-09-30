@@ -6,11 +6,32 @@
 <div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div><h2 class="text-xl font-semibold text-ink">طلب {{ $maintenanceRequest->request_no }}</h2><p class="mt-1 text-sm text-ink-secondary">تفاصيل الأصل والطلب وسجل الفحص والتنفيذ.</p></div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
+            @can('maintenance.update')
+            @if(!in_array($maintenanceRequest->status, ['completed','cancelled']))
+            <form method="POST" action="{{ route('maintenance.cancel', $maintenanceRequest) }}" class="flex gap-2">
+                @csrf
+                <input name="cancellation_reason" required class="input-institutional w-56" placeholder="سبب الإلغاء">
+                <button class="rounded-md border border-danger bg-white px-4 py-2 text-sm font-medium text-danger">إلغاء الطلب</button>
+            </form>
+            @endif
+            @endcan
             @can('maintenance.update')<a href="{{ route('maintenance.edit', $maintenanceRequest) }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm font-medium text-ink">تعديل</a>@endcan
             <a href="{{ route('maintenance.index') }}" class="rounded-md border border-border-strong bg-white px-4 py-2 text-sm">رجوع</a>
         </div>
     </div>
+
+    <section class="card-institutional mb-5 p-5">
+        <h3 class="mb-3 font-semibold text-ink">دورة حالة الطلب</h3>
+        <div class="flex flex-wrap gap-2 text-xs">
+            @foreach(['new'=>'جديد','assigned'=>'مسند','in_progress'=>'قيد التنفيذ','waiting'=>'بانتظار','completed'=>'مكتمل','not_repaired'=>'لم يُصلح','cancelled'=>'ملغى'] as $key => $label)
+                <span class="rounded-full border px-3 py-1 {{ $maintenanceRequest->status === $key ? 'border-brand-600 bg-brand-50 text-brand-700 font-semibold' : 'border-border text-ink-muted' }}">{{ $label }}</span>
+            @endforeach
+        </div>
+        @if($maintenanceRequest->cancellation_reason)
+            <p class="mt-3 text-sm text-danger">سبب الإلغاء: {{ $maintenanceRequest->cancellation_reason }}</p>
+        @endif
+    </section>
 
     <div class="grid gap-5 lg:grid-cols-3">
         <section class="card-institutional overflow-hidden lg:col-span-2">
@@ -80,11 +101,11 @@
 
         <section class="card-institutional overflow-hidden lg:col-span-2">
             <div class="border-b border-border px-5 py-4"><h3 class="font-semibold text-ink">سجل محاولات التنفيذ</h3></div>
-            <div class="overflow-x-auto"><table class="table-institutional"><thead><tr><th>الفني</th><th>البداية</th><th>النهاية</th><th>النتيجة</th><th>العطل</th><th>الإجراء</th><th>المواد</th></tr></thead><tbody>
+            <div class="overflow-x-auto"><table class="table-institutional"><thead><tr><th>الفني</th><th>البداية</th><th>النهاية</th><th>النتيجة</th><th>العطل</th><th>الإجراء</th><th>المواد</th><th>ملاحظات</th></tr></thead><tbody>
             @forelse($maintenanceRequest->jobs as $job)
-                <tr><td>{{ $job->technician?->name ?? '—' }}</td><td class="ltr-value">{{ $job->started_at?->format('Y-m-d H:i') }}</td><td class="ltr-value">{{ $job->completed_at?->format('Y-m-d H:i') }}</td><td>{{ ['repaired'=>'تم الإصلاح','not_repaired'=>'لم يتم الإصلاح','inspection_only'=>'فحص فقط'][$job->result] ?? $job->result }}</td><td>{{ $job->diagnosed_fault ?: '—' }}</td><td>{{ $job->repair_action ?: '—' }}</td><td>{{ $job->materials_used ?: '—' }}</td></tr>
+                <tr><td>{{ $job->technician?->name ?? '—' }}</td><td class="ltr-value">{{ $job->started_at?->format('Y-m-d H:i') }}</td><td class="ltr-value">{{ $job->completed_at?->format('Y-m-d H:i') }}</td><td>{{ ['repaired'=>'تم الإصلاح','not_repaired'=>'لم يتم الإصلاح','inspection_only'=>'فحص فقط'][$job->result] ?? $job->result }}</td><td>{{ $job->diagnosed_fault ?: '—' }}</td><td>{{ $job->repair_action ?: '—' }}</td><td>{{ $job->materials_used ?: '—' }}</td><td>{{ $job->notes ?: '—' }}</td></tr>
             @empty
-                <tr><td colspan="7" class="py-8 text-center text-sm text-ink-muted">لا توجد عمليات تنفيذ مسجلة بعد.</td></tr>
+                <tr><td colspan="8" class="py-8 text-center text-sm text-ink-muted">لا توجد عمليات تنفيذ مسجلة بعد.</td></tr>
             @endforelse
             </tbody></table></div>
         </section>
