@@ -65,4 +65,9 @@ class MaintenanceRequest extends Model
     {
         return $this->hasMany(MaintenanceJob::class);
     }
+
+    public function inspections(): HasMany
+    {
+        return $this->hasMany(AssetInspection::class, 'gis_feature_id', 'gis_feature_id');
+    }
 }
