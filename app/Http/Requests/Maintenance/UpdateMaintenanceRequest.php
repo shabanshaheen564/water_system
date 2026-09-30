@@ -20,6 +20,8 @@ class UpdateMaintenanceRequest extends FormRequest
             'fault_description' => ['nullable', 'string', 'max:5000'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
+            'status' => ['nullable', Rule::in(['new', 'assigned', 'in_progress', 'waiting', 'completed', 'not_repaired', 'cancelled'])],
+            'cancellation_reason' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }
