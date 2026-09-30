@@ -346,8 +346,8 @@ class MaintenanceWebTest extends TestCase
     public function test_user_without_complete_permission_cannot_execute_maintenance(): void
     {
         $user = User::factory()->create(['is_active' => true]);
-        $user->syncRoles([Role::findOrCreate('Field Worker', 'web')]);
-        $user->revokePermissionTo(Permission::where('name', 'maintenance.complete')->first());
+        $user->syncRoles([Role::findOrCreate('Viewer', 'web')]);
+        $user->givePermissionTo(Permission::whereIn('name', ['maintenance.view', 'maintenance.update'])->get());
 
         $dataset = $this->createDataset('authorization_layer', 'Authorization Layer');
         DB::table('maintenance_dataset_role')->insert([
