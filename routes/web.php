@@ -21,6 +21,7 @@ use App\Http\Controllers\GisAnalysisController;
 use App\Http\Controllers\GisImportExportController;
 use App\Http\Controllers\OperationalGisController;
 use App\Http\Controllers\OperationalDataImportWebController;
+use App\Http\Controllers\MaintenanceWebController;
 
 Route::get('/', function () { return view('welcome'); })->name('home');
 Route::get('/login', [LoginController::class, 'create'])->name('login');
@@ -49,6 +50,21 @@ Route::middleware(['auth', 'active', 'permission:tasks.update'])->delete('/work-
 Route::middleware(['auth', 'active', 'permission:tasks.update|tasks.assign|tasks.transition'])->put('/work-orders/{workOrder}', [WorkOrderWebController::class, 'update'])->name('work-orders.update');
 Route::middleware(['auth', 'active', 'permission:tasks.update'])->post('/work-orders/{workOrder}/convert-to-complaint', [WorkOrderWebController::class, 'convertToComplaint'])->name('work-orders.convert-to-complaint');
 Route::middleware(['auth', 'active', 'permission:tasks.delete'])->delete('/work-orders/{workOrder}', [WorkOrderWebController::class, 'destroy'])->name('work-orders.destroy');
+
+Route::middleware(['auth', 'active', 'permission:maintenance.view'])->group(function () {
+    Route::get('/maintenance', [MaintenanceWebController::class, 'index'])->name('maintenance.index');
+    Route::get('/maintenance/create', [MaintenanceWebController::class, 'create'])->middleware('permission:maintenance.create')->name('maintenance.create');
+    Route::get('/maintenance/datasets/{dataset}/features', [MaintenanceWebController::class, 'features'])->name('maintenance.features');
+    Route::get('/maintenance/{maintenanceRequest}', [MaintenanceWebController::class, 'show'])->name('maintenance.show');
+});
+Route::middleware(['auth', 'active', 'permission:maintenance.create'])->post('/maintenance', [MaintenanceWebController::class, 'store'])->name('maintenance.store');
+Route::middleware(['auth', 'active', 'permission:maintenance.update'])->group(function () {
+    Route::get('/maintenance/{maintenanceRequest}/edit', [MaintenanceWebController::class, 'edit'])->name('maintenance.edit');
+    Route::put('/maintenance/{maintenanceRequest}', [MaintenanceWebController::class, 'update'])->name('maintenance.update');
+    Route::get('/maintenance-settings', [MaintenanceWebController::class, 'settings'])->name('maintenance.settings');
+    Route::post('/maintenance-settings/datasets/{dataset}', [MaintenanceWebController::class, 'updateDatasetSettings'])->name('maintenance.settings.dataset');
+});
+Route::middleware(['auth', 'active', 'permission:maintenance.complete'])->post('/maintenance/{maintenanceRequest}/jobs', [MaintenanceWebController::class, 'storeJob'])->name('maintenance.jobs.store');
 
 Route::middleware(['auth', 'active', 'permission:gis.view|complaints.view|tasks.view|datasets.view'])->group(function () {
     Route::get('/gis', [DashboardController::class, 'index'])->name('gis.index');

@@ -20,6 +20,7 @@ class Dataset extends Model
         'source_format',
         'is_active',
         'is_spatial',
+        'maintenance_enabled',
         'geometry_type',
         'srid',
         'map_order',
@@ -34,6 +35,7 @@ class Dataset extends Model
         return [
             'is_active' => 'boolean',
             'is_spatial' => 'boolean',
+            'maintenance_enabled' => 'boolean',
             'default_visible' => 'boolean',
             'map_opacity' => 'float',
             'map_order' => 'integer',

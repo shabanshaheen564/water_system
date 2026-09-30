@@ -15,13 +15,14 @@ class MaintenanceAccessService
         return Dataset::query()
             ->where('is_active', true)
             ->where('is_spatial', true)
+            ->where('maintenance_enabled', true)
             ->whereHas('maintenanceRoles', fn (Builder $query) => $query->whereIn('roles.id', $roleIds))
             ->orderBy('display_name');
     }
 
     public function canAccessDataset(User $user, Dataset $dataset): bool
     {
-        if (!$dataset->is_active || !$dataset->is_spatial) {
+        if (!$dataset->is_active || !$dataset->is_spatial || !$dataset->maintenance_enabled) {
             return false;
         }
 
