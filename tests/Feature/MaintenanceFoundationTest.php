@@ -132,11 +132,16 @@ class MaintenanceFoundationTest extends TestCase
 
     public function test_maintenance_history_survives_gis_feature_deletion_by_nulling_the_link(): void
     {
+        $dataset = $this->createDataset('history_layer', 'History Layer', true, true);
+        $feature = $this->createFeature($dataset, 'H-01');
+
         $maintenance = MaintenanceRequest::create([
-            'gis_feature_id' => null,
+            'gis_feature_id' => $feature->id,
             'reported_by' => $this->user->id,
             'problem_description' => 'Historical maintenance record.',
         ]);
+
+        $feature->delete();
 
         $this->assertDatabaseHas('maintenance_requests', [
             'id' => $maintenance->id,
