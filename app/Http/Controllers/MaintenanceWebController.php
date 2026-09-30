@@ -200,38 +200,93 @@ class MaintenanceWebController extends Controller
         $this->ensureVisible($request, $maintenanceRequest);
         $validated = $request->validated();
 
-        $maintenanceRequest->update($validated);
-        if (($validated['assigned_to'] ?? null) !== null && $maintenanceRequest->status === 'new') {
-            $maintenanceRequest->update(['status' => 'assigned']);
-        }
+        DB::transaction(function () use ($maintenanceRequest, $validated) {
+            $status = $validated['status'] ?? null;
+            unset($validated['status']);
+
+            $oldAssigned = $maintenanceRequest->assigned_to;
+            $maintenanceRequest->fill($validated);
+
+            if ($status === 'assigned' && $maintenanceRequest->assigned_to === null) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['assigned_to' => 'يجب إسناد الطلب قبل نقله إلى حالة مسند.']);
+            }
+            if ($status === 'cancelled' && blank($validated['cancellation_reason'] ?? null)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['cancellation_reason' => 'سبب الإلغاء مطلوب.']);
+            }
+
+            if ($maintenanceRequest->assigned_to !== null && $oldAssigned === null) {
+                $maintenanceRequest->assigned_at = now();
+                if ($maintenanceRequest->status === 'new') $maintenanceRequest->status = 'assigned';
+            }
+
+            if ($status !== null) {
+                $maintenanceRequest->status = $status;
+            }
+
+            if ($maintenanceRequest->status === 'in_progress' && !$maintenanceRequest->started_at) {
+                $maintenanceRequest->started_at = now();
+            }
+            if ($maintenanceRequest->status === 'waiting') {
+                $maintenanceRequest->waiting_at = now();
+            }
+            if ($maintenanceRequest->status === 'completed') {
+                $maintenanceRequest->completed_at ??= now();
+            }
+            if ($maintenanceRequest->status === 'cancelled') {
+                $maintenanceRequest->cancelled_at ??= now();
+            }
+
+            $maintenanceRequest->save();
+        });
 
         return redirect()->route('maintenance.show', $maintenanceRequest)->with('success', 'تم تحديث طلب الصيانة.');
+    }
+
+    public function cancel(Request $request, MaintenanceRequest $maintenanceRequest): RedirectResponse
+    {
+        $this->ensureVisible($request, $maintenanceRequest);
+        abort_unless($request->user()->can('maintenance.update'), 403);
+        $validated = $request->validate(['cancellation_reason' => ['required', 'string', 'max:5000']]);
+
+        $maintenanceRequest->update([
+            'status' => 'cancelled',
+            'cancelled_at' => now(),
+            'cancellation_reason' => $validated['cancellation_reason'],
+        ]);
+
+        return redirect()->route('maintenance.show', $maintenanceRequest)->with('success', 'تم إلغاء طلب الصيانة.');
     }
 
     public function storeJob(StoreMaintenanceJobRequest $request, MaintenanceRequest $maintenanceRequest): RedirectResponse
     {
         $this->ensureVisible($request, $maintenanceRequest);
-
         $validated = $request->validated();
-        MaintenanceJob::create([
-            'maintenance_request_id' => $maintenanceRequest->id,
-            'technician_id' => $validated['technician_id'] ?? $request->user()->id,
-            'started_at' => $validated['started_at'] ?? now(),
-            'completed_at' => $validated['completed_at'] ?? now(),
-            'diagnosed_fault' => $validated['diagnosed_fault'] ?? null,
-            'repair_action' => $validated['repair_action'] ?? null,
-            'materials_used' => $validated['materials_used'] ?? null,
-            'result' => $validated['result'],
-            'notes' => $validated['notes'] ?? null,
-        ]);
 
-        if ($validated['result'] === 'repaired') {
-            $maintenanceRequest->update(['status' => 'completed', 'completed_at' => $validated['completed_at'] ?? now(), 'repair_result' => 'تم الإصلاح']);
-        } elseif ($validated['result'] === 'not_repaired') {
-            $maintenanceRequest->update(['status' => 'not_repaired', 'repair_result' => 'لم يتم الإصلاح']);
-        } else {
-            $maintenanceRequest->update(['status' => 'in_progress']);
-        }
+        DB::transaction(function () use ($request, $maintenanceRequest, $validated) {
+            MaintenanceJob::create([
+                'maintenance_request_id' => $maintenanceRequest->id,
+                'technician_id' => $validated['technician_id'] ?? $request->user()->id,
+                'started_at' => $validated['started_at'] ?? now(),
+                'completed_at' => $validated['completed_at'] ?? now(),
+                'diagnosed_fault' => $validated['diagnosed_fault'] ?? null,
+                'repair_action' => $validated['repair_action'] ?? null,
+                'materials_used' => $validated['materials_used'] ?? null,
+                'result' => $validated['result'],
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            $updates = ['started_at' => $validated['started_at'] ?? ($maintenanceRequest->started_at ?? now())];
+
+            if ($validated['result'] === 'repaired') {
+                $updates += ['status' => 'completed', 'completed_at' => $validated['completed_at'] ?? now(), 'repair_result' => 'تم الإصلاح'];
+            } elseif ($validated['result'] === 'not_repaired') {
+                $updates += ['status' => 'not_repaired', 'repair_result' => 'لم يتم الإصلاح'];
+            } else {
+                $updates += ['status' => 'in_progress'];
+            }
+
+            $maintenanceRequest->update($updates);
+        });
 
         return redirect()->route('maintenance.show', $maintenanceRequest)->with('success', 'تم تسجيل تنفيذ الصيانة.');
     }
