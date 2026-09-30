@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Casts\GeometryCast;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GisFeature extends Model
 {
@@ -31,6 +32,16 @@ class GisFeature extends Model
     public function dataset(): BelongsTo
     {
         return $this->belongsTo(Dataset::class);
+    }
+
+    public function maintenanceRequests(): HasMany
+    {
+        return $this->hasMany(MaintenanceRequest::class);
+    }
+
+    public function assetInspections(): HasMany
+    {
+        return $this->hasMany(AssetInspection::class);
     }
 
     public function toGeoJsonFeature(?int $outputSrid = null): array
