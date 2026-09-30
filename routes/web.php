@@ -59,6 +59,7 @@ Route::middleware(['auth', 'active', 'permission:maintenance.view'])->group(func
 });
 Route::middleware(['auth', 'active', 'permission:maintenance.create'])->post('/maintenance', [MaintenanceWebController::class, 'store'])->name('maintenance.store');
 Route::middleware(['auth', 'active', 'permission:maintenance.inspect'])->post('/maintenance-inspections', [MaintenanceWebController::class, 'inspect'])->name('maintenance.inspections.store');
+Route::middleware(['auth', 'active', 'permission:maintenance.update'])->post('/maintenance/{maintenanceRequest}/cancel', [MaintenanceWebController::class, 'cancel'])->name('maintenance.cancel');
 Route::middleware(['auth', 'active', 'permission:maintenance.update'])->group(function () {
     Route::get('/maintenance/{maintenanceRequest}/edit', [MaintenanceWebController::class, 'edit'])->name('maintenance.edit');
     Route::put('/maintenance/{maintenanceRequest}', [MaintenanceWebController::class, 'update'])->name('maintenance.update');
