@@ -336,32 +336,39 @@ class MaintenanceWebController extends Controller
         return back()->with('success', 'تم تحديث إعدادات الصيانة للطبقة.');
     }
 
-    public function updateRolePermissions(Request $request, Role $role): RedirectResponse
+    public function updateRolePermissions(Request $request): RedirectResponse
     {
         abort_unless($request->user()->can('maintenance.update'), 403);
-        abort_unless($role->name !== 'System Owner', 403);
 
         $maintenancePermissions = Permission::query()
             ->where('guard_name', 'web')
             ->where('name', 'like', 'maintenance.%')
             ->get();
+        $maintenancePermissionIds = $maintenancePermissions->pluck('id');
 
         $validated = $request->validate([
-            'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['integer'],
+            'role_permissions' => ['nullable', 'array'],
+            'role_permissions.*' => ['nullable', 'array'],
+            'role_permissions.*.*' => ['integer'],
         ]);
 
-        $selected = $maintenancePermissions
-            ->whereIn('id', $validated['permissions'] ?? [])
-            ->values();
+        DB::transaction(function () use ($validated, $maintenancePermissions, $maintenancePermissionIds) {
+            $roles = Role::query()->where('name', '!=', 'System Owner')->get();
 
-        $existingNonMaintenance = $role->permissions()
-            ->whereNotIn('permissions.id', $maintenancePermissions->pluck('id'))
-            ->get();
+            foreach ($roles as $role) {
+                $selected = $maintenancePermissions
+                    ->whereIn('id', $validated['role_permissions'][$role->id] ?? [])
+                    ->values();
 
-        $role->syncPermissions($existingNonMaintenance->merge($selected));
+                $existingNonMaintenance = $role->permissions()
+                    ->whereNotIn('permissions.id', $maintenancePermissionIds)
+                    ->get();
 
-        return back()->with('success', 'تم تحديث صلاحيات الصيانة للدور.');
+                $role->syncPermissions($existingNonMaintenance->merge($selected));
+            }
+        });
+
+        return back()->with('success', 'تم حفظ جميع صلاحيات الصيانة بنجاح.');
     }
 
     private function ensureVisible(Request $request, MaintenanceRequest $maintenanceRequest): void
