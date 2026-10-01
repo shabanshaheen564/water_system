@@ -392,6 +392,125 @@ class MaintenanceWebTest extends TestCase
         $this->assertDatabaseCount('maintenance_jobs', 0);
     }
 
+    public function test_field_worker_sees_only_requests_assigned_to_self(): void
+    {
+        $dataset = $this->createDataset('visibility_layer', 'Visibility Layer');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'V-01');
+
+        $other = User::factory()->create(['is_active' => true]);
+        $other->syncRoles([Role::findOrCreate('Field Worker', 'web')]);
+        $otherRoleId = $other->roles()->first()->id;
+        DB::table('maintenance_dataset_role')->insert([
+            'role_id' => $otherRoleId,
+            'dataset_id' => $dataset->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $mine = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'assigned_to' => $this->user->id,
+            'problem_description' => 'Mine.',
+        ]);
+        $otherRequest = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'assigned_to' => $other->id,
+            'problem_description' => 'Other.',
+        ]);
+        $unassigned = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'assigned_to' => null,
+            'problem_description' => 'Unassigned.',
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson('/api/maintenance/requests');
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $mine->id);
+
+        $this->actingAs($this->user)->getJson("/api/maintenance/requests/{$otherRequest->id}")
+            ->assertForbidden();
+
+        $this->actingAs($this->user)->getJson("/api/maintenance/requests/{$unassigned->id}")
+            ->assertForbidden();
+    }
+
+    public function test_engineer_and_admin_can_see_unassigned_and_other_assigned_requests(): void
+    {
+        $dataset = $this->createDataset('management_visibility_layer', 'Management Visibility');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'MV-01');
+
+        $other = User::factory()->create(['is_active' => true]);
+        $other->syncRoles([Role::findOrCreate('Field Worker', 'web')]);
+
+        $mine = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'assigned_to' => $other->id,
+            'problem_description' => 'Assigned to another worker.',
+        ]);
+        $unassigned = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'assigned_to' => null,
+            'problem_description' => 'Unassigned request.',
+        ]);
+
+        foreach (['Engineer', 'Admin'] as $roleName) {
+            $manager = User::factory()->create(['is_active' => true]);
+            $manager->syncRoles([Role::findOrCreate($roleName, 'web')]);
+            $manager->givePermissionTo(Permission::whereIn('name', [
+                'maintenance.view', 'maintenance.create', 'maintenance.update', 'maintenance.assign',
+                'maintenance.complete', 'maintenance.inspect',
+            ])->get());
+            DB::table('maintenance_dataset_role')->insert([
+                'role_id' => $manager->roles()->first()->id,
+                'dataset_id' => $dataset->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $response = $this->actingAs($manager)->getJson('/api/maintenance/requests');
+            $response->assertOk();
+            $ids = collect($response->json('data'))->pluck('id')->all();
+            $this->assertContains($mine->id, $ids);
+            $this->assertContains($unassigned->id, $ids);
+
+            $this->actingAs($manager)->getJson("/api/maintenance/requests/{$unassigned->id}")
+                ->assertOk();
+        }
+    }
+
+    public function test_field_worker_cannot_assign_or_reassign_maintenance_request(): void
+    {
+        $dataset = $this->createDataset('assignment_security_layer', 'Assignment Security');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'AS-01');
+
+        $maintenance = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'assigned_to' => $this->user->id,
+            'problem_description' => 'Assignment security.',
+        ]);
+
+        $other = User::factory()->create(['is_active' => true]);
+
+        $this->actingAs($this->user)->put("/maintenance/{$maintenance->id}", [
+            'priority' => 'high',
+            'assigned_to' => $other->id,
+            'problem_description' => 'Assignment security.',
+        ])->assertForbidden();
+
+        $maintenance->refresh();
+        $this->assertSame($this->user->id, $maintenance->assigned_to);
+    }
+
     private function createDataset(string $name, string $displayName, bool $enabled = true): Dataset
     {
         return Dataset::create([
