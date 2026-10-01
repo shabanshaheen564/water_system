@@ -196,10 +196,6 @@ class MaintenanceController extends Controller
         $validated = $request->validated();
 
         if (array_key_exists('assigned_to', $validated)) {
-            if (in_array($maintenanceRequest->status, ['completed', 'cancelled'], true)) {
-                abort(422, 'لا يمكن تعديل الإسناد بعد إغلاق طلب الصيانة.');
-            }
-
             $newAssignedTo = $validated['assigned_to'];
             if (!$this->access->canAssignRequests($request->user()) && (int) $newAssignedTo !== (int) $request->user()->id) {
                 abort(403);
@@ -211,12 +207,6 @@ class MaintenanceController extends Controller
             unset($validated['status']);
 
             if ($status !== null) {
-                if (in_array($status, ['completed', 'not_repaired', 'cancelled'], true)) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'status' => 'الحالات النهائية تُسجل من خلال تنفيذ الصيانة أو إجراء الإلغاء المخصص.',
-                    ]);
-                }
-
                 $this->access->assertStatusPermission($request->user(), $status);
                 $this->access->assertStatusTransition($maintenanceRequest, $status);
             }
