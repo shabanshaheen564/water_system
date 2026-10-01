@@ -35,6 +35,9 @@ class MaintenanceController extends Controller
                 'inspections.inspectedBy:id,name',
             ])
             ->whereHas('gisFeature', fn ($q) => $q->whereIn('dataset_id', $accessibleDatasetIds))
+            ->when(!$this->access->canManageAllRequests($request->user()), fn ($q) =>
+                $q->where('assigned_to', $request->user()->id)
+            )
             ->latest('requested_at');
 
         if ($search = trim((string) $request->input('search'))) {
@@ -160,6 +163,9 @@ class MaintenanceController extends Controller
         $feature = GisFeature::with('dataset')->findOrFail($validated['gis_feature_id']);
 
         abort_unless($this->access->canAccessFeature($request->user(), $feature), 403);
+        if (($validated['assigned_to'] ?? null) !== null) {
+            abort_unless($this->access->canAssignRequests($request->user()), 403);
+        }
 
         $maintenance = DB::transaction(function () use ($validated, $request, $feature) {
             return MaintenanceRequest::create([
@@ -188,6 +194,13 @@ class MaintenanceController extends Controller
     {
         $this->ensureVisible($request, $maintenanceRequest);
         $validated = $request->validated();
+
+        if (array_key_exists('assigned_to', $validated)) {
+            $newAssignedTo = $validated['assigned_to'];
+            if (!$this->access->canAssignRequests($request->user()) && (int) $newAssignedTo !== (int) $request->user()->id) {
+                abort(403);
+            }
+        }
 
         DB::transaction(function () use ($maintenanceRequest, $validated) {
             $status = $validated['status'] ?? null;
@@ -334,10 +347,7 @@ class MaintenanceController extends Controller
     private function ensureVisible(Request $request, MaintenanceRequest $maintenanceRequest): void
     {
         abort_unless($request->user()->can('maintenance.view'), 403);
-        $maintenanceRequest->loadMissing('gisFeature.dataset');
-        if ($maintenanceRequest->gisFeature) {
-            abort_unless($this->access->canAccessFeature($request->user(), $maintenanceRequest->gisFeature), 403);
-        }
+        abort_unless($this->access->canAccessRequest($request->user(), $maintenanceRequest), 403);
     }
 
     private function format(MaintenanceRequest $maintenance): array
