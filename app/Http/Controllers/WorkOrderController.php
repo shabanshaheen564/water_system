@@ -8,7 +8,6 @@ use App\Models\Complaint;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Services\ArchiveService;
-use App\Services\FcmService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -45,7 +44,7 @@ class WorkOrderController extends Controller
         return response()->json(['data' => $data, 'links' => ['first' => $workOrders->url(1), 'last' => $workOrders->url($workOrders->lastPage()), 'prev' => $workOrders->previousPageUrl(), 'next' => $workOrders->nextPageUrl()], 'meta' => ['current_page' => $workOrders->currentPage(), 'from' => $workOrders->firstItem(), 'last_page' => $workOrders->lastPage(), 'path' => $workOrders->path(), 'per_page' => $workOrders->perPage(), 'to' => $workOrders->lastItem(), 'total' => $workOrders->total()]]);
     }
 
-    public function store(StoreWorkOrderRequest $request, FcmService $fcm): JsonResponse
+    public function store(StoreWorkOrderRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $idempotencyKey = $validated['idempotency_key'] ?? null;
@@ -86,8 +85,6 @@ class WorkOrderController extends Controller
             return $workOrder;
         });
 
-        $this->sendAssignmentNotificationSafely($fcm, $workOrder);
-
         return response()->json($this->formatWorkOrder($workOrder), 201);
     }
 
@@ -120,25 +117,6 @@ class WorkOrderController extends Controller
 
         if (($validated['status'] ?? $oldStatus) === 'completed') {
             $this->archiveCompletedWorkOrderSafely($archive, $workOrder);
-        }
-
-        $newAssignedTo = $workOrder->assigned_to;
-        if ($newAssignedTo && $newAssignedTo !== $oldAssignedTo) {
-            $this->sendNotificationSafely(
-                $fcm,
-                (int) $newAssignedTo,
-                'مهمة جديدة',
-                "تم إسناد المهمة {$workOrder->work_order_number} إليك.",
-                ['type' => 'work_order', 'work_order_id' => $workOrder->id]
-            );
-        } elseif ($newAssignedTo && isset($validated['status']) && $validated['status'] !== $oldStatus) {
-            $this->sendNotificationSafely(
-                $fcm,
-                (int) $newAssignedTo,
-                'تحديث مهمة',
-                "تم تحديث حالة المهمة {$workOrder->work_order_number} إلى {$workOrder->status}.",
-                ['type' => 'work_order', 'work_order_id' => $workOrder->id]
-            );
         }
 
         return response()->json($payload);
@@ -220,33 +198,6 @@ class WorkOrderController extends Controller
             $workOrder->load(['complaints:id,complaint_number,title,status', 'assignedTo:id,name,email', 'createdBy:id,name,email']);
             return response()->json($this->formatWorkOrder($workOrder));
         });
-    }
-
-    private function sendAssignmentNotificationSafely(FcmService $fcm, WorkOrder $workOrder): void
-    {
-        if ($workOrder->assigned_to === null) {
-            return;
-        }
-
-        $this->sendNotificationSafely(
-            $fcm,
-            (int) $workOrder->assigned_to,
-            'مهمة جديدة',
-            "تم إسناد المهمة {$workOrder->work_order_number} إليك.",
-            ['type' => 'work_order', 'work_order_id' => $workOrder->id]
-        );
-    }
-
-    private function sendNotificationSafely(FcmService $fcm, int $userId, string $title, string $body, array $data): void
-    {
-        try {
-            $fcm->sendToUser($userId, $title, $body, $data);
-        } catch (\Throwable $e) {
-            Log::warning('Work order notification failed after the primary operation succeeded.', [
-                'user_id' => $userId,
-                'message' => $e->getMessage(),
-            ]);
-        }
     }
 
     private function archiveCompletedWorkOrderSafely(ArchiveService $archive, WorkOrder $workOrder): void
