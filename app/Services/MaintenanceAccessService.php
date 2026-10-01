@@ -97,7 +97,7 @@ class MaintenanceAccessService
         $currentStatus = $maintenanceRequest->status;
 
         $allowed = [
-            'new' => ['assigned'],
+            'new' => ['assigned', 'cancelled'],
             'assigned' => ['in_progress', 'waiting'],
             'in_progress' => ['waiting', 'not_repaired', 'completed'],
             'waiting' => ['in_progress', 'not_repaired', 'completed'],
