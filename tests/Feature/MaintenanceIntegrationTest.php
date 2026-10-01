@@ -287,7 +287,7 @@ class MaintenanceIntegrationTest extends TestCase
     private function grant(Dataset $dataset, array $users): void
     {
         foreach ($users as $user) {
-            DB::table('maintenance_dataset_role')->insert([
+            DB::table('maintenance_dataset_role')->insertOrIgnore([
                 'role_id' => $user->roles()->first()->id,
                 'dataset_id' => $dataset->id,
                 'created_at' => now(),
