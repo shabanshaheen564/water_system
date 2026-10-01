@@ -565,25 +565,32 @@ class MaintenanceWebTest extends TestCase
 
     public function test_closed_request_can_be_reopened_and_reassigned(): void
     {
+        $manager = User::factory()->create(['is_active' => true]);
+        $manager->syncRoles([Role::findOrCreate('Engineer', 'web')]);
+        $manager->givePermissionTo(Permission::whereIn('name', [
+            'maintenance.view', 'maintenance.update', 'maintenance.assign',
+            'maintenance.complete',
+        ])->get());
+
         $dataset = $this->createDataset('closed_assignment_layer', 'Closed Assignment');
         $this->grantDataset($dataset);
         $feature = $this->createFeature($dataset, 'CA-01');
 
         $maintenance = MaintenanceRequest::create([
             'gis_feature_id' => $feature->id,
-            'reported_by' => $this->user->id,
-            'assigned_to' => $this->user->id,
+            'reported_by' => $manager->id,
+            'assigned_to' => $manager->id,
             'status' => 'assigned',
             'problem_description' => 'Closed assignment.',
         ]);
 
-        $this->actingAs($this->user)->post("/maintenance/{$maintenance->id}/jobs", [
+        $this->actingAs($manager)->post("/maintenance/{$maintenance->id}/jobs", [
             'result' => 'repaired',
         ])->assertRedirect();
 
         $other = User::factory()->create(['is_active' => true]);
 
-        $this->actingAs($this->user)->put("/maintenance/{$maintenance->id}", [
+        $this->actingAs($manager)->put("/maintenance/{$maintenance->id}", [
             'priority' => 'high',
             'assigned_to' => $other->id,
             'problem_description' => 'Closed assignment.',
