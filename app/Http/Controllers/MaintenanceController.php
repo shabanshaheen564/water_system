@@ -196,6 +196,10 @@ class MaintenanceController extends Controller
         $validated = $request->validated();
 
         if (array_key_exists('assigned_to', $validated)) {
+            if (in_array($maintenanceRequest->status, ['completed', 'cancelled'], true)) {
+                abort(422, 'لا يمكن تعديل الإسناد بعد إغلاق طلب الصيانة.');
+            }
+
             $newAssignedTo = $validated['assigned_to'];
             if (!$this->access->canAssignRequests($request->user()) && (int) $newAssignedTo !== (int) $request->user()->id) {
                 abort(403);
