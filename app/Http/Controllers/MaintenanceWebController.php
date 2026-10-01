@@ -224,6 +224,12 @@ class MaintenanceWebController extends Controller
             unset($validated['status']);
 
             if ($status !== null) {
+                if (in_array($status, ['completed', 'not_repaired', 'cancelled'], true)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'status' => 'الحالات النهائية تُسجل من خلال تنفيذ الصيانة أو إجراء الإلغاء المخصص.',
+                    ]);
+                }
+
                 $this->access->assertStatusPermission($request->user(), $status);
                 $this->access->assertStatusTransition($maintenanceRequest, $status);
             }
