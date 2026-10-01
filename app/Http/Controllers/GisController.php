@@ -5,11 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Complaint;
 use App\Models\Dataset;
 use App\Models\WorkOrder;
+use App\Models\MaintenanceRequest;
+use App\Services\MaintenanceAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
 class GisController extends Controller
 {
+    public function __construct(private readonly MaintenanceAccessService $maintenanceAccess) {}
+
     public function index(): View
     {
         $spatialDatasets = Dataset::query()->where('is_spatial', true)->where('is_active', true)->withCount(['gisFeatures as features_count'])->orderBy('map_order')->orderBy('display_name')->get();
@@ -20,7 +24,7 @@ class GisController extends Controller
     {
         $user = request()->user();
         abort_unless($user->can('gis.view') || $user->can('complaints.view') || $user->can('tasks.view') || $user->can('datasets.view'), 403);
-        $payload = ['complaints' => [], 'work_orders' => [], 'datasets' => [], 'permissions' => ['complaints' => $user->can('complaints.view'), 'tasks' => $user->can('tasks.view'), 'datasets' => $user->can('datasets.view')]];
+        $payload = ['complaints' => [], 'work_orders' => [], 'maintenance' => [], 'datasets' => [], 'permissions' => ['complaints' => $user->can('complaints.view'), 'tasks' => $user->can('tasks.view'), 'maintenance' => $user->can('maintenance.view'), 'datasets' => $user->can('datasets.view')]];
 
         if ($user->can('complaints.view')) {
             $payload['complaints'] = Complaint::query()->with(['assignedTo:id,name', 'workOrders:id,work_order_number,status'])->whereNotNull('latitude')->whereNotNull('longitude')->latest()->get()->map(fn (Complaint $complaint) => [
@@ -42,6 +46,45 @@ class GisController extends Controller
                     'latitude' => $latitude, 'longitude' => $longitude, 'complaints_count' => $workOrder->complaints->count(), 'url' => route('work-orders.show', $workOrder),
                 ];
             })->filter(fn (array $workOrder) => $workOrder['latitude'] !== null && $workOrder['longitude'] !== null)->values();
+        }
+
+        if ($user->can('maintenance.view')) {
+            $maintenanceQuery = MaintenanceRequest::query()
+                ->join('gis_features', 'gis_features.id', '=', 'maintenance_requests.gis_feature_id')
+                ->with([
+                    'gisFeature.dataset:id,display_name',
+                    'gisFeature.datasetRecord:id,identifier_value,values',
+                    'assignedTo:id,name',
+                ])
+                ->select('maintenance_requests.*')
+                ->selectRaw("ST_Y(ST_PointOnSurface(ST_Transform(gis_features.geometry, 4326))) as latitude")
+                ->selectRaw("ST_X(ST_PointOnSurface(ST_Transform(gis_features.geometry, 4326))) as longitude")
+                ->whereNotNull('gis_features.geometry')
+                ->latest('maintenance_requests.requested_at');
+
+            if (!$this->maintenanceAccess->canManageAllRequests($user)) {
+                $maintenanceQuery->where('maintenance_requests.assigned_to', $user->id);
+            }
+
+            $payload['maintenance'] = $maintenanceQuery->get()
+                ->filter(fn (MaintenanceRequest $request) => $this->maintenanceAccess->canAccessRequest($user, $request))
+                ->map(fn (MaintenanceRequest $request) => [
+                    'id' => $request->id,
+                    'number' => $request->request_no,
+                    'title' => $request->problem_description,
+                    'description' => $request->fault_description,
+                    'status' => $request->status,
+                    'priority' => $request->priority,
+                    'assigned_to' => $request->assignedTo?->name,
+                    'latitude' => (float) $request->latitude,
+                    'longitude' => (float) $request->longitude,
+                    'asset_name' => $request->gisFeature?->datasetRecord?->values['name_ar']
+                        ?? $request->gisFeature?->datasetRecord?->values['name']
+                        ?? $request->gisFeature?->datasetRecord?->identifier_value
+                        ?? $request->gisFeature?->dataset?->display_name
+                        ?? 'أصل جغرافي',
+                    'url' => route('maintenance.show', $request),
+                ])->values();
         }
 
         if ($user->can('datasets.view')) {
