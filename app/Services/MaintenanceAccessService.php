@@ -102,8 +102,8 @@ class MaintenanceAccessService
             'in_progress' => ['waiting', 'not_repaired', 'completed'],
             'waiting' => ['in_progress', 'not_repaired', 'completed'],
             'not_repaired' => ['in_progress', 'waiting', 'completed'],
-            'completed' => [],
-            'cancelled' => [],
+            'completed' => ['in_progress', 'waiting'],
+            'cancelled' => ['in_progress', 'waiting'],
         ];
 
         if (!array_key_exists($currentStatus, $allowed) || !in_array($targetStatus, $allowed[$currentStatus], true)) {
