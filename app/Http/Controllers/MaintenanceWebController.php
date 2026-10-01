@@ -35,6 +35,9 @@ class MaintenanceWebController extends Controller
                 'gisFeature.datasetRecord:id,identifier_value',
                 'assignedTo:id,name',
             ])
+            ->when(!$this->access->canManageAllRequests($request->user()), fn ($q) =>
+                $q->where('assigned_to', $request->user()->id)
+            )
             ->latest('requested_at');
 
         if ($search = trim((string) $request->input('search'))) {
@@ -151,6 +154,9 @@ class MaintenanceWebController extends Controller
         $feature = GisFeature::with(['dataset', 'datasetRecord'])->findOrFail($validated['gis_feature_id']);
 
         abort_unless($this->access->canAccessFeature($request->user(), $feature), 403);
+        if (($validated['assigned_to'] ?? null) !== null) {
+            abort_unless($this->access->canAssignRequests($request->user()), 403);
+        }
 
         $maintenance = DB::transaction(fn () => MaintenanceRequest::create([
             'gis_feature_id' => $feature->id,
@@ -375,11 +381,7 @@ class MaintenanceWebController extends Controller
     {
         abort_unless($request->user()->can('maintenance.view'), 403);
 
-        $maintenanceRequest->loadMissing('gisFeature.dataset');
-
-        if ($maintenanceRequest->gisFeature) {
-            abort_unless($this->access->canAccessFeature($request->user(), $maintenanceRequest->gisFeature), 403);
-        }
+        abort_unless($this->access->canAccessRequest($request->user(), $maintenanceRequest), 403);
     }
 
     private function technicians()
