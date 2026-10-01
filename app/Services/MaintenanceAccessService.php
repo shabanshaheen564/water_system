@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Dataset;
+use App\Models\MaintenanceRequest;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\ValidationException;
 
 class MaintenanceAccessService
 {
@@ -57,7 +59,7 @@ class MaintenanceAccessService
         return $user->hasAnyRole(['System Owner', 'Admin', 'Engineer']);
     }
 
-    public function canAccessRequest(User $user, \App\Models\MaintenanceRequest $maintenanceRequest): bool
+    public function canAccessRequest(User $user, MaintenanceRequest $maintenanceRequest): bool
     {
         if ($this->canManageAllRequests($user)) {
             return true;
@@ -83,5 +85,63 @@ class MaintenanceAccessService
     public function canAssignRequests(User $user): bool
     {
         return $user->can('maintenance.assign');
+    }
+
+    public function canCancelRequests(User $user): bool
+    {
+        return $this->canManageAllRequests($user);
+    }
+
+    public function assertStatusTransition(MaintenanceRequest $maintenanceRequest, string $targetStatus): void
+    {
+        $currentStatus = $maintenanceRequest->status;
+
+        $allowed = [
+            'new' => ['assigned'],
+            'assigned' => ['in_progress', 'waiting'],
+            'in_progress' => ['waiting', 'not_repaired', 'completed'],
+            'waiting' => ['in_progress', 'not_repaired', 'completed'],
+            'not_repaired' => ['in_progress', 'waiting', 'completed'],
+            'completed' => [],
+            'cancelled' => [],
+        ];
+
+        if (!array_key_exists($currentStatus, $allowed) || !in_array($targetStatus, $allowed[$currentStatus], true)) {
+            throw ValidationException::withMessages([
+                'status' => "لا يمكن نقل طلب الصيانة من الحالة {$currentStatus} إلى {$targetStatus}.",
+            ]);
+        }
+    }
+
+    public function assertStatusPermission(User $user, string $targetStatus): void
+    {
+        if (in_array($targetStatus, ['completed', 'not_repaired'], true)
+            && !$user->can('maintenance.complete')
+        ) {
+            abort(403);
+        }
+
+        if ($targetStatus === 'cancelled' && !$this->canCancelRequests($user)) {
+            abort(403);
+        }
+
+        if (in_array($targetStatus, ['new', 'assigned', 'in_progress', 'waiting'], true)
+            && !$user->can('maintenance.update')
+        ) {
+            abort(403);
+        }
+    }
+
+    public function assertJobExecutionAllowed(User $user, MaintenanceRequest $maintenanceRequest): void
+    {
+        if (!$user->can('maintenance.complete')) {
+            abort(403);
+        }
+
+        if (in_array($maintenanceRequest->status, ['new', 'completed', 'cancelled'], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'لا يمكن تنفيذ الصيانة على طلب بهذه الحالة.',
+            ]);
+        }
     }
 }
