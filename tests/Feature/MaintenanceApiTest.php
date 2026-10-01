@@ -148,6 +148,81 @@ class MaintenanceApiTest extends TestCase
         ]);
     }
 
+    public function test_maintenance_create_replays_same_response_for_same_idempotency_key(): void
+    {
+        $payload = [
+            'gis_feature_id' => $this->feature->id,
+            'priority' => 'high',
+            'problem_description' => 'Idempotency create test.',
+            'idempotency_key' => 'mnt-create-idempotency-test',
+        ];
+
+        $first = $this->actingAs($this->user)
+            ->postJson('/api/maintenance/requests', $payload)
+            ->assertCreated();
+
+        $second = $this->actingAs($this->user)
+            ->postJson('/api/maintenance/requests', $payload)
+            ->assertCreated();
+
+        $this->assertSame($first->json('id'), $second->json('id'));
+        $this->assertDatabaseCount('maintenance_requests', 1);
+        $this->assertDatabaseCount('idempotency_keys', 1);
+    }
+
+    public function test_maintenance_job_replays_without_creating_a_second_job(): void
+    {
+        $maintenance = MaintenanceRequest::create([
+            'gis_feature_id' => $this->feature->id,
+            'reported_by' => $this->user->id,
+            'problem_description' => 'Idempotency job test.',
+            'status' => 'in_progress',
+        ]);
+
+        $payload = [
+            'result' => 'repaired',
+            'diagnosed_fault' => 'اختبار التكرار.',
+            'repair_action' => 'تم الإصلاح.',
+            'idempotency_key' => 'mnt-job-idempotency-test',
+        ];
+
+        $first = $this->actingAs($this->user)
+            ->postJson('/api/maintenance/requests/' . $maintenance->id . '/jobs', $payload)
+            ->assertOk();
+
+        $second = $this->actingAs($this->user)
+            ->postJson('/api/maintenance/requests/' . $maintenance->id . '/jobs', $payload)
+            ->assertOk();
+
+        $this->assertSame($first->json('status'), $second->json('status'));
+        $this->assertSame('completed', $second->json('status'));
+        $this->assertDatabaseCount('maintenance_jobs', 1);
+        $this->assertDatabaseCount('idempotency_keys', 1);
+    }
+
+    public function test_inspection_replays_without_creating_duplicate_inspection_or_request(): void
+    {
+        $payload = [
+            'gis_feature_id' => $this->feature->id,
+            'result' => 'problem',
+            'problem_description' => 'Idempotency inspection test.',
+            'idempotency_key' => 'mnt-inspection-idempotency-test',
+        ];
+
+        $first = $this->actingAs($this->user)
+            ->postJson('/api/maintenance-inspections', $payload)
+            ->assertCreated();
+
+        $second = $this->actingAs($this->user)
+            ->postJson('/api/maintenance-inspections', $payload)
+            ->assertCreated();
+
+        $this->assertSame($first->json('id'), $second->json('id'));
+        $this->assertDatabaseCount('asset_inspections', 1);
+        $this->assertDatabaseCount('maintenance_requests', 1);
+        $this->assertDatabaseCount('idempotency_keys', 1);
+    }
+
     public function test_mobile_api_rejects_execution_without_complete_permission(): void
     {
         $viewer = User::factory()->create(['is_active' => true]);
