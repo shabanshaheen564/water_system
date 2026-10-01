@@ -34,7 +34,7 @@ class MaintenanceAccessService
             return false;
         }
 
-        if ($user->hasRole('System Owner')) {
+        if ($user->hasAnyRole(['System Owner', 'Admin'])) {
             return true;
         }
 
