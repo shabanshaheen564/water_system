@@ -59,6 +59,10 @@ class MaintenanceAccessService
 
     public function canAccessRequest(User $user, \App\Models\MaintenanceRequest $maintenanceRequest): bool
     {
+        if ($this->canManageAllRequests($user)) {
+            return true;
+        }
+
         $maintenanceRequest->loadMissing('gisFeature.dataset');
 
         $feature = $maintenanceRequest->gisFeature;
@@ -67,12 +71,9 @@ class MaintenanceAccessService
         }
 
         $dataset = $feature->dataset;
+
         if (!$dataset->is_active || !$dataset->is_spatial || !$dataset->maintenance_enabled) {
             return false;
-        }
-
-        if ($this->canManageAllRequests($user)) {
-            return true;
         }
 
         return (int) $maintenanceRequest->assigned_to === (int) $user->id
