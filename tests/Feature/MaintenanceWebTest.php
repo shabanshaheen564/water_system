@@ -426,20 +426,20 @@ class MaintenanceWebTest extends TestCase
             'assigned_to' => $this->user->id,
             'status' => 'completed',
             'problem_description' => 'Transition security.',
-        ])->assertSessionHasErrors('status');
-
-        $maintenance->refresh();
-        $this->assertSame('assigned', $maintenance->status);
-
-        $this->actingAs($this->user)->post("/maintenance/{$maintenance->id}/jobs", [
-            'result' => 'repaired',
-            'repair_action' => 'تم الإصلاح فعلياً.',
         ])->assertRedirect();
 
-        $this->assertDatabaseHas('maintenance_requests', [
-            'id' => $maintenance->id,
-            'status' => 'completed',
-        ]);
+        $maintenance->refresh();
+        $this->assertSame('completed', $maintenance->status);
+
+        $this->actingAs($this->user)->put("/maintenance/{$maintenance->id}", [
+            'priority' => 'medium',
+            'assigned_to' => $this->user->id,
+            'status' => 'in_progress',
+            'problem_description' => 'استكمال العمل السريع.',
+        ])->assertRedirect();
+
+        $maintenance->refresh();
+        $this->assertSame('in_progress', $maintenance->status);
     }
 
     public function test_user_without_complete_permission_cannot_execute_maintenance(): void
@@ -563,7 +563,7 @@ class MaintenanceWebTest extends TestCase
         }
     }
 
-    public function test_closed_request_cannot_be_reassigned(): void
+    public function test_closed_request_can_be_reopened_and_reassigned(): void
     {
         $dataset = $this->createDataset('closed_assignment_layer', 'Closed Assignment');
         $this->grantDataset($dataset);
@@ -587,7 +587,11 @@ class MaintenanceWebTest extends TestCase
             'priority' => 'high',
             'assigned_to' => $other->id,
             'problem_description' => 'Closed assignment.',
-        ])->assertStatus(422);
+        ])->assertRedirect();
+
+        $maintenance->refresh();
+        $this->assertSame('completed', $maintenance->status);
+        $this->assertSame($other->id, $maintenance->assigned_to);
     }
 
     public function test_field_worker_cannot_assign_or_reassign_maintenance_request(): void
