@@ -337,9 +337,7 @@ class MaintenanceController extends Controller
             'inspections.inspectedBy:id,name',
         ]);
 
-        if ($maintenanceRequest->gisFeature && !$this->access->canAccessFeature($request->user(), $maintenanceRequest->gisFeature)) {
-            abort(403);
-        }
+        abort_unless($this->access->canAccessRequest($request->user(), $maintenanceRequest), 403);
 
         return response()->json($this->format($maintenanceRequest));
     }
