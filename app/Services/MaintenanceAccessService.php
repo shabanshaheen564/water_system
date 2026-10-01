@@ -61,10 +61,13 @@ class MaintenanceAccessService
     {
         $maintenanceRequest->loadMissing('gisFeature.dataset');
 
-        if (
-            $maintenanceRequest->gisFeature === null
-            || !$this->canAccessFeature($user, $maintenanceRequest->gisFeature)
-        ) {
+        $feature = $maintenanceRequest->gisFeature;
+        if ($feature === null || $feature->dataset === null) {
+            return false;
+        }
+
+        $dataset = $feature->dataset;
+        if (!$dataset->is_active || !$dataset->is_spatial || !$dataset->maintenance_enabled) {
             return false;
         }
 
@@ -72,7 +75,8 @@ class MaintenanceAccessService
             return true;
         }
 
-        return (int) $maintenanceRequest->assigned_to === (int) $user->id;
+        return (int) $maintenanceRequest->assigned_to === (int) $user->id
+            && $this->canAccessDataset($user, $dataset);
     }
 
     public function canAssignRequests(User $user): bool
