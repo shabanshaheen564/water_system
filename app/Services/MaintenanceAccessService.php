@@ -10,7 +10,7 @@ class MaintenanceAccessService
 {
     public function datasetsFor(User $user): Builder
     {
-        if ($user->hasAnyRole(['System Owner', 'Admin'])) {
+        if ($user->hasAnyRole(['System Owner', 'Admin', 'Engineer'])) {
             return Dataset::query()
                 ->where('is_active', true)
                 ->where('is_spatial', true)
@@ -34,7 +34,7 @@ class MaintenanceAccessService
             return false;
         }
 
-        if ($user->hasAnyRole(['System Owner', 'Admin'])) {
+        if ($user->hasAnyRole(['System Owner', 'Admin', 'Engineer'])) {
             return true;
         }
 
