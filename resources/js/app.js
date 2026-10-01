@@ -313,11 +313,13 @@ function initMapPage() {
     const state = {
         complaints: [],
         tasks: [],
+        maintenance: [],
         datasets: [],
         complaintLayer: L.layerGroup().addTo(map),
         taskLayer: L.layerGroup().addTo(map),
+        maintenanceLayer: L.layerGroup().addTo(map),
         datasetLayers: {},
-        filtered: { complaints: [], tasks: [] },
+        filtered: { complaints: [], tasks: [], maintenance: [] },
         drawing: { active: false, layer: null },
         editingFeature: null,
         analysisLayer: L.layerGroup().addTo(map),
@@ -1278,24 +1280,29 @@ function initMapPage() {
     const labels = {
         complaintStatus: { open: 'مفتوحة', in_progress: 'قيد المعالجة', resolved: 'تم الحل', closed: 'مغلقة', cancelled: 'ملغاة' },
         taskStatus: { pending: 'معلقة', assigned: 'مسندة', in_progress: 'قيد التنفيذ', completed: 'مكتملة', cancelled: 'ملغاة' },
+        maintenanceStatus: { new: 'جديدة', assigned: 'مسندة', in_progress: 'قيد التنفيذ', waiting: 'بانتظار', completed: 'مكتملة', not_repaired: 'لم تُصلح', cancelled: 'ملغاة' },
         priority: { urgent: 'عاجلة', high: 'عالية', medium: 'متوسطة', low: 'منخفضة' }
     };
 
-    const markerIconFor = (type) => L.divIcon({ className: '', html: `<div class="map-marker ${type}">${type === 'complaint' ? '!' : '✓'}</div>`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -16] });
+    const markerIconFor = (type) => L.divIcon({ className: '', html: `<div class="map-marker ${type}">${type === 'complaint' ? '!' : type === 'task' ? '✓' : '⚙'}</div>`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -16] });
 
     function popupHtml(item, type) {
         const isComplaint = type === 'complaint';
-        const statusLabel = isComplaint ? labels.complaintStatus[item.status] : labels.taskStatus[item.status];
+        const isMaintenance = type === 'maintenance';
+        const statusLabel = isComplaint ? labels.complaintStatus[item.status] : isMaintenance ? labels.maintenanceStatus[item.status] : labels.taskStatus[item.status];
         const priorityLabel = labels.priority[item.priority] || item.priority || '—';
         const related = isComplaint
             ? (item.work_orders || []).map(work => `<div class="row"><span class="key">المهمة</span><span class="value">${escapeHtml(work.number)} · ${escapeHtml(labels.taskStatus[work.status] || work.status)}</span></div>`).join('')
-            : `<div class="row"><span class="key">الشكاوى المرتبطة</span><span class="value">${escapeHtml(item.complaints_count)}</span></div>`;
-        return `<div class="map-popup"><h4>${escapeHtml(isComplaint ? item.number : item.number)} — ${escapeHtml(item.title)}</h4><div class="row"><span class="key">الحالة</span><span class="value">${escapeHtml(statusLabel || item.status)}</span></div><div class="row"><span class="key">الأولوية</span><span class="value">${escapeHtml(priorityLabel)}</span></div><div class="row"><span class="key">المسؤول</span><span class="value">${escapeHtml(item.assigned_to || 'غير مسند')}</span></div>${isComplaint && item.contact_name ? `<div class="row"><span class="key">المواطن</span><span class="value">${escapeHtml(item.contact_name)}</span></div>` : ''}${isComplaint && item.address ? `<div class="row"><span class="key">العنوان</span><span class="value">${escapeHtml(item.address)}</span></div>` : ''}${related}<div style="margin-top:10px"><a href="${escapeHtml(item.url)}" class="text-brand-600 font-medium">عرض التفاصيل ←</a></div></div>`;
+            : isMaintenance
+                ? `<div class="row"><span class="key">الأصل</span><span class="value">${escapeHtml(item.asset_name || 'أصل جغرافي')}</span></div>`
+                : `<div class="row"><span class="key">الشكاوى المرتبطة</span><span class="value">${escapeHtml(item.complaints_count)}</span></div>`;
+        return `<div class="map-popup"><h4>${escapeHtml(item.number)} — ${escapeHtml(item.title || 'طلب صيانة')}</h4><div class="row"><span class="key">الحالة</span><span class="value">${escapeHtml(statusLabel || item.status)}</span></div><div class="row"><span class="key">الأولوية</span><span class="value">${escapeHtml(priorityLabel)}</span></div><div class="row"><span class="key">المسؤول</span><span class="value">${escapeHtml(item.assigned_to || 'غير مسند')}</span></div>${isComplaint && item.contact_name ? `<div class="row"><span class="key">المواطن</span><span class="value">${escapeHtml(item.contact_name)}</span></div>` : ''}${isComplaint && item.address ? `<div class="row"><span class="key">العنوان</span><span class="value">${escapeHtml(item.address)}</span></div>` : ''}${related}<div style="margin-top:10px"><a href="${escapeHtml(item.url)}" class="text-brand-600 font-medium">عرض التفاصيل ←</a></div></div>`;
     }
 
     function renderOperationalLayers() {
         state.complaintLayer.clearLayers();
         state.taskLayer.clearLayers();
+        state.maintenanceLayer.clearLayers();
         state.filtered.complaints.forEach(item => {
             const marker = L.marker([item.latitude, item.longitude], { icon: markerIconFor('complaint'), title: item.number });
             marker.bindPopup(popupHtml(item, 'complaint'), { maxWidth: 360 });
@@ -1306,12 +1313,18 @@ function initMapPage() {
             marker.bindPopup(popupHtml(item, 'task'), { maxWidth: 360 });
             state.taskLayer.addLayer(marker);
         });
+        state.filtered.maintenance.forEach(item => {
+            const marker = L.marker([item.latitude, item.longitude], { icon: markerIconFor('maintenance'), title: item.number });
+            marker.bindPopup(popupHtml(item, 'maintenance'), { maxWidth: 360 });
+            state.maintenanceLayer.addLayer(marker);
+        });
         updateStats();
     }
 
     function updateStats() {
         document.getElementById('stat-complaints')?.replaceChildren(document.createTextNode(String(state.filtered.complaints.length)));
         document.getElementById('stat-tasks')?.replaceChildren(document.createTextNode(String(state.filtered.tasks.length)));
+        document.getElementById('stat-maintenance')?.replaceChildren(document.createTextNode(String(state.filtered.maintenance.length)));
         const high = [...state.filtered.complaints, ...state.filtered.tasks].filter(item => ['high', 'urgent'].includes(item.priority)).length;
         document.getElementById('stat-high')?.replaceChildren(document.createTextNode(String(high)));
         document.getElementById('stat-datasets')?.replaceChildren(document.createTextNode(String(state.datasets.length)));
@@ -1327,17 +1340,18 @@ function initMapPage() {
         };
         state.filtered.complaints = state.complaints.filter(matches);
         state.filtered.tasks = state.tasks.filter(matches);
+        state.filtered.maintenance = state.maintenance.filter(matches);
         renderOperationalLayers();
     }
 
     function populateStatusFilter() {
         const select = document.getElementById('map-status');
         if (!select) return;
-        const values = new Set([...state.complaints.map(item => item.status), ...state.tasks.map(item => item.status)]);
+        const values = new Set([...state.complaints.map(item => item.status), ...state.tasks.map(item => item.status), ...state.maintenance.map(item => item.status)]);
         [...values].forEach(value => {
             const option = document.createElement('option');
             option.value = value;
-            option.textContent = labels.complaintStatus[value] || labels.taskStatus[value] || value;
+            option.textContent = labels.complaintStatus[value] || labels.taskStatus[value] || labels.maintenanceStatus[value] || value;
             select.appendChild(option);
         });
     }
@@ -1546,12 +1560,14 @@ function initMapPage() {
         const layers = [];
         if (document.getElementById('toggle-complaints')?.checked && state.complaintLayer.getLayers().length) layers.push(state.complaintLayer);
         if (document.getElementById('toggle-tasks')?.checked && state.taskLayer.getLayers().length) layers.push(state.taskLayer);
+        if (document.getElementById('toggle-maintenance')?.checked && state.maintenanceLayer.getLayers().length) layers.push(state.maintenanceLayer);
         Object.values(state.datasetLayers).forEach(layer => { if (map.hasLayer(layer) && layer.getLayers().length) layers.push(layer); });
         if (layers.length) map.fitBounds(L.featureGroup(layers).getBounds(), { padding: [45, 45], maxZoom: 16 });
     }
 
     document.getElementById('toggle-complaints')?.addEventListener('change', (event) => event.target.checked ? map.addLayer(state.complaintLayer) : map.removeLayer(state.complaintLayer));
     document.getElementById('toggle-tasks')?.addEventListener('change', (event) => event.target.checked ? map.addLayer(state.taskLayer) : map.removeLayer(state.taskLayer));
+    document.getElementById('toggle-maintenance')?.addEventListener('change', (event) => event.target.checked ? map.addLayer(state.maintenanceLayer) : map.removeLayer(state.maintenanceLayer));
     document.querySelectorAll('.dataset-toggle').forEach(checkbox => {
         checkbox.addEventListener('change', (event) => event.target.checked
             ? loadDataset(event.target.dataset.datasetId, event.target)
@@ -1594,9 +1610,11 @@ function initMapPage() {
         .then(data => {
             state.complaints = data.complaints || [];
             state.tasks = data.work_orders || [];
+            state.maintenance = data.maintenance || [];
             state.datasets = data.datasets || [];
             state.filtered.complaints = [...state.complaints];
             state.filtered.tasks = [...state.tasks];
+            state.filtered.maintenance = [...state.maintenance];
             populateStatusFilter();
             renderOperationalLayers();
             fitVisible();
@@ -1604,6 +1622,7 @@ function initMapPage() {
         .catch(() => {
             document.getElementById('stat-complaints')?.replaceChildren(document.createTextNode('0'));
             document.getElementById('stat-tasks')?.replaceChildren(document.createTextNode('0'));
+            document.getElementById('stat-maintenance')?.replaceChildren(document.createTextNode('0'));
             document.getElementById('stat-high')?.replaceChildren(document.createTextNode('0'));
             document.getElementById('stat-datasets')?.replaceChildren(document.createTextNode('0'));
             console.error('Map operational data failed to load.');
