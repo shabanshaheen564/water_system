@@ -28,7 +28,7 @@ class MaintenanceApiTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
 
         $this->user = User::factory()->create(['is_active' => true]);
-        $this->user->syncRoles([Role::findOrCreate('Field Worker', 'web')]);
+        $this->user->syncRoles([Role::findOrCreate('Engineer', 'web')]);
         $this->user->givePermissionTo(Permission::whereIn('name', [
             'maintenance.view',
             'maintenance.create',
