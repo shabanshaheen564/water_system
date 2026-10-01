@@ -94,21 +94,13 @@ class MaintenanceAccessService
 
     public function assertStatusTransition(MaintenanceRequest $maintenanceRequest, string $targetStatus): void
     {
-        $currentStatus = $maintenanceRequest->status;
-
-        $allowed = [
-            'new' => ['assigned', 'cancelled'],
-            'assigned' => ['in_progress', 'waiting'],
-            'in_progress' => ['waiting', 'not_repaired', 'completed'],
-            'waiting' => ['in_progress', 'not_repaired', 'completed'],
-            'not_repaired' => ['in_progress', 'waiting', 'completed'],
-            'completed' => ['in_progress', 'waiting'],
-            'cancelled' => ['in_progress', 'waiting'],
-        ];
-
-        if (!array_key_exists($currentStatus, $allowed) || !in_array($targetStatus, $allowed[$currentStatus], true)) {
+        // Authorized staff may correct or skip intermediate states when work is completed quickly.
+        if (!in_array($targetStatus, [
+            'new', 'assigned', 'in_progress', 'waiting',
+            'completed', 'not_repaired', 'cancelled',
+        ], true)) {
             throw ValidationException::withMessages([
-                'status' => "لا يمكن نقل طلب الصيانة من الحالة {$currentStatus} إلى {$targetStatus}.",
+                'status' => "حالة الصيانة غير صالحة: {$targetStatus}.",
             ]);
         }
     }
