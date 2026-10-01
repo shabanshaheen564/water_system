@@ -367,6 +367,7 @@ class MaintenanceController extends Controller
                 'identifier' => $maintenance->gisFeature->datasetRecord?->identifier_value,
                 'values' => $maintenance->gisFeature->datasetRecord?->values ?? [],
                 'geojson' => $maintenance->gisFeature->toGeoJsonFeature(),
+                'geometry' => $maintenance->gisFeature->toGeoJsonFeature()['geometry'] ?? null,
             ] : null,
             'reported_by' => $maintenance->reportedBy ? [
                 'id' => $maintenance->reportedBy->id,
