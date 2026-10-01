@@ -130,14 +130,26 @@ class MaintenanceWebTest extends TestCase
 
     public function test_web_can_create_update_and_execute_maintenance_request(): void
     {
+        $actor = User::factory()->create(['is_active' => true]);
+        $actor->syncRoles([Role::findOrCreate('Engineer', 'web')]);
+        $actor->givePermissionTo(Permission::whereIn('name', [
+            'maintenance.view', 'maintenance.create', 'maintenance.update',
+            'maintenance.assign', 'maintenance.complete',
+        ])->get());
+
         $dataset = $this->createDataset('wells_layer', 'Wells');
-        $this->grantDataset($dataset);
+        DB::table('maintenance_dataset_role')->insert([
+            'role_id' => $actor->roles()->first()->id,
+            'dataset_id' => $dataset->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $feature = $this->createFeature($dataset, 'W_02');
 
-        $response = $this->actingAs($this->user)->post('/maintenance', [
+        $response = $this->actingAs($actor)->post('/maintenance', [
             'gis_feature_id' => $feature->id,
             'priority' => 'high',
-            'assigned_to' => $this->user->id,
+            'assigned_to' => $actor->id,
             'problem_description' => 'المضخة لا تعمل.',
             'fault_description' => 'لا توجد استجابة عند التشغيل.',
         ]);
@@ -147,9 +159,9 @@ class MaintenanceWebTest extends TestCase
         $response->assertRedirect("/maintenance/{$maintenance->id}");
         $this->assertSame('new', $maintenance->status);
 
-        $this->actingAs($this->user)->put("/maintenance/{$maintenance->id}", [
+        $this->actingAs($actor)->put("/maintenance/{$maintenance->id}", [
             'priority' => 'urgent',
-            'assigned_to' => $this->user->id,
+            'assigned_to' => $actor->id,
             'problem_description' => 'المضخة لا تعمل.',
             'fault_description' => 'تم تأكيد العطل.',
             'notes' => 'اختبار تحديث.',
@@ -159,11 +171,11 @@ class MaintenanceWebTest extends TestCase
             'id' => $maintenance->id,
             'priority' => 'urgent',
             'status' => 'assigned',
-            'assigned_to' => $this->user->id,
+            'assigned_to' => $actor->id,
         ]);
 
-        $this->actingAs($this->user)->post("/maintenance/{$maintenance->id}/jobs", [
-            'technician_id' => $this->user->id,
+        $this->actingAs($actor)->post("/maintenance/{$maintenance->id}/jobs", [
+            'technician_id' => $actor->id,
             'result' => 'repaired',
             'diagnosed_fault' => 'عطل في التشغيل.',
             'repair_action' => 'تمت إعادة التشغيل والإصلاح.',
@@ -172,7 +184,7 @@ class MaintenanceWebTest extends TestCase
 
         $this->assertDatabaseHas('maintenance_jobs', [
             'maintenance_request_id' => $maintenance->id,
-            'technician_id' => $this->user->id,
+            'technician_id' => $actor->id,
             'result' => 'repaired',
         ]);
         $this->assertDatabaseHas('maintenance_requests', [
@@ -280,6 +292,7 @@ class MaintenanceWebTest extends TestCase
         $maintenance = MaintenanceRequest::create([
             'gis_feature_id' => $feature->id,
             'reported_by' => $this->user->id,
+            'assigned_to' => $this->user->id,
             'problem_description' => 'Lifecycle test.',
         ]);
 
@@ -352,6 +365,7 @@ class MaintenanceWebTest extends TestCase
         $maintenance = MaintenanceRequest::create([
             'gis_feature_id' => $feature->id,
             'reported_by' => $this->user->id,
+            'assigned_to' => $this->user->id,
             'problem_description' => 'Cancel test.',
         ]);
 
@@ -401,7 +415,7 @@ class MaintenanceWebTest extends TestCase
         $other = User::factory()->create(['is_active' => true]);
         $other->syncRoles([Role::findOrCreate('Field Worker', 'web')]);
         $otherRoleId = $other->roles()->first()->id;
-        DB::table('maintenance_dataset_role')->insert([
+        DB::table('maintenance_dataset_role')->insertOrIgnore([
             'role_id' => $otherRoleId,
             'dataset_id' => $dataset->id,
             'created_at' => now(),
