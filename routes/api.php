@@ -107,7 +107,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:reports
     Route::get('/reports/work-orders/export', [ReportController::class, 'exportWorkOrders']);
     Route::get('/reports/work-orders/{workOrder}/pdf', [ReportController::class, 'workOrderPdf']);
 });
-Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:gis.view|complaints.view|tasks.view'])->get('/map/operational', [\App\Http\Controllers\GisController::class, 'operationalData']);
+Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:gis.view|complaints.view|tasks.view|maintenance.view'])->get('/map/operational', [\App\Http\Controllers\GisController::class, 'operationalData']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.view'])->get('/complaints/{complaint}/gis/context', [OperationalGisController::class, 'complaint']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update'])->post('/complaints/{complaint}/gis/features/{feature}', [OperationalGisController::class, 'linkComplaint']);
 Route::middleware(['auth:sanctum', 'active', 'throttle:api', 'permission:complaints.update'])->delete('/complaints/{complaint}/gis/features/{feature}', [OperationalGisController::class, 'unlinkComplaint']);
