@@ -206,6 +206,15 @@ class MaintenanceWebController extends Controller
         $this->ensureVisible($request, $maintenanceRequest);
         $validated = $request->validated();
 
+        if (array_key_exists('assigned_to', $validated)) {
+            $newAssignedTo = $validated['assigned_to'];
+            if (!$this->access->canAssignRequests($request->user())
+                && ((int) ($newAssignedTo ?? 0) !== (int) $request->user()->id)
+            ) {
+                abort(403);
+            }
+        }
+
         DB::transaction(function () use ($maintenanceRequest, $validated) {
             $status = $validated['status'] ?? null;
             unset($validated['status']);
