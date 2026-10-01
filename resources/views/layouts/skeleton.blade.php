@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/app_icon.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/app_icon.png') }}">
     <title>{{ config('app.name') }} — {{ $title ?? __('messages.navigation.dashboard') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
@@ -128,7 +130,7 @@
     @stack('styles')
 </head>
 <body class="min-h-screen bg-white text-ink @if(request()->routeIs('map.*')) map-page @endif">
-    <div id="sidebar-overlay" class="fixed inset-0 z-40 hidden bg-black/30 opacity-0 transition-opacity duration-[220ms] lg:hidden" aria-hidden="true"></div>
+    <div id="sidebar-overlay" class="fixed inset-0 z-40 hidden bg-black/30 opacity-0 transition-opacity duration-[220ms]" aria-hidden="true"></div>
 
     {{-- Stable application skeleton: fixed header + fixed right sidebar + changing body --}}
     @include('layouts.side_menu')
