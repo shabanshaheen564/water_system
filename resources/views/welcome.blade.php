@@ -7,8 +7,8 @@
         <div class="grid lg:grid-cols-[1.35fr_.65fr]">
             <section class="p-8 sm:p-12 lg:p-16">
                 <div class="mb-10 flex items-center gap-4">
-                    <div class="btn-motion flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-brand-600 text-white" aria-hidden="true">
-                        <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 20h18M5 20V9l7-5 7 5v11M9 20v-6h6v6M17 8V5l3 2v13" stroke-linejoin="round"/></svg>
+                    <div class="btn-motion flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white" aria-hidden="true">
+                        <img src="{{ asset('images/app_icon.png') }}" alt="" class="h-full w-full object-contain" loading="eager" decoding="async">
                     </div>
                     <div>
                         <p class="text-sm font-medium text-brand-600">{{ __('messages.public.state') }}</p>
