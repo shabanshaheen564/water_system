@@ -247,6 +247,10 @@ class MaintenanceIntegrationTest extends TestCase
 
     private function asset(string $name, string $identifier): array
     {
+        $creator = User::query()->firstOrCreate(
+            ['email' => 'maintenance-integration@tests.local'],
+            ['name' => 'Maintenance Integration', 'username' => 'maintenance_integration', 'password' => bcrypt('password'), 'is_active' => true]
+        );
         $dataset = Dataset::create([
             'name' => $name,
             'display_name' => ucwords(str_replace('_', ' ', $name)),
@@ -261,14 +265,14 @@ class MaintenanceIntegrationTest extends TestCase
             'default_visible' => true,
             'map_opacity' => 1,
             'display_color' => '#475467',
-            'created_by' => 1,
+            'created_by' => $creator->id,
         ]);
 
         $record = DatasetRecord::create([
             'dataset_id' => $dataset->id,
             'values' => ['asset_code' => $identifier, 'name_ar' => 'أصل اختبار'],
             'identifier_value' => $identifier,
-            'created_by' => 1,
+            'created_by' => $creator->id,
         ]);
 
         DB::statement(
