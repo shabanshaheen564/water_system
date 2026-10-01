@@ -1,10 +1,10 @@
 <?php
 
-namespace AppServices;
+namespace App\Services;
 
-use AppModelsIdempotencyKey;
-use AppModelsUser;
-use IlluminateHttpJsonResponse;
+use App\Models\IdempotencyKey;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 
 class IdempotencyService
 {
