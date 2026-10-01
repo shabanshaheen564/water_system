@@ -5,11 +5,11 @@
     <div class="w-full">
         <div class="mb-7 text-center">
             <a href="{{ route('home') }}" class="inline-flex items-center justify-center">
-                <div class="btn-motion flex h-16 w-16 items-center justify-center overflow-hidden rounded-md bg-white" aria-hidden="true">
+                <div class="btn-motion flex h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-white" aria-hidden="true">
                     <img src="{{ asset('images/app_icon.png') }}" alt="" class="h-full w-full object-contain" loading="eager" decoding="async">
                 </div>
             </a>
-            <p class="mt-5 text-sm font-medium text-brand-600">{{ __('messages.app.municipality') }}</p>
+            <p class="mt-3 text-sm font-medium text-brand-600">{{ __('messages.app.municipality') }}</p>
             <h1 class="mt-1 text-2xl font-semibold leading-[1.5] text-ink">{{ __('messages.public.login') }}</h1>
             <p class="mt-1 text-sm text-ink-secondary">{{ __('messages.public.title') }}</p>
         </div>
