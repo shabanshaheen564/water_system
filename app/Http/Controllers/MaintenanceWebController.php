@@ -215,9 +215,14 @@ class MaintenanceWebController extends Controller
             }
         }
 
-        DB::transaction(function () use ($maintenanceRequest, $validated) {
+        DB::transaction(function () use ($request, $maintenanceRequest, $validated) {
             $status = $validated['status'] ?? null;
             unset($validated['status']);
+
+            if ($status !== null) {
+                $this->access->assertStatusPermission($request->user(), $status);
+                $this->access->assertStatusTransition($maintenanceRequest, $status);
+            }
 
             $oldAssigned = $maintenanceRequest->assigned_to;
             $maintenanceRequest->fill($validated);
@@ -264,7 +269,8 @@ class MaintenanceWebController extends Controller
     public function cancel(Request $request, MaintenanceRequest $maintenanceRequest): RedirectResponse
     {
         $this->ensureVisible($request, $maintenanceRequest);
-        abort_unless($request->user()->can('maintenance.update'), 403);
+        abort_unless($this->access->canCancelRequests($request->user()), 403);
+        $this->access->assertStatusTransition($maintenanceRequest, 'cancelled');
         $validated = $request->validate(['cancellation_reason' => ['required', 'string', 'max:5000']]);
 
         $maintenanceRequest->update([
@@ -280,6 +286,15 @@ class MaintenanceWebController extends Controller
     {
         $this->ensureVisible($request, $maintenanceRequest);
         $validated = $request->validated();
+        $this->access->assertJobExecutionAllowed($request->user(), $maintenanceRequest);
+
+        if (!$this->access->canManageAllRequests($request->user())
+            && array_key_exists('technician_id', $validated)
+            && $validated['technician_id'] !== null
+            && (int) $validated['technician_id'] !== (int) $request->user()->id
+        ) {
+            abort(403);
+        }
 
         DB::transaction(function () use ($request, $maintenanceRequest, $validated) {
             MaintenanceJob::create([
