@@ -221,6 +221,7 @@
 </style>
 
 <div class="map-shell">
+    <h1 class="sr-only">الخريطة التشغيلية</h1>
     <div id="map" data-operational-map="true" data-can-edit-gis="{{ auth()->user()->can('datasets.update') ? '1' : '0' }}"
          data-can-delete-gis="{{ auth()->user()->can('datasets.delete') ? '1' : '0' }}" data-map-data-url="{{ route('map.data') }}" data-map-url="{{ url('/map') }}" data-msg-load-failed="تعذر تحميل بيانات الخريطة." data-satellite-layer-label="صورة جوية / ستالايت">
         <span class="sr-only">الخريطة التفاعلية</span>
