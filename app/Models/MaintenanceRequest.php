@@ -41,6 +41,10 @@ class MaintenanceRequest extends Model
     protected static function booted(): void
     {
         static::creating(function (MaintenanceRequest $request): void {
+            if ($request->assigned_to !== null && $request->assigned_at === null) {
+                $request->assigned_at = now();
+            }
+
             if (!$request->request_no) {
                 $next = (int) \Illuminate\Support\Facades\DB::selectOne(
                     "SELECT nextval('maintenance_requests_number_seq') AS value"
