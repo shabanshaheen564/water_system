@@ -3,11 +3,16 @@
 namespace Tests\Feature;
 
 use App\Models\Complaint;
+use App\Models\DatasetRecord;
+use App\Models\GisFeature;
+use App\Models\MaintenanceRequest;
 use App\Models\Dataset;
 use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class OperationalMapTest extends TestCase
@@ -100,6 +105,54 @@ class OperationalMapTest extends TestCase
         $this->actingAs($user)->get('/map/data')->assertOk()
             ->assertJsonPath('work_orders.0.latitude', 31.5)
             ->assertJsonPath('work_orders.0.longitude', 34.48);
+    }
+
+    public function test_maintenance_viewer_receives_georeferenced_maintenance_data(): void
+    {
+        $user = User::factory()->create();
+        $user->syncRoles([Role::findOrCreate('Engineer', 'web')]);
+        $user->givePermissionTo(Permission::findByName('maintenance.view', 'web'));
+
+        $dataset = Dataset::create([
+            'name' => 'maintenance_map_test',
+            'display_name' => 'طبقة صيانة اختبارية',
+            'dataset_type' => 'spatial_layer',
+            'management_mode' => 'web_editable',
+            'is_active' => true,
+            'is_spatial' => true,
+            'maintenance_enabled' => true,
+            'geometry_type' => 'Point',
+            'srid' => 4326,
+            'created_by' => $user->id,
+        ]);
+        $record = DatasetRecord::create([
+            'dataset_id' => $dataset->id,
+            'values' => ['name_ar' => 'بئر اختبار'],
+            'identifier_value' => 'W-MAP-01',
+            'created_by' => $user->id,
+        ]);
+        DB::statement(
+            "INSERT INTO gis_features (dataset_record_id, dataset_id, geometry, geometry_type, srid, created_at, updated_at)
+             VALUES (?, ?, ST_SetSRID(ST_GeomFromText('POINT(34.48 31.50)'), 4326), 'Point', 4326, ?, ?)",
+            [$record->id, $dataset->id, now(), now()]
+        );
+        $feature = GisFeature::where('dataset_record_id', $record->id)->firstOrFail();
+
+        $request = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $user->id,
+            'priority' => 'high',
+            'status' => 'assigned',
+            'problem_description' => 'تسرب في الأصل',
+        ]);
+
+        $this->actingAs($user)->get('/map/data')->assertOk()
+            ->assertJsonPath('permissions.maintenance', true)
+            ->assertJsonPath('maintenance.0.id', $request->id)
+            ->assertJsonPath('maintenance.0.number', $request->request_no)
+            ->assertJsonPath('maintenance.0.asset_name', 'بئر اختبار')
+            ->assertJsonPath('maintenance.0.latitude', 31.5)
+            ->assertJsonPath('maintenance.0.longitude', 34.48);
     }
 
     public function test_dataset_viewer_receives_spatial_dataset_metadata(): void
