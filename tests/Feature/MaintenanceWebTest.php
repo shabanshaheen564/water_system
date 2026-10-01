@@ -356,10 +356,15 @@ class MaintenanceWebTest extends TestCase
         $this->assertDatabaseHas('maintenance_requests', ['id' => $maintenance->id, 'status' => 'completed']);
     }
 
-    public function test_cancellation_requires_reason_and_records_timestamp(): void
+    public function test_cancellation_requires_reason_and_records_timestamp_for_manager(): void
     {
+        $manager = User::factory()->create(['is_active' => true]);
+        $manager->syncRoles([Role::findOrCreate('Engineer', 'web')]);
+        $manager->givePermissionTo(Permission::whereIn('name', [
+            'maintenance.view', 'maintenance.update', 'maintenance.complete',
+        ])->get());
+
         $dataset = $this->createDataset('cancel_layer', 'Cancel Layer');
-        $this->grantDataset($dataset);
         $feature = $this->createFeature($dataset, 'C-01');
 
         $maintenance = MaintenanceRequest::create([
@@ -369,7 +374,7 @@ class MaintenanceWebTest extends TestCase
             'problem_description' => 'Cancel test.',
         ]);
 
-        $this->actingAs($this->user)->post("/maintenance/{$maintenance->id}/cancel", [
+        $this->actingAs($manager)->post("/maintenance/{$maintenance->id}/cancel", [
             'cancellation_reason' => 'تم إلغاء الطلب بعد المعالجة خارج النظام.',
         ])->assertRedirect();
 
@@ -377,6 +382,64 @@ class MaintenanceWebTest extends TestCase
         $this->assertSame('cancelled', $maintenance->status);
         $this->assertNotNull($maintenance->cancelled_at);
         $this->assertSame('تم إلغاء الطلب بعد المعالجة خارج النظام.', $maintenance->cancellation_reason);
+    }
+
+    public function test_field_worker_cannot_cancel_maintenance_request(): void
+    {
+        $dataset = $this->createDataset('cancel_security_layer', 'Cancel Security');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'CS-01');
+
+        $maintenance = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'assigned_to' => $this->user->id,
+            'problem_description' => 'Cancel security.',
+        ]);
+
+        $this->actingAs($this->user)->post("/maintenance/{$maintenance->id}/cancel", [
+            'cancellation_reason' => 'محاولة إلغاء.',
+        ])->assertForbidden();
+
+        $this->assertDatabaseHas('maintenance_requests', [
+            'id' => $maintenance->id,
+            'status' => 'new',
+        ]);
+    }
+
+    public function test_direct_terminal_status_change_is_rejected_and_execution_controls_completion(): void
+    {
+        $dataset = $this->createDataset('transition_layer', 'Transition Layer');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'T-01');
+
+        $maintenance = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'assigned_to' => $this->user->id,
+            'status' => 'assigned',
+            'problem_description' => 'Transition security.',
+        ]);
+
+        $this->actingAs($this->user)->put("/maintenance/{$maintenance->id}", [
+            'priority' => 'medium',
+            'assigned_to' => $this->user->id,
+            'status' => 'completed',
+            'problem_description' => 'Transition security.',
+        ])->assertSessionHasErrors('status');
+
+        $maintenance->refresh();
+        $this->assertSame('assigned', $maintenance->status);
+
+        $this->actingAs($this->user)->post("/maintenance/{$maintenance->id}/jobs", [
+            'result' => 'repaired',
+            'repair_action' => 'تم الإصلاح فعلياً.',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('maintenance_requests', [
+            'id' => $maintenance->id,
+            'status' => 'completed',
+        ]);
     }
 
     public function test_user_without_complete_permission_cannot_execute_maintenance(): void
@@ -498,6 +561,33 @@ class MaintenanceWebTest extends TestCase
             $this->actingAs($manager)->getJson("/api/maintenance/requests/{$unassigned->id}")
                 ->assertOk();
         }
+    }
+
+    public function test_closed_request_cannot_be_reassigned(): void
+    {
+        $dataset = $this->createDataset('closed_assignment_layer', 'Closed Assignment');
+        $this->grantDataset($dataset);
+        $feature = $this->createFeature($dataset, 'CA-01');
+
+        $maintenance = MaintenanceRequest::create([
+            'gis_feature_id' => $feature->id,
+            'reported_by' => $this->user->id,
+            'assigned_to' => $this->user->id,
+            'status' => 'assigned',
+            'problem_description' => 'Closed assignment.',
+        ]);
+
+        $this->actingAs($this->user)->post("/maintenance/{$maintenance->id}/jobs", [
+            'result' => 'repaired',
+        ])->assertRedirect();
+
+        $other = User::factory()->create(['is_active' => true]);
+
+        $this->actingAs($this->user)->put("/maintenance/{$maintenance->id}", [
+            'priority' => 'high',
+            'assigned_to' => $other->id,
+            'problem_description' => 'Closed assignment.',
+        ])->assertStatus(422);
     }
 
     public function test_field_worker_cannot_assign_or_reassign_maintenance_request(): void
