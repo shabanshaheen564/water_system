@@ -21,6 +21,7 @@ class StoreMaintenanceRequest extends FormRequest
             'problem_description' => ['required', 'string'],
             'fault_description' => ['sometimes', 'nullable', 'string'],
             'notes' => ['sometimes', 'nullable', 'string'],
+            'idempotency_key' => ['sometimes', 'nullable', 'string', 'max:100'],
         ];
     }
 }

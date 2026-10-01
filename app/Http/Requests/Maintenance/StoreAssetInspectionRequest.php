@@ -20,6 +20,7 @@ class StoreAssetInspectionRequest extends FormRequest
             'result' => ['required', Rule::in(['okay', 'problem'])],
             'problem_description' => ['nullable', 'string', 'required_if:result,problem'],
             'notes' => ['nullable', 'string'],
+            'idempotency_key' => ['sometimes', 'nullable', 'string', 'max:100'],
         ];
     }
 }

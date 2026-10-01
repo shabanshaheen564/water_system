@@ -23,6 +23,7 @@ class StoreMaintenanceJobRequest extends FormRequest
             'materials_used' => ['nullable', 'string', 'max:5000'],
             'result' => ['required', Rule::in(['repaired', 'not_repaired', 'inspection_only'])],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'idempotency_key' => ['sometimes', 'nullable', 'string', 'max:100'],
         ];
     }
 }

@@ -11,6 +11,7 @@ use App\Models\Dataset;
 use App\Models\GisFeature;
 use App\Models\MaintenanceJob;
 use App\Models\MaintenanceRequest;
+use App\Services\IdempotencyService;
 use App\Services\MaintenanceAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,10 @@ use Illuminate\Support\Facades\DB;
 
 class MaintenanceController extends Controller
 {
-    public function __construct(private readonly MaintenanceAccessService $access) {}
+    public function __construct(
+        private readonly MaintenanceAccessService $access,
+        private readonly IdempotencyService $idempotency,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -113,6 +117,10 @@ class MaintenanceController extends Controller
     public function inspect(StoreAssetInspectionRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $replay = $this->idempotency->replay($request->user(), $validated['idempotency_key'] ?? null, $request->path(), $validated);
+        if ($replay) {
+            return $replay;
+        }
         $feature = GisFeature::with(['dataset', 'datasetRecord'])->findOrFail($validated['gis_feature_id']);
         abort_unless($this->access->canAccessFeature($request->user(), $feature), 403);
 
@@ -151,15 +159,23 @@ class MaintenanceController extends Controller
                 'inspections.inspectedBy:id,name',
             ]);
 
-            return response()->json($this->format($maintenance), 201);
+            $payload = $this->format($maintenance);
+            $this->idempotency->store($request->user(), $validated['idempotency_key'] ?? null, $request->path(), $validated, $payload, 201);
+            return response()->json($payload, 201);
         }
 
-        return response()->json(['inspection_recorded' => true, 'maintenance_created' => false], 201);
+        $payload = ['inspection_recorded' => true, 'maintenance_created' => false];
+        $this->idempotency->store($request->user(), $validated['idempotency_key'] ?? null, $request->path(), $validated, $payload, 201);
+        return response()->json($payload, 201);
     }
 
     public function store(StoreMaintenanceRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $replay = $this->idempotency->replay($request->user(), $validated['idempotency_key'] ?? null, $request->path(), $validated);
+        if ($replay) {
+            return $replay;
+        }
         $feature = GisFeature::with('dataset')->findOrFail($validated['gis_feature_id']);
 
         abort_unless($this->access->canAccessFeature($request->user(), $feature), 403);
@@ -187,13 +203,19 @@ class MaintenanceController extends Controller
             'assignedTo:id,name,email',
         ]);
 
-        return response()->json($this->format($maintenance), 201);
+        $payload = $this->format($maintenance);
+        $this->idempotency->store($request->user(), $validated['idempotency_key'] ?? null, $request->path(), $validated, $payload, 201);
+        return response()->json($payload, 201);
     }
 
     public function update(UpdateMaintenanceRequest $request, MaintenanceRequest $maintenanceRequest): JsonResponse
     {
         $this->ensureVisible($request, $maintenanceRequest);
         $validated = $request->validated();
+        $replay = $this->idempotency->replay($request->user(), $validated['idempotency_key'] ?? null, $request->path(), $validated);
+        if ($replay) {
+            return $replay;
+        }
 
         if (array_key_exists('assigned_to', $validated)) {
             $newAssignedTo = $validated['assigned_to'];
@@ -259,13 +281,19 @@ class MaintenanceController extends Controller
             'inspections.inspectedBy:id,name',
         ]);
 
-        return response()->json($this->format($maintenanceRequest));
+        $payload = $this->format($maintenanceRequest);
+        $this->idempotency->store($request->user(), $validated['idempotency_key'] ?? null, $request->path(), $validated, $payload, 200);
+        return response()->json($payload);
     }
 
     public function storeJob(StoreMaintenanceJobRequest $request, MaintenanceRequest $maintenanceRequest): JsonResponse
     {
         $this->ensureVisible($request, $maintenanceRequest);
         $validated = $request->validated();
+        $replay = $this->idempotency->replay($request->user(), $validated['idempotency_key'] ?? null, $request->path(), $validated);
+        if ($replay) {
+            return $replay;
+        }
         $this->access->assertJobExecutionAllowed($request->user(), $maintenanceRequest);
 
         if (!$this->access->canManageAllRequests($request->user())
@@ -311,7 +339,9 @@ class MaintenanceController extends Controller
             'inspections.inspectedBy:id,name',
         ]);
 
-        return response()->json($this->format($maintenanceRequest));
+        $payload = $this->format($maintenanceRequest);
+        $this->idempotency->store($request->user(), $validated['idempotency_key'] ?? null, $request->path(), $validated, $payload, 200);
+        return response()->json($payload);
     }
 
     public function cancel(Request $request, MaintenanceRequest $maintenanceRequest): JsonResponse
@@ -319,7 +349,14 @@ class MaintenanceController extends Controller
         $this->ensureVisible($request, $maintenanceRequest);
         abort_unless($this->access->canCancelRequests($request->user()), 403);
         $this->access->assertStatusTransition($maintenanceRequest, 'cancelled');
-        $validated = $request->validate(['cancellation_reason' => ['required', 'string', 'max:5000']]);
+        $validated = $request->validate([
+            'cancellation_reason' => ['required', 'string', 'max:5000'],
+            'idempotency_key' => ['sometimes', 'nullable', 'string', 'max:100'],
+        ]);
+        $replay = $this->idempotency->replay($request->user(), $validated['idempotency_key'] ?? null, $request->path(), $validated);
+        if ($replay) {
+            return $replay;
+        }
 
         $maintenanceRequest->update([
             'status' => 'cancelled',
@@ -336,7 +373,9 @@ class MaintenanceController extends Controller
             'inspections.inspectedBy:id,name',
         ]);
 
-        return response()->json($this->format($maintenanceRequest));
+        $payload = $this->format($maintenanceRequest);
+        $this->idempotency->store($request->user(), $validated['idempotency_key'] ?? null, $request->path(), $validated, $payload, 200);
+        return response()->json($payload);
     }
 
     public function show(Request $request, MaintenanceRequest $maintenanceRequest): JsonResponse

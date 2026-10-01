@@ -22,6 +22,7 @@ class UpdateMaintenanceRequest extends FormRequest
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
             'status' => ['nullable', Rule::in(['new', 'assigned', 'in_progress', 'waiting', 'completed', 'not_repaired', 'cancelled'])],
             'cancellation_reason' => ['nullable', 'string', 'max:5000'],
+            'idempotency_key' => ['sometimes', 'nullable', 'string', 'max:100'],
         ];
     }
 }
